@@ -75,11 +75,11 @@ class _AboutPlokitchScreenState extends State<AboutPlokitchScreen>
                 ),
                 leadingWidth: 52,
                 title: Text(
-                  'Plokitch',
+                  '< Plokitch >',
                   style: GoogleFonts.lilitaOne(
-                    fontSize: 32,
+                    fontSize: 28,
                     color: cs.primary,
-                    letterSpacing: 0.02 * 32,
+                    letterSpacing: 0.02 * 28,
                   ),
                 ),
                 actions: [
