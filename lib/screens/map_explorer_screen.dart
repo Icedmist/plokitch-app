@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 
 class MapExplorerScreen extends StatefulWidget {
@@ -11,7 +10,6 @@ class MapExplorerScreen extends StatefulWidget {
 
 class _MapExplorerScreenState extends State<MapExplorerScreen> {
   bool _isSheetExpanded = false;
-  bool _isLocating = false;
   String _locationLabel = 'Gombe, Gombe State';
 
   // Gombe State city center approx coords: 10.2896° N, 11.1679° E
@@ -23,43 +21,12 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchLocation();
   }
 
-  Future<void> _fetchLocation() async {
-    setState(() => _isLocating = true);
-    try {
-      // Check + request permission
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.deniedForever ||
-          permission == LocationPermission.denied) {
-        setState(() {
-          _locationLabel = 'Gombe, Gombe State';
-          _isLocating = false;
-        });
-        return;
-      }
-
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-
-      setState(() {
-        _locationLabel =
-            '${pos.latitude.toStringAsFixed(4)}°N, ${pos.longitude.toStringAsFixed(4)}°E';
-        _isLocating = false;
-      });
-    } catch (_) {
-      setState(() {
-        _locationLabel = 'Gombe, Gombe State';
-        _isLocating = false;
-      });
-    }
+  void _refreshLocation() {
+    setState(() {
+      _locationLabel = 'Gombe, Gombe State';
+    });
   }
 
   @override
@@ -202,7 +169,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
 
                   // ── Location Banner ──────────────────────────────────────
                   GestureDetector(
-                    onTap: _fetchLocation,
+                    onTap: _refreshLocation,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 8),
@@ -219,22 +186,12 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (_isLocating)
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: colorScheme.primary,
-                              ),
-                            )
-                          else
-                            Icon(Icons.location_on,
-                                color: colorScheme.primary, size: 18),
+                          Icon(Icons.location_on,
+                              color: colorScheme.primary, size: 18),
                           const SizedBox(width: 6),
                           Flexible(
                             child: Text(
-                              _isLocating ? 'Locating…' : _locationLabel,
+                              _locationLabel,
                               style: textTheme.labelLarge?.copyWith(
                                 color: colorScheme.onSurface,
                               ),

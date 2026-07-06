@@ -13,8 +13,14 @@ import 'screens/order_tracking_screen.dart';
 import 'screens/order_history_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/chef_dashboard_screen.dart';
+import 'screens/chef_orders_screen.dart';
 import 'screens/kitchen_management_screen.dart';
+import 'screens/kitchen_profile_screen.dart';
+import 'screens/market_screen.dart';
 import 'screens/rider_dashboard_screen.dart';
+import 'screens/food_detail_screen.dart';
+import 'screens/account_details_screen.dart';
+import 'screens/payment_methods_screen.dart';
 import 'screens/notifications_screen.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
@@ -66,7 +72,13 @@ class PlokitchApp extends StatelessWidget {
             '/notifications': (context) => const NotificationsScreen(),
             '/settings': (context) => const SettingsScreen(),
             '/chef-dashboard': (context) => const ChefDashboardScreen(),
+            '/chef-orders': (context) => const ChefOrdersScreen(),
             '/kitchen': (context) => const KitchenManagementScreen(),
+            '/market': (context) => const MarketScreen(),
+            '/food-detail': (context) => const FoodDetailScreen(),
+            '/kitchen-profile': (context) => const KitchenProfileScreen(),
+            '/account-details': (context) => const AccountDetailsScreen(),
+            '/payment-methods': (context) => const PaymentMethodsScreen(),
             '/rider-dashboard': (context) => const RiderDashboardScreen(),
           },
         );

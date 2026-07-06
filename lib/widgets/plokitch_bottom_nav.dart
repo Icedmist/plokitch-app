@@ -68,8 +68,8 @@ class PlokitchBottomNav extends StatelessWidget {
       case 'rider':
         return const [
           _NavItem(Icons.home, 'Home'),
-          _NavItem(Icons.directions_bike, 'Deliveries'),
-          _NavItem(Icons.account_balance_wallet, 'Earnings'),
+          _NavItem(Icons.storefront, 'Market'),
+          _NavItem(Icons.receipt_long, 'Orders'),
           _NavItem(Icons.person, 'Profile'),
         ];
       default: // foodie

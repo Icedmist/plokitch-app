@@ -67,10 +67,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text('Preferences', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
           const SizedBox(height: 16),
           
-          _buildSettingsItem(Icons.person_outline, 'Account Details', colorScheme, textTheme, onTap: () {}),
+          _buildSettingsItem(Icons.person_outline, 'Account Details', colorScheme, textTheme,
+              onTap: () => Navigator.pushNamed(context, '/account-details')),
           _buildSettingsItem(Icons.notifications_none, 'Notifications', colorScheme, textTheme,
               onTap: () => Navigator.pushNamed(context, '/notifications')),
-          _buildSettingsItem(Icons.payment, 'Payment Methods', colorScheme, textTheme, onTap: () {}),
+          _buildSettingsItem(Icons.payment, 'Payment Methods', colorScheme, textTheme,
+              onTap: () => Navigator.pushNamed(context, '/payment-methods')),
           _buildSettingsItem(Icons.history, 'Order History', colorScheme, textTheme,
               onTap: () => Navigator.pushNamed(context, '/order-history')),
           

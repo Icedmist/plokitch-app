@@ -110,10 +110,10 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     final textTheme = Theme.of(context).textTheme;
 
     const bracketStyle = TextStyle(
-      fontSize: 88,
+      fontSize: 128,
       fontWeight: FontWeight.w900,
       height: 1.0,
-      letterSpacing: -4,
+      letterSpacing: -6,
     );
 
     return Scaffold(
