@@ -91,7 +91,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                       color: colorScheme.surface,
                       shape: BoxShape.circle,
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4)),
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4)),
                       ],
                     ),
                     child: Stack(
@@ -159,7 +159,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                       topRight: Radius.circular(24),
                     ),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -5)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, -5)),
                     ],
                   ),
                   child: ListView(
@@ -282,7 +282,9 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
     return Column(
       children: [
         // Full Width Hero Card
-        Container(
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/cart'),
+          child: Container(
           height: 180,
           decoration: BoxDecoration(
             color: const Color(0xFF642714), // warmBrown
@@ -362,7 +364,9 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: Container(
+              child: GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/cart'),
+                child: Container(
                 height: 140,
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHigh,

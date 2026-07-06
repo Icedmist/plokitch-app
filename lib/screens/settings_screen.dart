@@ -67,10 +67,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text('Preferences', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
           const SizedBox(height: 16),
           
-          _buildSettingsItem(Icons.person_outline, 'Account Details', colorScheme, textTheme),
-          _buildSettingsItem(Icons.notifications_none, 'Notifications', colorScheme, textTheme),
-          _buildSettingsItem(Icons.payment, 'Payment Methods', colorScheme, textTheme),
-          _buildSettingsItem(Icons.history, 'Order History', colorScheme, textTheme),
+          _buildSettingsItem(Icons.person_outline, 'Account Details', colorScheme, textTheme, onTap: () {}),
+          _buildSettingsItem(Icons.notifications_none, 'Notifications', colorScheme, textTheme,
+              onTap: () => Navigator.pushNamed(context, '/notifications')),
+          _buildSettingsItem(Icons.payment, 'Payment Methods', colorScheme, textTheme, onTap: () {}),
+          _buildSettingsItem(Icons.history, 'Order History', colorScheme, textTheme,
+              onTap: () => Navigator.pushNamed(context, '/order-history')),
           
           const SizedBox(height: 32),
           Text('Appearance', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
@@ -101,8 +103,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 32),
           Text('Support', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
           const SizedBox(height: 16),
-          _buildSettingsItem(Icons.help_outline, 'Help & Support', colorScheme, textTheme),
-          _buildSettingsItem(Icons.info_outline, 'About Plokitch', colorScheme, textTheme),
+          _buildSettingsItem(Icons.help_outline, 'Help & Support', colorScheme, textTheme, onTap: () {}),
+          _buildSettingsItem(Icons.info_outline, 'About Plokitch', colorScheme, textTheme,
+              onTap: () => Navigator.pushNamed(context, '/about')),
           
           const SizedBox(height: 48),
           
@@ -111,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             width: double.infinity,
             child: TextButton.icon(
               onPressed: () {
-                Navigator.pushReplacementNamed(context, '/onboarding');
+                Navigator.pushReplacementNamed(context, '/');
               },
               icon: Icon(Icons.logout, color: colorScheme.error),
               label: Text(
@@ -149,7 +152,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingsItem(IconData icon, String title, ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildSettingsItem(IconData icon, String title, ColorScheme colorScheme, TextTheme textTheme, {VoidCallback? onTap}) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Container(
@@ -162,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       title: Text(title, style: textTheme.titleMedium?.copyWith(color: colorScheme.onSurface)),
       trailing: Icon(Icons.chevron_right, color: colorScheme.outline),
-      onTap: () {},
+      onTap: onTap,
     );
   }
 

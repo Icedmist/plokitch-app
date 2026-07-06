@@ -10,13 +10,27 @@ import 'screens/map_explorer_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/payment_screen.dart';
 import 'screens/order_tracking_screen.dart';
+import 'screens/order_history_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/chef_dashboard_screen.dart';
 import 'screens/kitchen_management_screen.dart';
 import 'screens/rider_dashboard_screen.dart';
+import 'screens/notifications_screen.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 String mockUserRole = 'foodie'; // 'foodie', 'chef', 'rider'
+
+/// Returns the correct home screen widget based on the current user role.
+Widget _roleHome() {
+  switch (mockUserRole) {
+    case 'chef':
+      return const ChefDashboardScreen();
+    case 'rider':
+      return const RiderDashboardScreen();
+    default:
+      return const MapExplorerScreen();
+  }
+}
 
 void main() {
   runApp(const PlokitchApp());
@@ -43,17 +57,20 @@ class PlokitchApp extends StatelessWidget {
             '/onboarding': (context) => const OnboardingScreen(),
             '/sign-in': (context) => const SignInScreen(),
             '/profile-setup': (context) => const ProfileSetupFlow(),
-            '/home': (context) => const MapExplorerScreen(),
+            // Role-based home: always resolves to the correct dashboard
+            '/home': (context) => _roleHome(),
             '/cart': (context) => const CartScreen(),
             '/payment': (context) => const PaymentScreen(),
             '/tracking': (context) => const OrderTrackingScreen(),
+            '/order-history': (context) => const OrderHistoryScreen(),
+            '/notifications': (context) => const NotificationsScreen(),
             '/settings': (context) => const SettingsScreen(),
             '/chef-dashboard': (context) => const ChefDashboardScreen(),
             '/kitchen': (context) => const KitchenManagementScreen(),
             '/rider-dashboard': (context) => const RiderDashboardScreen(),
           },
         );
-      }
+      },
     );
   }
 }
