@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_button.dart';
 import '../widgets/plokitch_app_bar.dart';
+import '../main.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -13,7 +14,13 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _isPasswordVisible = false;
 
   void _handleSignIn() {
-    Navigator.pushReplacementNamed(context, '/home'); // Assuming successful login goes to home
+    if (mockUserRole == 'chef') {
+      Navigator.pushReplacementNamed(context, '/chef-dashboard');
+    } else if (mockUserRole == 'rider') {
+      Navigator.pushReplacementNamed(context, '/rider-dashboard');
+    } else {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
   }
 
   @override
@@ -100,6 +107,36 @@ class _SignInScreenState extends State<SignInScreen> {
                       color: colorScheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              // Mock role selector for testing
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: mockUserRole,
+                    isExpanded: true,
+                    icon: Icon(Icons.keyboard_arrow_down, color: colorScheme.primary),
+                    items: const [
+                      DropdownMenuItem(value: 'foodie', child: Text('Login as Foodie (Customer)')),
+                      DropdownMenuItem(value: 'chef', child: Text('Login as Chef')),
+                      DropdownMenuItem(value: 'rider', child: Text('Login as Rider')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          mockUserRole = value;
+                        });
+                      }
+                    },
                   ),
                 ),
               ),

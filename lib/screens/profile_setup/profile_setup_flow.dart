@@ -3,6 +3,7 @@ import 'referral_page.dart';
 import 'location_page.dart';
 import 'first_action_page.dart';
 import '../../widgets/plokitch_app_bar.dart';
+import '../../main.dart';
 
 class ProfileSetupFlow extends StatefulWidget {
   const ProfileSetupFlow({super.key});
@@ -14,7 +15,7 @@ class ProfileSetupFlow extends StatefulWidget {
 class _ProfileSetupFlowState extends State<ProfileSetupFlow> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  String _userRole = 'foodie'; // Default role, in a real app this comes from auth state
+  String _userRole = mockUserRole; // Default role from mock state
 
   void _nextPage() {
     if (_currentPage < 2) {
@@ -25,6 +26,8 @@ class _ProfileSetupFlowState extends State<ProfileSetupFlow> {
     } else {
       if (_userRole == 'chef') {
         Navigator.pushReplacementNamed(context, '/chef-dashboard');
+      } else if (_userRole == 'rider') {
+        Navigator.pushReplacementNamed(context, '/rider-dashboard');
       } else {
         Navigator.pushReplacementNamed(context, '/home');
       }

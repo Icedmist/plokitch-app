@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'theme/plokitch_theme.dart';
+import 'screens/welcome_screen.dart';
 import 'screens/about_plokitch_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/sign_in_screen.dart';
@@ -12,8 +13,10 @@ import 'screens/order_tracking_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/chef_dashboard_screen.dart';
 import 'screens/kitchen_management_screen.dart';
+import 'screens/rider_dashboard_screen.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+String mockUserRole = 'foodie'; // 'foodie', 'chef', 'rider'
 
 void main() {
   runApp(const PlokitchApp());
@@ -35,7 +38,8 @@ class PlokitchApp extends StatelessWidget {
           themeMode: currentMode,
           initialRoute: '/',
           routes: {
-            '/': (context) => const AboutPlokitchScreen(),
+            '/': (context) => const WelcomeScreen(),
+            '/about': (context) => const AboutPlokitchScreen(),
             '/onboarding': (context) => const OnboardingScreen(),
             '/sign-in': (context) => const SignInScreen(),
             '/profile-setup': (context) => const ProfileSetupFlow(),
@@ -46,6 +50,7 @@ class PlokitchApp extends StatelessWidget {
             '/settings': (context) => const SettingsScreen(),
             '/chef-dashboard': (context) => const ChefDashboardScreen(),
             '/kitchen': (context) => const KitchenManagementScreen(),
+            '/rider-dashboard': (context) => const RiderDashboardScreen(),
           },
         );
       }
