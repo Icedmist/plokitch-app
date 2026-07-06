@@ -108,7 +108,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text('42', style: textTheme.headlineLarge?.copyWith(color: colorScheme.onPrimaryContainer)),
-                          Icon(Icons.receipt, color: colorScheme.onPrimaryContainer.withOpacity(0.5)),
+                          Icon(Icons.receipt, color: colorScheme.onPrimaryContainer.withValues(alpha: 0.5)),
                         ],
                       ),
                     ],
@@ -134,7 +134,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text('₦85k', style: textTheme.headlineLarge?.copyWith(color: colorScheme.onPrimaryContainer)),
-                          Icon(Icons.payments, color: colorScheme.onPrimaryContainer.withOpacity(0.5)),
+                          Icon(Icons.payments, color: colorScheme.onPrimaryContainer.withValues(alpha: 0.5)),
                         ],
                       ),
                     ],
@@ -174,10 +174,12 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
         ],
       ),
       bottomNavigationBar: PlokitchBottomNav(
-        currentIndex: 1, // Menu/Market active (Using 1 for Kitchen/Chef sections too for now)
+        role: 'chef',
+        currentIndex: 0, // Home/Dashboard
         onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/home'); // Could go to chef home map
-          if (index == 1) Navigator.pushReplacementNamed(context, '/kitchen'); // Kitchen Management
+          if (index == 0) Navigator.pushReplacementNamed(context, '/chef-dashboard');
+          if (index == 1) Navigator.pushReplacementNamed(context, '/kitchen');
+          if (index == 2) Navigator.pushReplacementNamed(context, '/order-history');
           if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
         },
       ),

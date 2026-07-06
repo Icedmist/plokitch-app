@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 
 class MapExplorerScreen extends StatefulWidget {
@@ -10,6 +11,56 @@ class MapExplorerScreen extends StatefulWidget {
 
 class _MapExplorerScreenState extends State<MapExplorerScreen> {
   bool _isSheetExpanded = false;
+  bool _isLocating = false;
+  String _locationLabel = 'Gombe, Gombe State';
+
+  // Gombe State city center approx coords: 10.2896° N, 11.1679° E
+  // We use a static satellite-style map of Gombe as background.
+  static const _gombeMapUrl =
+      'https://images.unsplash.com/photo-1524661135-423995f22d0b'
+      '?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLocation();
+  }
+
+  Future<void> _fetchLocation() async {
+    setState(() => _isLocating = true);
+    try {
+      // Check + request permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.deniedForever ||
+          permission == LocationPermission.denied) {
+        setState(() {
+          _locationLabel = 'Gombe, Gombe State';
+          _isLocating = false;
+        });
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+
+      setState(() {
+        _locationLabel =
+            '${pos.latitude.toStringAsFixed(4)}°N, ${pos.longitude.toStringAsFixed(4)}°E';
+        _isLocating = false;
+      });
+    } catch (_) {
+      setState(() {
+        _locationLabel = 'Gombe, Gombe State';
+        _isLocating = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,111 +70,190 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Map Background Image
+          // ── 1. Gombe State Map Background ──────────────────────────────
           Positioned.fill(
             child: Image.network(
-              'https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+              _gombeMapUrl,
               fit: BoxFit.cover,
+              loadingBuilder: (ctx, child, progress) {
+                if (progress == null) return child;
+                return Container(
+                  color: colorScheme.surfaceContainerLow,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-          
-          // 2. Map Pins (Simulated)
+
+          // Gombe overlay tint
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.15),
+            ),
+          ),
+
+          // ── 2. Map Pins ─────────────────────────────────────────────────
           Positioned(
-            top: 200,
-            left: 100,
+            top: 220,
+            left: 90,
             child: _buildMapPin('Masa', colorScheme, textTheme),
           ),
           Positioned(
-            top: 350,
-            right: 80,
+            top: 360,
+            right: 70,
             child: _buildMapPin('Suya', colorScheme, textTheme, isSelected: true),
           ),
           Positioned(
-            top: 150,
-            right: 150,
+            top: 160,
+            right: 130,
             child: _buildMapPin('Jollof', colorScheme, textTheme),
           ),
-          
-          // 3. Floating Search & Top Bar
+          Positioned(
+            top: 300,
+            left: 160,
+            child: _buildMapPin('Tuwo', colorScheme, textTheme),
+          ),
+
+          // ── 3. Top Bar ─────────────────────────────────────────────────
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4)),
-                      ],
-                    ),
-                    child: IconButton(
-                      icon: Icon(Icons.menu, color: colorScheme.primary),
-                      onPressed: () {},
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: colorScheme.surface,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4)),
-                        ],
-                      ),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Search for Tuwo, Masa...',
-                          hintStyle: textTheme.bodyMedium?.copyWith(color: colorScheme.outline),
-                          prefixIcon: Icon(Icons.search, color: colorScheme.primary),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  Row(
+                    children: [
+                      // Menu button
+                      _floatingCircle(
+                        child: IconButton(
+                          icon: Icon(Icons.menu, color: colorScheme.primary),
+                          onPressed: () {},
                         ),
+                        colorScheme: colorScheme,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4)),
-                      ],
-                    ),
-                    child: Stack(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.shopping_cart, color: colorScheme.primary),
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/cart');
-                          },
-                        ),
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: colorScheme.error,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: colorScheme.surface, width: 1.5),
+                      const SizedBox(width: 12),
+                      // Search bar
+                      Expanded(
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Search Tuwo, Masa, Suya…',
+                              hintStyle: textTheme.bodyMedium
+                                  ?.copyWith(color: colorScheme.outline),
+                              prefixIcon:
+                                  Icon(Icons.search, color: colorScheme.primary),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
                             ),
                           ),
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: 12),
+                      // Cart button
+                      _floatingCircle(
+                        colorScheme: colorScheme,
+                        child: Stack(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.shopping_cart,
+                                  color: colorScheme.primary),
+                              onPressed: () =>
+                                  Navigator.pushNamed(context, '/cart'),
+                            ),
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.error,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: colorScheme.surface, width: 1.5),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // ── Location Banner ──────────────────────────────────────
+                  GestureDetector(
+                    onTap: _fetchLocation,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_isLocating)
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colorScheme.primary,
+                              ),
+                            )
+                          else
+                            Icon(Icons.location_on,
+                                color: colorScheme.primary, size: 18),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              _isLocating ? 'Locating…' : _locationLabel,
+                              style: textTheme.labelLarge?.copyWith(
+                                color: colorScheme.onSurface,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(Icons.refresh,
+                              size: 14, color: colorScheme.outline),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          
-          // Floating Action Buttons (My Location, Layers)
+
+          // ── 4. FABs ────────────────────────────────────────────────────
           Positioned(
             right: 16,
             bottom: MediaQuery.of(context).size.height * 0.45,
@@ -131,17 +261,16 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
               children: [
                 _buildFloatingIcon(Icons.layers, colorScheme),
                 const SizedBox(height: 12),
-                _buildFloatingIcon(Icons.my_location, colorScheme),
+                _buildFloatingIcon(Icons.my_location, colorScheme,
+                    onTap: _fetchLocation),
               ],
             ),
           ),
-          
-          // 4. Draggable Bottom Sheet (Bento Grid)
+
+          // ── 5. Draggable Bottom Sheet ───────────────────────────────────
           NotificationListener<DraggableScrollableNotification>(
-            onNotification: (notification) {
-              setState(() {
-                _isSheetExpanded = notification.extent > 0.45;
-              });
+            onNotification: (n) {
+              setState(() => _isSheetExpanded = n.extent > 0.45);
               return true;
             },
             child: DraggableScrollableSheet(
@@ -159,7 +288,11 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                       topRight: Radius.circular(24),
                     ),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, -5)),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, -5),
+                      ),
                     ],
                   ),
                   child: ListView(
@@ -177,16 +310,27 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        'Nearby Kitchens',
-                        style: textTheme.headlineMedium?.copyWith(color: colorScheme.primary),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Nearby Kitchens',
+                            style: textTheme.headlineMedium
+                                ?.copyWith(color: colorScheme.primary),
+                          ),
+                          // Notifications shortcut
+                          IconButton(
+                            icon: Icon(Icons.notifications_none,
+                                color: colorScheme.onSurfaceVariant),
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/notifications'),
+                            tooltip: 'Notifications',
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
-                      
-                      // Bento Grid Layout
-                      _buildBentoGrid(colorScheme, textTheme),
-                      
-                      const SizedBox(height: 100), // Space for bottom nav
+                      _buildBentoGrid(colorScheme, textTheme, context),
+                      const SizedBox(height: 100),
                     ],
                   ),
                 );
@@ -196,35 +340,65 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
         ],
       ),
       bottomNavigationBar: PlokitchBottomNav(
-        currentIndex: 0, // Home
+        role: 'foodie',
+        currentIndex: 0,
         onTap: (index) {
-          if (index == 1) {
-            // Market/Kitchen Management depending on role
-            Navigator.pushReplacementNamed(context, '/kitchen');
-          }
-          if (index == 2) Navigator.pushReplacementNamed(context, '/tracking');
+          if (index == 1) Navigator.pushNamed(context, '/market');
+          if (index == 2) Navigator.pushReplacementNamed(context, '/order-history');
           if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
         },
       ),
     );
   }
 
-  Widget _buildMapPin(String label, ColorScheme colorScheme, TextTheme textTheme, {bool isSelected = false}) {
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  Widget _floatingCircle({
+    required Widget child,
+    required ColorScheme colorScheme,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildMapPin(
+    String label,
+    ColorScheme colorScheme,
+    TextTheme textTheme, {
+    bool isSelected = false,
+  }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? colorScheme.primaryContainer : colorScheme.surface,
+            color:
+                isSelected ? colorScheme.primaryContainer : colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected ? colorScheme.primary : colorScheme.outlineVariant,
+              color: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant,
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: isSelected ? colorScheme.primaryContainer.withOpacity(0.4) : Colors.black12,
+                color: isSelected
+                    ? colorScheme.primaryContainer.withValues(alpha: 0.4)
+                    : Colors.black12,
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -234,13 +408,16 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (isSelected) ...[
-                Icon(Icons.star, size: 12, color: colorScheme.onPrimaryContainer),
+                Icon(Icons.star,
+                    size: 12, color: colorScheme.onPrimaryContainer),
                 const SizedBox(width: 4),
               ],
               Text(
                 isSelected ? '< $label >' : label,
                 style: textTheme.labelLarge?.copyWith(
-                  color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurface,
+                  color: isSelected
+                      ? colorScheme.onPrimaryContainer
+                      : colorScheme.onSurface,
                 ),
               ),
             ],
@@ -260,7 +437,8 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
     );
   }
 
-  Widget _buildFloatingIcon(IconData icon, ColorScheme colorScheme) {
+  Widget _buildFloatingIcon(IconData icon, ColorScheme colorScheme,
+      {VoidCallback? onTap}) {
     return Container(
       width: 48,
       height: 48,
@@ -268,97 +446,92 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
         color: colorScheme.surface,
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: IconButton(
         icon: Icon(icon, color: colorScheme.onSurfaceVariant),
-        onPressed: () {},
+        onPressed: onTap ?? () {},
       ),
     );
   }
 
-  Widget _buildBentoGrid(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildBentoGrid(
+      ColorScheme colorScheme, TextTheme textTheme, BuildContext context) {
     return Column(
       children: [
-        // Full Width Hero Card
+        // Hero card
         GestureDetector(
           onTap: () => Navigator.pushNamed(context, '/cart'),
           child: Container(
-          height: 180,
-          decoration: BoxDecoration(
-            color: const Color(0xFF642714), // warmBrown
-            borderRadius: BorderRadius.circular(16),
-            image: const DecorationImage(
-              image: NetworkImage('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'), // Suya image
-              fit: BoxFit.cover,
-              colorFilter: ColorFilter.mode(Colors.black45, BlendMode.darken),
+            height: 180,
+            decoration: BoxDecoration(
+              color: const Color(0xFF642714),
+              borderRadius: BorderRadius.circular(16),
+              image: const DecorationImage(
+                image: NetworkImage(
+                    'https://images.unsplash.com/photo-1555939594-58d7cb561ad1'
+                    '?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'),
+                fit: BoxFit.cover,
+                colorFilter:
+                    ColorFilter.mode(Colors.black45, BlendMode.darken),
+              ),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('TOP RATED',
+                        style: textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onPrimaryContainer)),
                   ),
-                  child: Text('TOP RATED', style: textTheme.labelSmall?.copyWith(color: colorScheme.onPrimaryContainer)),
-                ),
-                const SizedBox(height: 8),
-                Text('< Hajiya\'s Suya Spot >', style: textTheme.headlineSmall?.copyWith(color: Colors.white)),
-                Row(
-                  children: [
-                    const Icon(Icons.star, color: Colors.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text('4.9 (120 reviews) • 1.2km', style: textTheme.bodySmall?.copyWith(color: Colors.white)),
-                  ],
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text('Hajiya\'s Suya Spot',
+                      style: textTheme.headlineSmall
+                          ?.copyWith(color: Colors.white)),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, color: Colors.amber, size: 16),
+                      const SizedBox(width: 4),
+                      Text('4.9 (120 reviews) · 1.2km',
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: Colors.white)),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
         const SizedBox(height: 16),
-        
-        // Two smaller cards in a row
+
+        // Two cards row
         Row(
           children: [
             Expanded(
-              child: Container(
-                height: 140,
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
-                          image: DecorationImage(
-                            image: NetworkImage('https://images.unsplash.com/photo-1604328698692-f76ea9498e76?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Binta\'s Masa', style: textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('15 mins away', style: textTheme.bodySmall?.copyWith(color: colorScheme.primary)),
-                        ],
-                      ),
-                    ),
-                  ],
+              child: GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/cart'),
+                child: _buildKitchenCard(
+                  colorScheme: colorScheme,
+                  textTheme: textTheme,
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1604328698692-f76ea9498e76'
+                      '?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+                  name: 'Binta\'s Masa',
+                  eta: '15 mins',
                 ),
               ),
             ),
@@ -366,45 +539,23 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
             Expanded(
               child: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/cart'),
-                child: Container(
-                height: 140,
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
-                          image: DecorationImage(
-                            image: NetworkImage('https://images.unsplash.com/photo-1574484284002-952d92456975?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Mama Jollof', style: textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('25 mins away', style: textTheme.bodySmall?.copyWith(color: colorScheme.primary)),
-                        ],
-                      ),
-                    ),
-                  ],
+                child: _buildKitchenCard(
+                  colorScheme: colorScheme,
+                  textTheme: textTheme,
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1574484284002-952d92456975'
+                      '?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+                  name: 'Mama Jollof',
+                  eta: '25 mins',
                 ),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        // Promo Banner
+
+        // Promo banner (only when expanded)
         if (_isSheetExpanded)
           Container(
             padding: const EdgeInsets.all(16),
@@ -414,14 +565,19 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.local_fire_department, color: colorScheme.primaryContainer, size: 32),
+                Icon(Icons.local_fire_department,
+                    color: colorScheme.primaryContainer, size: 32),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Free Delivery Today!', style: textTheme.titleMedium?.copyWith(color: Colors.white)),
-                      Text('On all orders above ₦5000', style: textTheme.bodySmall?.copyWith(color: Colors.white70)),
+                      Text('Free Delivery Today!',
+                          style: textTheme.titleMedium
+                              ?.copyWith(color: Colors.white)),
+                      Text('On all orders above ₦5,000',
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: Colors.white70)),
                     ],
                   ),
                 ),
@@ -429,6 +585,56 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildKitchenCard({
+    required ColorScheme colorScheme,
+    required TextTheme textTheme,
+    required String imageUrl,
+    required String name,
+    required String eta,
+  }) {
+    return Container(
+      height: 140,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                image: DecorationImage(
+                  image: NetworkImage(imageUrl),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: textTheme.titleMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                Text(eta,
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: colorScheme.primary)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

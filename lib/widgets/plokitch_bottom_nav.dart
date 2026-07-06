@@ -4,10 +4,14 @@ class PlokitchBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
+  /// 'foodie' | 'chef' | 'rider'
+  final String role;
+
   const PlokitchBottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.role = 'foodie',
   });
 
   @override
@@ -15,18 +19,18 @@ class PlokitchBottomNav extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    // Tabs differ per role
+    final List<_NavItem> items = _itemsForRole(role);
+
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,
         border: Border(
-          top: BorderSide(
-            color: colorScheme.outlineVariant,
-            width: 1,
-          ),
+          top: BorderSide(color: colorScheme.outlineVariant, width: 1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -37,51 +41,51 @@ class PlokitchBottomNav extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
+            children: items.asMap().entries.map((e) {
+              return _buildNavItem(
                 context: context,
-                index: 0,
-                icon: Icons.home,
-                label: 'Home',
+                index: e.key,
+                item: e.value,
                 colorScheme: colorScheme,
                 textTheme: textTheme,
-              ),
-              _buildNavItem(
-                context: context,
-                index: 1,
-                icon: Icons.restaurant_menu, // For Chef it's Menu, For User it could be Market. I'll use Market.
-                label: 'Market',
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-              _buildNavItem(
-                context: context,
-                index: 2,
-                icon: Icons.receipt_long,
-                label: 'Orders',
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-              _buildNavItem(
-                context: context,
-                index: 3,
-                icon: Icons.person,
-                label: 'Profile',
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-            ],
+              );
+            }).toList(),
           ),
         ),
       ),
     );
   }
 
+  List<_NavItem> _itemsForRole(String role) {
+    switch (role) {
+      case 'chef':
+        return const [
+          _NavItem(Icons.home, 'Home'),
+          _NavItem(Icons.restaurant_menu, 'Kitchen'),
+          _NavItem(Icons.receipt_long, 'Orders'),
+          _NavItem(Icons.person, 'Profile'),
+        ];
+      case 'rider':
+        return const [
+          _NavItem(Icons.home, 'Home'),
+          _NavItem(Icons.directions_bike, 'Deliveries'),
+          _NavItem(Icons.account_balance_wallet, 'Earnings'),
+          _NavItem(Icons.person, 'Profile'),
+        ];
+      default: // foodie
+        return const [
+          _NavItem(Icons.home, 'Home'),
+          _NavItem(Icons.storefront, 'Market'),
+          _NavItem(Icons.receipt_long, 'Orders'),
+          _NavItem(Icons.person, 'Profile'),
+        ];
+    }
+  }
+
   Widget _buildNavItem({
     required BuildContext context,
     required int index,
-    required IconData icon,
-    required String label,
+    required _NavItem item,
     required ColorScheme colorScheme,
     required TextTheme textTheme,
   }) {
@@ -93,24 +97,28 @@ class PlokitchBottomNav extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Reduced
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? colorScheme.primaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(20), // Reduced from 24
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              icon,
-              size: 20, // Reduced from default 24
-              color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurfaceVariant,
+              item.icon,
+              size: 20,
+              color: isSelected
+                  ? colorScheme.onPrimaryContainer
+                  : colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 4),
             Text(
-              label,
+              item.label,
               style: textTheme.labelLarge?.copyWith(
-                color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurfaceVariant,
+                color: isSelected
+                    ? colorScheme.onPrimaryContainer
+                    : colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -118,4 +126,10 @@ class PlokitchBottomNav extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NavItem {
+  final IconData icon;
+  final String label;
+  const _NavItem(this.icon, this.label);
 }
