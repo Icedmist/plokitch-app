@@ -73,7 +73,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _Notification(
         id: '5',
         title: 'New Chef in Your Area',
-        body: 'Mama Ngozi's Kitchen just joined Plokitch. Try her Pounded Yam & Egusi!',
+        body: "Mama Ngozi's Kitchen just joined Plokitch. Try her Pounded Yam & Egusi!",
         time: 'Yesterday',
         icon: Icons.restaurant,
         isRead: true,
