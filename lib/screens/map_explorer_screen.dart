@@ -93,78 +93,6 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      // Menu button
-                      _floatingCircle(
-                        child: IconButton(
-                          icon: Icon(Icons.menu, color: colorScheme.primary),
-                          onPressed: () {},
-                        ),
-                        colorScheme: colorScheme,
-                      ),
-                      const SizedBox(width: 12),
-                      // Search bar
-                      Expanded(
-                        child: Container(
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: colorScheme.surface,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: 'Search Tuwo, Masa, Suya…',
-                              hintStyle: textTheme.bodyMedium
-                                  ?.copyWith(color: colorScheme.outline),
-                              prefixIcon:
-                                  Icon(Icons.search, color: colorScheme.primary),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 14),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Cart button
-                      _floatingCircle(
-                        colorScheme: colorScheme,
-                        child: Stack(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.shopping_cart,
-                                  color: colorScheme.primary),
-                              onPressed: () =>
-                                  Navigator.pushNamed(context, '/cart'),
-                            ),
-                            Positioned(
-                              right: 8,
-                              top: 8,
-                              child: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.error,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: colorScheme.surface, width: 1.5),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
                   const SizedBox(height: 8),
 
                   // ── Location Banner ──────────────────────────────────────
@@ -219,7 +147,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                 _buildFloatingIcon(Icons.layers, colorScheme),
                 const SizedBox(height: 12),
                 _buildFloatingIcon(Icons.my_location, colorScheme,
-                    onTap: _fetchLocation),
+                    onTap: _refreshLocation),
               ],
             ),
           ),

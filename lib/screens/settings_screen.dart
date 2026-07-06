@@ -144,11 +144,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
       bottomNavigationBar: PlokitchBottomNav(
+        role: mockUserRole,
         currentIndex: 3, // Profile
         onTap: (index) {
           if (index == 0) Navigator.pushReplacementNamed(context, '/home');
-          if (index == 1) Navigator.pushReplacementNamed(context, '/kitchen'); // or market depending on role
-          if (index == 2) Navigator.pushReplacementNamed(context, '/tracking');
+          if (index == 1) {
+            if (mockUserRole == 'chef') {
+              Navigator.pushReplacementNamed(context, '/kitchen');
+            } else {
+              Navigator.pushReplacementNamed(context, '/market', arguments: {'role': mockUserRole});
+            }
+          }
+          if (index == 2) {
+            if (mockUserRole == 'chef') {
+              Navigator.pushReplacementNamed(context, '/chef-orders');
+            } else {
+              Navigator.pushReplacementNamed(context, '/order-history', arguments: {'role': mockUserRole});
+            }
+          }
         },
       ),
     );

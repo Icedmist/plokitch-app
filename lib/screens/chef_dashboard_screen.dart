@@ -179,7 +179,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
         onTap: (index) {
           if (index == 0) Navigator.pushReplacementNamed(context, '/chef-dashboard');
           if (index == 1) Navigator.pushReplacementNamed(context, '/kitchen');
-          if (index == 2) Navigator.pushReplacementNamed(context, '/order-history');
+          if (index == 2) Navigator.pushReplacementNamed(context, '/chef-orders');
           if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
         },
       ),
