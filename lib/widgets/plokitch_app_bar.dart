@@ -5,10 +5,12 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showMenu;
   final bool showCart;
   final bool showAvatar;
+  final bool showNotificationIcon;
   final String? avatarUrl;
   final VoidCallback? onMenuPressed;
   final VoidCallback? onCartPressed;
   final VoidCallback? onAvatarPressed;
+  final VoidCallback? onNotificationPressed;
 
   const PlokitchAppBar({
     super.key,
@@ -16,10 +18,12 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showMenu = true,
     this.showCart = false,
     this.showAvatar = false,
+    this.showNotificationIcon = false,
     this.avatarUrl,
     this.onMenuPressed,
     this.onCartPressed,
     this.onAvatarPressed,
+    this.onNotificationPressed,
   });
 
   @override
@@ -41,6 +45,11 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       actions: [
+        if (showNotificationIcon)
+          IconButton(
+            icon: Icon(Icons.notifications_none, color: colorScheme.primary),
+            onPressed: onNotificationPressed,
+          ),
         if (showCart)
           IconButton(
             icon: Icon(Icons.shopping_cart, color: colorScheme.primary),
