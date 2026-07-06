@@ -137,7 +137,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         Transform.translate(
                           offset: Offset(_leftBracketSlide.value, 0),
                           child: Text(
-                            '>',
+                            '<',
                             style: bracketStyle.copyWith(
                               color: colorScheme.primary,
                             ),
@@ -164,7 +164,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         Transform.translate(
                           offset: Offset(_rightBracketSlide.value, 0),
                           child: Text(
-                            '<',
+                            '>',
                             style: bracketStyle.copyWith(
                               color: colorScheme.secondary,
                             ),
