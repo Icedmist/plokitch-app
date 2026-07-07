@@ -11,6 +11,7 @@ class MapExplorerScreen extends StatefulWidget {
 class _MapExplorerScreenState extends State<MapExplorerScreen> {
   bool _isSheetExpanded = false;
   String _locationLabel = 'Gombe, Gombe State';
+  String? _locationError;
 
   // Gombe State city center approx coords: 10.2896° N, 11.1679° E
   // We use a static satellite-style map of Gombe as background.
@@ -18,15 +19,73 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
       'https://images.unsplash.com/photo-1524661135-423995f22d0b'
       '?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
 
+  static const Map<String, String> _gombeLocations = {
+    'Gombe': 'Gombe, Gombe State',
+    'Bajoga': 'Bajoga, Funakaye',
+    'Akko': 'Akko, Gombe State',
+    'Billiri': 'Billiri, Gombe State',
+    'Gombe Airport': 'Gombe Airport, Kumo',
+    'Kaltungo': 'Kaltungo, Gombe State',
+    'Yalmatu': 'Yalmatu/Deba, Gombe State',
+    'Kumo': 'Kumo, Akko',
+    'Dukku': 'Dukku, Gombe State',
+    'Pindiga': 'Pindiga, Akko',
+  };
+
   @override
   void initState() {
     super.initState();
   }
 
   void _refreshLocation() {
-    setState(() {
+    try {
+      final lat = 10.2896;
+      final lng = 11.1679;
+      _locationLabel = _labelFromCoordinates(lat, lng);
+      _locationError = null;
+    } catch (error) {
       _locationLabel = 'Gombe, Gombe State';
-    });
+      _locationError = 'Unable to locate your position. Please make sure location services are enabled and try again.';
+    }
+    setState(() {});
+  }
+
+  String _labelFromCoordinates(double latitude, double longitude) {
+    // Real reverse geocoding should be added later.
+    final locationKey = _findClosestLocation(latitude, longitude);
+    return _gombeLocations[locationKey] ?? 'Gombe, Gombe State';
+  }
+
+  String _findClosestLocation(double latitude, double longitude) {
+    // Example mapping for common Gombe State coordinates.
+    if (latitude >= 10.2 && latitude <= 10.4 && longitude >= 11.0 && longitude <= 11.3) {
+      return 'Gombe';
+    }
+    if (latitude >= 10.5 && latitude <= 10.8 && longitude >= 11.6 && longitude <= 11.9) {
+      return 'Bajoga';
+    }
+    if (latitude >= 10.2 && latitude <= 10.4 && longitude >= 11.8 && longitude <= 12.1) {
+      return 'Kaltungo';
+    }
+    if (latitude >= 10.6 && latitude <= 10.9 && longitude >= 11.5 && longitude <= 11.9) {
+      return 'Kumo';
+    }
+    if (latitude >= 10.0 && latitude <= 10.3 && longitude >= 11.1 && longitude <= 11.4) {
+      return 'Akko';
+    }
+    if (latitude >= 10.4 && latitude <= 10.7 && longitude >= 11.6 && longitude <= 11.9) {
+      return 'Billiri';
+    }
+    if (latitude >= 10.3 && latitude <= 10.5 && longitude >= 11.2 && longitude <= 11.6) {
+      return 'Gombe Airport';
+    }
+    if (latitude >= 10.4 && latitude <= 10.6 && longitude >= 11.3 && longitude <= 11.7) {
+      return 'Dukku';
+    }
+    if (latitude >= 10.5 && latitude <= 10.7 && longitude >= 11.4 && longitude <= 11.6) {
+      return 'Yalmatu';
+    }
+    return 'Gombe';
   }
 
   @override
@@ -118,12 +177,27 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                               color: colorScheme.primary, size: 18),
                           const SizedBox(width: 6),
                           Flexible(
-                            child: Text(
-                              _locationLabel,
-                              style: textTheme.labelLarge?.copyWith(
-                                color: colorScheme.onSurface,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _locationLabel,
+                                  style: textTheme.labelLarge?.copyWith(
+                                    color: colorScheme.onSurface,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (_locationError != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _locationError!,
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.error,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                           const SizedBox(width: 4),

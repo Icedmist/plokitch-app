@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthService {
   AuthService._();
 
-  static final String _baseUrl = dotenv.env['PLOKITCH_API_URL'] ?? 'http://localhost:4000';
+  static final String _baseUrl = dotenv.env['VITE_API_URL'] ?? dotenv.env['PLOKITCH_API_URL'] ?? 'http://localhost:4000';
   static const String _sessionKey = 'PLOKITCH_SESSION_TOKEN';
   static const String _roleKey = 'PLOKITCH_USER_ROLE';
 
