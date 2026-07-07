@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_button.dart';
+import '../services/cart_service.dart';
+import '../services/api_service.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -12,6 +14,49 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   // Cart items will be sourced from backend when a persisted cart exists.
   final List<Map<String, dynamic>> _cartItems = [];
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCart();
+  }
+
+  Future<void> _handleCheckout() async {
+    if (_cartItems.isEmpty) return;
+    setState(() => _loading = true);
+    try {
+      final payload = {
+        'vendorId': _cartItems.first['vendorId'] ?? _cartItems.first['vendor']?['id'],
+        'items': _cartItems.map((i) => {
+              'menuItemId': i['id'],
+              'name': i['name'],
+              'price': i['price'],
+              'quantity': i['quantity'],
+            }).toList(),
+        'deliveryAddress': {
+          'street': 'User address placeholder',
+          'city': 'Unknown',
+          'state': 'Unknown'
+        }
+      };
+
+      final order = await ApiService.placeOrder(payload);
+      await CartService.clearCart();
+      setState(() => _cartItems.clear());
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order placed: ${order['id']}')));
+      Navigator.pushReplacementNamed(context, '/order-history');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to place order: $e')));
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadCart() async {
+    final items = await CartService.loadCart();
+    setState(() => _cartItems.addAll(items));
+  }
 
   int get _subtotal {
     return _cartItems.fold(0, (sum, item) => sum + ((item['price'] as int) * (item['quantity'] as int)));
@@ -24,6 +69,7 @@ class _CartScreenState extends State<CartScreen> {
       final newQuantity = _cartItems[index]['quantity'] + delta;
       if (newQuantity > 0) {
         _cartItems[index]['quantity'] = newQuantity;
+        CartService.saveCart(_cartItems);
       }
     });
   }
@@ -31,6 +77,7 @@ class _CartScreenState extends State<CartScreen> {
   void _removeItem(int index) {
     setState(() {
       _cartItems.removeAt(index);
+      CartService.saveCart(_cartItems);
     });
   }
 
@@ -107,10 +154,12 @@ class _CartScreenState extends State<CartScreen> {
                           ),
                           const SizedBox(height: 24),
                           PlokitchButton(
-                            text: 'Proceed to Payment',
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/payment');
-                            },
+                            text: _loading ? 'Processing...' : 'Proceed to Payment',
+                            onPressed: _loading
+                                ? null
+                                : () {
+                                    _handleCheckout();
+                                  },
                           ),
                         ],
                       ),

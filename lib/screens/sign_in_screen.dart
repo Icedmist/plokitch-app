@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/plokitch_button.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../main.dart';
+import '../services/auth_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -12,14 +13,34 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
   bool _isPasswordVisible = false;
+  bool _loading = false;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  void _handleSignIn() {
-    if (mockUserRole == 'chef') {
-      Navigator.pushReplacementNamed(context, '/chef-dashboard');
-    } else if (mockUserRole == 'rider') {
-      Navigator.pushReplacementNamed(context, '/rider-dashboard');
-    } else {
-      Navigator.pushReplacementNamed(context, '/home');
+  Future<void> _handleSignIn() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email and password are required')));
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      await AuthService.signIn(email, password);
+      final profile = await AuthService.getProfile();
+      final role = profile?['role'] as String? ?? 'customer';
+      if (role == 'chef') {
+        Navigator.pushReplacementNamed(context, '/chef-dashboard');
+      } else if (role == 'rider') {
+        Navigator.pushReplacementNamed(context, '/rider-dashboard');
+      } else {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() => _loading = false);
     }
   }
 
@@ -49,6 +70,7 @@ class _SignInScreenState extends State<SignInScreen> {
               const SizedBox(height: 48),
               
               _buildTextField(
+                controller: _emailController,
                 label: 'Email / Phone Number',
                 hint: 'amina@example.com',
                 icon: Icons.person_outline,
@@ -62,6 +84,7 @@ class _SignInScreenState extends State<SignInScreen> {
               Text('Password', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
               const SizedBox(height: 8),
               TextField(
+                controller: _passwordController,
                 obscureText: !_isPasswordVisible,
                 decoration: InputDecoration(
                   hintText: '••••••••',
@@ -116,8 +139,10 @@ class _SignInScreenState extends State<SignInScreen> {
               
               const SizedBox(height: 32),
               PlokitchButton(
-                text: 'Sign In',
-                onPressed: _handleSignIn,
+                text: _loading ? 'Signing in...' : 'Sign In',
+                onPressed: () {
+                  if (!_loading) _handleSignIn();
+                },
               ),
               
               const SizedBox(height: 24),
@@ -153,6 +178,7 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Widget _buildTextField({
+    TextEditingController? controller,
     required String label,
     required String hint,
     required IconData icon,
@@ -166,6 +192,7 @@ class _SignInScreenState extends State<SignInScreen> {
         Text(label, style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
         const SizedBox(height: 8),
         TextField(
+          controller: controller,
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,

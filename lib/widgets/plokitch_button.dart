@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class PlokitchButton extends StatefulWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isOutlined;
   final bool isFullWidth;
   final IconData? icon;
@@ -10,7 +10,7 @@ class PlokitchButton extends StatefulWidget {
   const PlokitchButton({
     super.key,
     required this.text,
-    required this.onPressed,
+    this.onPressed,
     this.isOutlined = false,
     this.isFullWidth = true,
     this.icon,
@@ -48,19 +48,27 @@ class _PlokitchButtonState extends State<PlokitchButton> with SingleTickerProvid
     final textTheme = Theme.of(context).textTheme;
 
     return GestureDetector(
-      onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) {
-        _controller.reverse();
-        widget.onPressed();
-      },
-      onTapCancel: () => _controller.reverse(),
+        onTapDown: (_) {
+          if (widget.onPressed != null) _controller.forward();
+        },
+        onTapUp: (_) {
+          if (widget.onPressed != null) {
+            _controller.reverse();
+            widget.onPressed!();
+          }
+        },
+        onTapCancel: () {
+          if (widget.onPressed != null) _controller.reverse();
+        },
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: Container(
           width: widget.isFullWidth ? double.infinity : null,
           height: 48, // Reduced from 56
           decoration: BoxDecoration(
-            color: widget.isOutlined ? Colors.transparent : colorScheme.primaryContainer,
+            color: widget.onPressed == null
+                ? colorScheme.onSurface.withOpacity(0.12)
+                : (widget.isOutlined ? Colors.transparent : colorScheme.primaryContainer),
             border: widget.isOutlined ? Border.all(color: colorScheme.primary, width: 2) : null,
             borderRadius: BorderRadius.circular(12), // Reduced from 16
             boxShadow: widget.isOutlined
@@ -88,7 +96,9 @@ class _PlokitchButtonState extends State<PlokitchButton> with SingleTickerProvid
               Text(
                 widget.text.toUpperCase(),
                 style: textTheme.labelLarge?.copyWith(
-                  color: widget.isOutlined ? colorScheme.primary : colorScheme.onPrimaryContainer,
+                  color: widget.onPressed == null
+                      ? colorScheme.onSurface
+                      : (widget.isOutlined ? colorScheme.primary : colorScheme.onPrimaryContainer),
                   letterSpacing: 1.5,
                   fontWeight: FontWeight.bold,
                 ),

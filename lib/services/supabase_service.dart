@@ -14,13 +14,11 @@ class SupabaseService {
   Future<void> signOut() => client.auth.signOut();
 
   Future<Map<String, dynamic>?> getProfile(String userId) async {
-    final resp = await client
-        .from('profiles')
-        .select()
-        .eq('id', userId)
-        .single()
-        .execute();
-    if (resp.error != null) throw resp.error!;
-    return resp.data as Map<String, dynamic>?;
+    try {
+      final resp = await client.from('profiles').select().eq('id', userId).single().execute();
+      return (resp as dynamic).data as Map<String, dynamic>?;
+    } catch (e) {
+      throw Exception('Failed to fetch profile: $e');
+    }
   }
 }

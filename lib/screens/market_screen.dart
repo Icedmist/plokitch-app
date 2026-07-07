@@ -223,34 +223,5 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Widget _buildFeaturedKitchenCard(BuildContext context, Map<String, dynamic> kitchen, TextTheme textTheme, ColorScheme colorScheme) {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/kitchen-profile', arguments: {'name': kitchen['name'], 'role': widget.role}),
-      child: Container(
-        height: 120,
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceVariant,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: colorScheme.outlineVariant),
-          image: DecorationImage(
-            image: NetworkImage(kitchen['image']),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(Colors.black26, BlendMode.darken),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(kitchen['name'], style: textTheme.titleLarge?.copyWith(color: Colors.white)),
-              const SizedBox(height: 6),
-              Text('${kitchen['rating']} · ${kitchen['location']}', style: textTheme.bodyMedium?.copyWith(color: Colors.white70)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Removed duplicate featured kitchen card (kept ListTile version above)
 }
