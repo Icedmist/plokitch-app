@@ -78,6 +78,7 @@ class _MarketScreenState extends State<MarketScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Market'),
         centerTitle: true,

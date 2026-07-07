@@ -43,7 +43,14 @@ Widget _roleHome() {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    // .env may be absent in some environments (web/dev); continue with defaults
+    // Avoid crashing the app when assets/.env is not present
+    // ignore: avoid_print
+    print('dotenv.load failed: $e');
+  }
   await Supabase.initialize(
     url: dotenv.env['VITE_SUPABASE_URL'] ?? '',
     anonKey: dotenv.env['VITE_SUPABASE_ANON_KEY'] ?? '',

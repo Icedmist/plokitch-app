@@ -48,6 +48,7 @@ class _ProfileSetupFlowState extends State<ProfileSetupFlow> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: const PlokitchAppBar(title: 'Setup Profile', showMenu: false),
       body: Column(
         children: [
