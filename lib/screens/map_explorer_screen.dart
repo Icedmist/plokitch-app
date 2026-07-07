@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+
 import '../widgets/plokitch_bottom_nav.dart';
 
 class MapExplorerScreen extends StatefulWidget {
@@ -14,11 +17,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
   String? _locationError;
 
   // Gombe State city center approx coords: 10.2896° N, 11.1679° E
-  // We use a static satellite-style map of Gombe as background.
-  static const _gombeMapUrl =
-      'https://images.unsplash.com/photo-1524661135-423995f22d0b'
-      '?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
-
+  // Render a free OpenStreetMap basemap for Gombe state.
   static const Map<String, String> _gombeLocations = {
     'Gombe': 'Gombe, Gombe State',
     'Bajoga': 'Bajoga, Funakaye',
@@ -98,20 +97,39 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
         children: [
           // ── 1. Gombe State Map Background ──────────────────────────────
           Positioned.fill(
-            child: Image.network(
-              _gombeMapUrl,
-              fit: BoxFit.cover,
-              loadingBuilder: (ctx, child, progress) {
-                if (progress == null) return child;
-                return Container(
-                  color: colorScheme.surfaceContainerLow,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: colorScheme.primary,
+            child: FlutterMap(
+              options: MapOptions(
+                center: const LatLng(10.2896, 11.1679),
+                zoom: 12,
+                minZoom: 10,
+                maxZoom: 16,
+                maxBounds: LatLngBounds(
+                  const LatLng(9.8, 10.5),
+                  const LatLng(11.4, 12.4),
+                ),
+                interactiveFlags: InteractiveFlag.all,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c'],
+                  userAgentPackageName: 'app.plokitch',
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      width: 36,
+                      height: 36,
+                      point: const LatLng(10.2896, 11.1679),
+                      builder: (context) => const Icon(
+                        Icons.location_pin,
+                        color: Colors.redAccent,
+                        size: 32,
+                      ),
                     ),
-                  ),
-                );
-              },
+                  ],
+                ),
+              ],
             ),
           ),
 
