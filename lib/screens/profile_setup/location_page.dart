@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../widgets/plokitch_button.dart';
 import '../../services/location_service.dart';
+import '../../services/api_service.dart';
 
-class LocationPage extends StatelessWidget {
+class LocationPage extends StatefulWidget {
   final VoidCallback onNext;
   final VoidCallback onBack;
 
@@ -11,6 +12,52 @@ class LocationPage extends StatelessWidget {
     required this.onNext,
     required this.onBack,
   });
+
+  @override
+  State<LocationPage> createState() => _LocationPageState();
+}
+
+class _LocationPageState extends State<LocationPage> {
+  bool _locating = false;
+  bool _saving = false;
+  String? _street;
+  String? _city;
+  String? _state;
+
+  Future<void> _findMe() async {
+    setState(() => _locating = true);
+    try {
+      final addr = await LocationService.locateAndReverse();
+      setState(() {
+        _street = addr['street'] as String?;
+        _city = addr['city'] as String?;
+        _state = addr['state'] as String?;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location detected — confirm or edit then save')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location failed: $e')));
+    } finally {
+      setState(() => _locating = false);
+    }
+  }
+
+  Future<void> _saveAddress() async {
+    setState(() => _saving = true);
+    try {
+      final address = {
+        'street': _street ?? '',
+        'city': _city ?? '',
+        'state': _state ?? '',
+      };
+      await LocationService.saveAddress(address);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Address saved')));
+      widget.onNext();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+    } finally {
+      setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +73,7 @@ class LocationPage extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: onBack,
+                onPressed: widget.onBack,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -45,7 +92,7 @@ class LocationPage extends StatelessWidget {
             style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 24),
-          
+
           // Map Placeholder
           Container(
             height: 200,
@@ -54,7 +101,7 @@ class LocationPage extends StatelessWidget {
               color: colorScheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(16),
               image: const DecorationImage(
-                image: NetworkImage('https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'), // Mapish image
+                image: NetworkImage('https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(Colors.black26, BlendMode.darken),
               ),
@@ -66,17 +113,9 @@ class LocationPage extends StatelessWidget {
                 Positioned(
                   bottom: 16,
                   child: ElevatedButton.icon(
-                    onPressed: () async {
-                      try {
-                        // attempt to locate and save
-                        await LocationService.locateAndSave();
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location saved')));
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location failed: $e')));
-                      }
-                    },
+                    onPressed: _locating ? null : _findMe,
                     icon: const Icon(Icons.my_location, size: 16),
-                    label: const Text('Find me on Map'),
+                    label: Text(_locating ? 'Detecting...' : 'Find me on Map'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colorScheme.surface,
                       foregroundColor: colorScheme.primary,
@@ -88,40 +127,46 @@ class LocationPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Address Input
-          Text('Detailed Address', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
+          Text('Street', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
           const SizedBox(height: 8),
           TextField(
-            maxLines: 3,
+            controller: TextEditingController(text: _street),
+            onChanged: (v) => _street = v,
             decoration: InputDecoration(
-              hintText: 'e.g. 15 Aminu Kano Way, Wuse 2\nOpposite the big supermarket',
+              hintText: 'Street address',
               hintStyle: textTheme.bodyLarge?.copyWith(color: colorScheme.outline),
               prefixIcon: Padding(
-                padding: const EdgeInsets.only(bottom: 32.0), // Align to top
+                padding: const EdgeInsets.only(bottom: 8.0),
                 child: Icon(Icons.home_work_outlined, color: colorScheme.onSurfaceVariant),
               ),
               filled: true,
               fillColor: colorScheme.surfaceContainerHigh,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: colorScheme.outlineVariant),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: colorScheme.outlineVariant),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: colorScheme.primary, width: 2),
-              ),
             ),
+            maxLines: 2,
           ),
-          
+          const SizedBox(height: 12),
+          Text('City', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: TextEditingController(text: _city),
+            onChanged: (v) => _city = v,
+            decoration: InputDecoration(filled: true, fillColor: colorScheme.surfaceContainerHigh),
+          ),
+          const SizedBox(height: 12),
+          Text('State', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: TextEditingController(text: _state),
+            onChanged: (v) => _state = v,
+            decoration: InputDecoration(filled: true, fillColor: colorScheme.surfaceContainerHigh),
+          ),
+
           const Spacer(),
           PlokitchButton(
-            text: 'Continue',
-            onPressed: onNext,
+            text: _saving ? 'Saving...' : 'Save Location',
+            onPressed: (_street == null && _city == null && _state == null) || _saving ? null : _saveAddress,
           ),
         ],
       ),

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
+import '../models/vendor_model.dart';
+import '../models/menu_item_model.dart';
 
 class ApiService {
   ApiService._();
@@ -23,7 +25,8 @@ class ApiService {
     final res = await http.get(uri, headers: await _headers());
     if (res.statusCode != 200) throw Exception('Failed to fetch vendors');
     final body = json.decode(res.body) as Map<String, dynamic>;
-    return body['data'] as List<dynamic>;
+    final list = body['data'] as List<dynamic>;
+    return list.map((e) => VendorModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
   }
 
   static Future<Map<String, dynamic>> fetchVendor(String idOrSlug) async {
@@ -39,7 +42,8 @@ class ApiService {
     final res = await http.get(uri, headers: await _headers());
     if (res.statusCode != 200) throw Exception('Failed to fetch menu');
     final body = json.decode(res.body) as Map<String, dynamic>;
-    return body['data'] as List<dynamic>;
+    final list = body['data'] as List<dynamic>;
+    return list.map((e) => MenuItemModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
   }
 
   static Future<Map<String, dynamic>> placeOrder(Map<String, dynamic> payload) async {

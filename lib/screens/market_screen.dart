@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 import '../services/api_service.dart';
+import '../models/vendor_model.dart';
+import '../models/menu_item_model.dart';
 
 class MarketScreen extends StatefulWidget {
   final String role;
@@ -17,8 +19,8 @@ class _MarketScreenState extends State<MarketScreen> {
 
   bool _loading = true;
   String? _error;
-  List<Map<String, dynamic>> _foods = [];
-  List<Map<String, dynamic>> _vendors = [];
+  List<MenuItemModel> _foods = [];
+  List<VendorModel> _vendors = [];
 
   @override
   void initState() {
@@ -33,18 +35,22 @@ class _MarketScreenState extends State<MarketScreen> {
     });
 
     try {
-      final vendors = await ApiService.fetchVendors();
-      // vendors are maps; each may include `menuItems`
-      final foods = <Map<String, dynamic>>[];
-      for (final v in vendors) {
-        final vm = Map<String, dynamic>.from(v as Map);
+      final fetched = await ApiService.fetchVendors();
+      final foods = <MenuItemModel>[];
+      final vendorList = fetched is List ? fetched : List.from(fetched as Iterable);
+      for (final v in vendorList) {
+        final vm = v as VendorModel;
         _vendors.add(vm);
-        final items = (vm['menuItems'] as List<dynamic>?) ?? [];
-        for (final item in items) {
-          final m = Map<String, dynamic>.from(item as Map);
-          m['kitchen'] = vm['businessName'] ?? vm['user']?['name'] ?? 'Kitchen';
-          m['location'] = vm['location']?['address'] ?? vm['location']?['city'] ?? '';
-          foods.add(m);
+        // fetch vendor menu and collect items
+        try {
+          final menuRaw = await ApiService.fetchVendorMenu(vm.id);
+          final menuList = menuRaw is List ? menuRaw : List.from(menuRaw as Iterable);
+          for (final mi in menuList) {
+            final item = mi as MenuItemModel;
+            foods.add(item);
+          }
+        } catch (_) {
+          // ignore menu fetch errors per vendor
         }
       }
 
@@ -58,10 +64,10 @@ class _MarketScreenState extends State<MarketScreen> {
     }
   }
 
-  List<Map<String, dynamic>> get _filteredFoods {
+  List<MenuItemModel> get _filteredFoods {
     if (_selectedCategory == 0) return _foods;
     final category = _categories[_selectedCategory];
-    return _foods.where((f) => (f['category'] as String? ?? '').toLowerCase() == category.toLowerCase()).toList();
+    return _foods.where((f) => (f.toJson()['category'] as String? ?? '').toLowerCase() == category.toLowerCase()).toList();
   }
 
   @override
@@ -140,10 +146,10 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Widget _buildFoodCard(BuildContext context, Map<String, dynamic> food, ColorScheme colorScheme, TextTheme textTheme) {
-    final displayPrice = (food['price'] is num) ? '₦${(food['price'] as num).toStringAsFixed(2)}' : (food['price']?.toString() ?? '₦0');
+  Widget _buildFoodCard(BuildContext context, MenuItemModel food, ColorScheme colorScheme, TextTheme textTheme) {
+    final displayPrice = '₦${food.price.toStringAsFixed(2)}';
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: {'foodItem': food, 'role': widget.role}),
+      onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: {'foodItem': food.toJson(), 'role': widget.role}),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
@@ -154,14 +160,14 @@ class _MarketScreenState extends State<MarketScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if ((food['image'] as String?) != null)
+            if ((food.imageUrl as String?) != null)
               ClipRRect(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(18),
                   topRight: Radius.circular(18),
                 ),
                 child: Image.network(
-                  food['image'] ?? '',
+                  food.imageUrl ?? '',
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -172,9 +178,9 @@ class _MarketScreenState extends State<MarketScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(food['name'] ?? '', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
+                  Text(food.name, style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
                   const SizedBox(height: 6),
-                  Text(food['kitchen'] ?? '', style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
+                  Text('', style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -183,7 +189,7 @@ class _MarketScreenState extends State<MarketScreen> {
                         children: [
                           const Icon(Icons.star, size: 18, color: Colors.amber),
                           const SizedBox(width: 4),
-                          Text((food['rating'] ?? '').toString(), style: textTheme.bodyLarge),
+                          Text('', style: textTheme.bodyLarge),
                         ],
                       ),
                       Text(displayPrice, style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary)),
@@ -193,8 +199,8 @@ class _MarketScreenState extends State<MarketScreen> {
                   Wrap(
                     spacing: 8,
                     children: [
-                      Chip(label: Text(food['category'] ?? '')), 
-                      Chip(label: Text(food['location'] ?? '')),
+                      Chip(label: Text(food.toJson()['category'] ?? '')), 
+                      const SizedBox.shrink(),
                     ],
                   ),
                 ],
@@ -206,11 +212,11 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Widget _buildFeaturedKitchenCard(BuildContext context, Map<String, dynamic> kitchen, TextTheme textTheme, ColorScheme colorScheme) {
-    final image = kitchen['imageUrl'] ?? kitchen['image'] ?? '';
-    final name = kitchen['businessName'] ?? kitchen['user']?['name'] ?? 'Kitchen';
-    final rating = (kitchen['rating'] ?? '').toString();
-    final specialty = kitchen['specialty'] ?? '';
+  Widget _buildFeaturedKitchenCard(BuildContext context, VendorModel kitchen, TextTheme textTheme, ColorScheme colorScheme) {
+    final image = kitchen.imageUrl ?? '';
+    final name = kitchen.businessName;
+    final rating = '';
+    final specialty = kitchen.description ?? '';
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -218,7 +224,7 @@ class _MarketScreenState extends State<MarketScreen> {
         leading: image.isNotEmpty ? Image.network(image, width: 64, height: 64, fit: BoxFit.cover) : null,
         title: Text(name, style: textTheme.titleMedium),
         subtitle: Text('$specialty · Rated $rating'),
-        trailing: TextButton(onPressed: () => Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': kitchen['id']}), child: const Text('View')),
+        trailing: TextButton(onPressed: () => Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': kitchen.id}), child: const Text('View')),
       ),
     );
   }
