@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'auth_service.dart';
 
 class ApiService {
   ApiService._();
@@ -12,14 +12,10 @@ class ApiService {
   static Uri _uri(String path) => Uri.parse('$_baseUrl$path');
 
   static Future<Map<String, String>> _headers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('PLOKITCH_SESSION_TOKEN');
-    final headers = <String, String>{'Content-Type': 'application/json'};
-    if (token != null) {
-      headers['x-better-auth-session'] = token;
-      headers['Cookie'] = 'plotkitch.session_token=$token';
-    }
-    return headers;
+    final base = await AuthService.authHeaders();
+    // ensure content-type is present
+    base.putIfAbsent('Content-Type', () => 'application/json');
+    return base;
   }
 
   static Future<List<dynamic>> fetchVendors({int limit = 50, int offset = 0}) async {
@@ -54,6 +50,14 @@ class ApiService {
     }
     final body = json.decode(res.body) as Map<String, dynamic>;
     return body['data'] as Map<String, dynamic>;
+  }
+
+  static Future<void> saveUserLocation(Map<String, dynamic> payload) async {
+    final uri = _uri('/api/users/me');
+    final res = await http.patch(uri, headers: await _headers(), body: json.encode(payload));
+    if (res.statusCode >= 400) {
+      throw Exception('Failed to save location: ${res.body}');
+    }
   }
 
   static Future<List<dynamic>> fetchOrders({int limit = 50, int offset = 0}) async {

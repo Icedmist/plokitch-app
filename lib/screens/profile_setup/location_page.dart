@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/plokitch_button.dart';
+import '../../services/location_service.dart';
 
 class LocationPage extends StatelessWidget {
   final VoidCallback onNext;
@@ -65,7 +66,15 @@ class LocationPage extends StatelessWidget {
                 Positioned(
                   bottom: 16,
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () async {
+                      try {
+                        // attempt to locate and save
+                        await LocationService.locateAndSave();
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location saved')));
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location failed: $e')));
+                      }
+                    },
                     icon: const Icon(Icons.my_location, size: 16),
                     label: const Text('Find me on Map'),
                     style: ElevatedButton.styleFrom(

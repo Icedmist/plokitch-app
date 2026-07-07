@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'theme/plokitch_theme.dart';
+import 'services/auth_service.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/about_plokitch_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -26,7 +27,7 @@ import 'screens/payment_methods_screen.dart';
 import 'screens/notifications_screen.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
-String mockUserRole = 'customer'; // placeholder until auth is wired
+String mockUserRole = 'customer'; // updated at startup from stored profile when available
 
 /// Returns the correct home screen widget based on the current user role.
 Widget _roleHome() {
@@ -47,6 +48,13 @@ Future<void> main() async {
     url: dotenv.env['VITE_SUPABASE_URL'] ?? '',
     anonKey: dotenv.env['VITE_SUPABASE_ANON_KEY'] ?? '',
   );
+  // Load stored role from AuthService and update global role used by routing
+  try {
+    final role = await AuthService.storedRole();
+    if (role != null && role.isNotEmpty) {
+      mockUserRole = role;
+    }
+  } catch (_) {}
   runApp(const PlokitchApp());
 }
 

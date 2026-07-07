@@ -9,6 +9,7 @@ class AuthService {
 
   static final String _baseUrl = dotenv.env['PLOKITCH_API_URL'] ?? 'http://localhost:4000';
   static const String _sessionKey = 'PLOKITCH_SESSION_TOKEN';
+  static const String _roleKey = 'PLOKITCH_USER_ROLE';
 
   static Uri _uri(String path) => Uri.parse('$_baseUrl$path');
 
@@ -49,6 +50,12 @@ class AuthService {
     if (token != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_sessionKey, token);
+      // attempt to fetch and persist profile role immediately
+      try {
+        final profile = await getProfile();
+        final role = profile?['role'] as String?;
+        if (role != null) await prefs.setString(_roleKey, role);
+      } catch (_) {}
     }
   }
 
@@ -69,7 +76,57 @@ class AuthService {
     final res = await http.get(uri, headers: _buildHeaders(token));
     if (res.statusCode != 200) return null;
     final body = json.decode(res.body) as Map<String, dynamic>;
-    return body['data'] as Map<String, dynamic>?;
+    final data = body['data'] as Map<String, dynamic>?;
+    if (data != null) {
+      final role = data['role'] as String?;
+      if (role != null) {
+        await prefs.setString(_roleKey, role);
+      }
+    }
+    return data;
+  }
+
+  /// Returns stored role if available.
+  static Future<String?> storedRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_roleKey);
+  }
+
+  /// Attempt to refresh session token using backend refresh endpoint.
+  /// If refresh fails, clears stored session.
+  static Future<bool> tryRefreshSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(_sessionKey);
+    if (token == null) return false;
+    try {
+      final uri = _uri('/api/auth/refresh');
+      final res = await http.post(uri, headers: _buildHeaders(token));
+      if (res.statusCode != 200) {
+        await prefs.remove(_sessionKey);
+        await prefs.remove(_roleKey);
+        return false;
+      }
+      // parse new token from Set-Cookie or body
+      String? setCookie = res.headers['set-cookie'] ?? res.headers['Set-Cookie'];
+      String? newToken;
+      if (setCookie != null) {
+        final match = RegExp(r'plotkitch\.session_token=([^;]+)').firstMatch(setCookie);
+        if (match != null) newToken = match.group(1);
+      }
+      if (newToken == null) {
+        try {
+          final body = json.decode(res.body) as Map<String, dynamic>;
+          newToken = body['session']?['token'] ?? body['token'] as String?;
+        } catch (_) {}
+      }
+      if (newToken != null) {
+        await prefs.setString(_sessionKey, newToken);
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   static Map<String, String> _buildHeaders(String? token) {
