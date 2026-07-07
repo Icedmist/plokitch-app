@@ -112,34 +112,7 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
               
               const SizedBox(height: 16),
-              // Mock role selector for testing
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colorScheme.outlineVariant),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: mockUserRole,
-                    isExpanded: true,
-                    icon: Icon(Icons.keyboard_arrow_down, color: colorScheme.primary),
-                    items: const [
-                      DropdownMenuItem(value: 'foodie', child: Text('Login as Foodie (Customer)')),
-                      DropdownMenuItem(value: 'chef', child: Text('Login as Chef')),
-                      DropdownMenuItem(value: 'rider', child: Text('Login as Rider')),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          mockUserRole = value;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ),
+              const SizedBox.shrink(),
               
               const SizedBox(height: 32),
               PlokitchButton(

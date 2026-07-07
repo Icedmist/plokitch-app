@@ -15,7 +15,7 @@ class ProfileSetupFlow extends StatefulWidget {
 class _ProfileSetupFlowState extends State<ProfileSetupFlow> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  String _userRole = mockUserRole; // Default role from mock state
+  String _userRole = 'customer'; // default until auth/profile sets actual role
 
   void _nextPage() {
     if (_currentPage < 2) {

@@ -10,33 +10,8 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  // Sample data
-  final List<Map<String, dynamic>> _cartItems = [
-    {
-      'id': '1',
-      'name': 'Jollof Rice Feast',
-      'description': 'With grilled chicken & plantain',
-      'price': 4500,
-      'quantity': 2,
-      'image': 'https://images.unsplash.com/photo-1574484284002-952d92456975?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      'id': '2',
-      'name': 'Suya Platter',
-      'description': 'Spicy grilled beef with onions',
-      'price': 7200,
-      'quantity': 1,
-      'image': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      'id': '3',
-      'name': 'Masa Delight',
-      'description': 'Traditional rice cakes with honey',
-      'price': 2800,
-      'quantity': 3,
-      'image': 'https://images.unsplash.com/photo-1604328698692-f76ea9498e76?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    },
-  ];
+  // Cart items will be sourced from backend when a persisted cart exists.
+  final List<Map<String, dynamic>> _cartItems = [];
 
   int get _subtotal {
     return _cartItems.fold(0, (sum, item) => sum + ((item['price'] as int) * (item['quantity'] as int)));

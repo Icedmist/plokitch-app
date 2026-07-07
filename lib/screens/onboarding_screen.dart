@@ -17,9 +17,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _nextPage() {
     if (_currentPage < 2) {
-      if (_currentPage == 1 && _selectedRole != null) {
-        mockUserRole = _selectedRole!;
-      }
+      // selected role will be persisted during profile setup after signup
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,

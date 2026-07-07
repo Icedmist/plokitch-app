@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'theme/plokitch_theme.dart';
 import 'screens/welcome_screen.dart';
@@ -24,7 +26,7 @@ import 'screens/payment_methods_screen.dart';
 import 'screens/notifications_screen.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
-String mockUserRole = 'foodie'; // 'foodie', 'chef', 'rider'
+String mockUserRole = 'customer'; // placeholder until auth is wired
 
 /// Returns the correct home screen widget based on the current user role.
 Widget _roleHome() {
@@ -38,7 +40,13 @@ Widget _roleHome() {
   }
 }
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+  await Supabase.initialize(
+    url: dotenv.env['VITE_SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['VITE_SUPABASE_ANON_KEY'] ?? '',
+  );
   runApp(const PlokitchApp());
 }
 
