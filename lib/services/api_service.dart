@@ -64,6 +64,14 @@ class ApiService {
     }
   }
 
+  static Future<void> updateUserProfile(Map<String, dynamic> payload) async {
+    final uri = _uri('/api/users/me');
+    final res = await http.patch(uri, headers: await _headers(), body: json.encode(payload));
+    if (res.statusCode >= 400) {
+      throw Exception('Failed to update profile: ${res.body}');
+    }
+  }
+
   static Future<List<OrderModel>> fetchOrders({int limit = 50, int offset = 0}) async {
     final uri = _uri('/api/orders?limit=$limit&offset=$offset');
     final res = await http.get(uri, headers: await _headers());
