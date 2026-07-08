@@ -18,7 +18,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final itemRaw = widget.foodItem ?? args?['foodItem'] as Map<String, dynamic>?;
-    final kitchenName = args?['kitchen'] as String? ?? 'Unknown Kitchen';
+    final kitchenName = args?['kitchen'] as String? ?? itemRaw?['kitchen'] as String? ?? 'Unknown Kitchen';
     final vendorId = args?['vendorId'] as String? ?? itemRaw?['vendorId'] as String?;
 
     if (itemRaw == null) {
@@ -52,7 +52,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                 height: 240,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   height: 240,
                   width: double.infinity,
                   color: Theme.of(context).colorScheme.surfaceContainerHigh,
@@ -94,8 +94,14 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
               contentPadding: const EdgeInsets.all(16),
               title: Text(kitchenName, style: Theme.of(context).textTheme.titleMedium),
               subtitle: Text(location),
-              trailing: TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': vendorId ?? '', 'name': kitchenName}),
+                trailing: TextButton(
+                onPressed: () {
+                  if (vendorId == null || vendorId.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen information is missing.')));
+                    return;
+                  }
+                  Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': vendorId, 'name': kitchenName});
+                },
                 child: const Text('View Profile'),
               ),
             ),
@@ -116,6 +122,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                     if (vendorId == null || vendorId.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen information is missing.')));
                       return;
+                    }
+                    if (itemRaw['vendorId'] == null) {
+                      itemRaw['vendorId'] = vendorId;
                     }
                     setState(() => _addingToCart = true);
                     await _addToCart(

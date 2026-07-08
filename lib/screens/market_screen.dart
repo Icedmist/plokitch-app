@@ -20,8 +20,9 @@ class _MarketScreenState extends State<MarketScreen> {
   bool _loading = true;
   String? _error;
   List<MenuItemModel> _foods = [];
-  List<VendorModel> _vendors = [];
+  final List<VendorModel> _vendors = [];
   final Map<String, String> _foodIdToVendorName = {};
+  final Map<String, String> _foodIdToVendorId = {};
 
   @override
   void initState() {
@@ -38,21 +39,20 @@ class _MarketScreenState extends State<MarketScreen> {
     try {
       final fetched = await ApiService.fetchVendors();
       final foods = <MenuItemModel>[];
-      final vendorList = fetched is List ? fetched : List.from(fetched as Iterable);
+      final vendorList = fetched.cast<VendorModel>();
       
       _vendors.clear();
       _foodIdToVendorName.clear();
+      _foodIdToVendorId.clear();
 
-      for (final v in vendorList) {
-        final vm = v as VendorModel;
+      for (final vm in vendorList) {
         _vendors.add(vm);
         try {
-          final menuRaw = await ApiService.fetchVendorMenu(vm.id);
-          final menuList = menuRaw is List ? menuRaw : List.from(menuRaw as Iterable);
-          for (final mi in menuList) {
-            final item = mi as MenuItemModel;
+          final menuList = (await ApiService.fetchVendorMenu(vm.id)).cast<MenuItemModel>();
+          for (final item in menuList) {
             foods.add(item);
             _foodIdToVendorName[item.id] = vm.businessName;
+            _foodIdToVendorId[item.id] = vm.id;
           }
         } catch (_) {}
       }
@@ -170,7 +170,7 @@ class _MarketScreenState extends State<MarketScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (context, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final isSelected = _selectedCategory == index;
           return ChoiceChip(
@@ -191,7 +191,7 @@ class _MarketScreenState extends State<MarketScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _vendors.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (context, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final vendor = _vendors[index];
           return GestureDetector(
@@ -227,11 +227,16 @@ class _MarketScreenState extends State<MarketScreen> {
 
   Widget _buildFoodGridCard(BuildContext context, MenuItemModel food, ColorScheme colorScheme, TextTheme textTheme) {
     final kitchenName = _foodIdToVendorName[food.id] ?? 'Kitchen';
+    final vendorId = _foodIdToVendorId[food.id];
+    final foodArgs = <String, dynamic>{
+      'foodItem': food.toJson(),
+      'kitchen': kitchenName,
+    };
+    if (vendorId != null) {
+      foodArgs['vendorId'] = vendorId;
+    }
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: {
-        'foodItem': food.toJson(),
-        'kitchen': kitchenName,
-      }),
+      onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: foodArgs),
       child: Container(
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHigh,

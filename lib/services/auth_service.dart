@@ -165,7 +165,8 @@ class AuthService {
 
   static Map<String, String> _buildHeaders(String? token) {
     final headers = <String, String>{'Content-Type': 'application/json'};
-    if (token != null) {
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
       headers['x-better-auth-session'] = token;
       headers['Cookie'] = 'plokitch.session_token=$token';
     }
@@ -175,6 +176,11 @@ class AuthService {
   static Future<Map<String, String>> authHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_sessionKey);
-    return _buildHeaders(token);
+    // Provide both a cookie-based header and an Authorization bearer header
+    final headers = _buildHeaders(token);
+    if (token != null && token.isNotEmpty) {
+      headers.putIfAbsent('Authorization', () => 'Bearer $token');
+    }
+    return headers;
   }
 }
