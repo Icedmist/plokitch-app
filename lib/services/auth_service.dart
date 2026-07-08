@@ -101,6 +101,7 @@ class AuthService {
       await http.post(uri, headers: _buildHeaders(token));
     } catch (_) {}
     await prefs.remove(_sessionKey);
+    await prefs.remove(_roleKey);
   }
 
   static Future<Map<String, dynamic>?> getProfile() async {
@@ -164,7 +165,10 @@ class AuthService {
   }
 
   static Map<String, String> _buildHeaders(String? token) {
-    final headers = <String, String>{'Content-Type': 'application/json'};
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
       headers['x-better-auth-session'] = token;
@@ -176,11 +180,6 @@ class AuthService {
   static Future<Map<String, String>> authHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_sessionKey);
-    // Provide both a cookie-based header and an Authorization bearer header
-    final headers = _buildHeaders(token);
-    if (token != null && token.isNotEmpty) {
-      headers.putIfAbsent('Authorization', () => 'Bearer $token');
-    }
-    return headers;
+    return _buildHeaders(token);
   }
 }
