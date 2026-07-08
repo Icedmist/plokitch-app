@@ -24,20 +24,45 @@ class _LocationPageState extends State<LocationPage> {
   String? _city;
   String? _state;
 
+  late TextEditingController _streetController;
+  late TextEditingController _cityController;
+  late TextEditingController _stateController;
+
+  @override
+  void initState() {
+    super.initState();
+    _streetController = TextEditingController();
+    _cityController = TextEditingController();
+    _stateController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _streetController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    super.dispose();
+  }
+
   Future<void> _findMe() async {
     setState(() => _locating = true);
     try {
       final addr = await LocationService.locateAndReverse();
+      if (!mounted) return;
       setState(() {
         _street = addr['street'] as String?;
         _city = addr['city'] as String?;
         _state = addr['state'] as String?;
+        _streetController.text = _street ?? '';
+        _cityController.text = _city ?? '';
+        _stateController.text = _state ?? '';
       });
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location detected — confirm or edit then save')));
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location failed: $e')));
     } finally {
-      setState(() => _locating = false);
+      if (mounted) setState(() => _locating = false);
     }
   }
 
@@ -45,17 +70,19 @@ class _LocationPageState extends State<LocationPage> {
     setState(() => _saving = true);
     try {
       final address = {
-        'street': _street ?? '',
-        'city': _city ?? '',
-        'state': _state ?? '',
+        'street': _streetController.text,
+        'city': _cityController.text,
+        'state': _stateController.text,
       };
       await LocationService.saveAddress(address);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Address saved')));
       widget.onNext();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
     } finally {
-      setState(() => _saving = false);
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -132,8 +159,7 @@ class _LocationPageState extends State<LocationPage> {
           Text('Street', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
           const SizedBox(height: 8),
           TextField(
-            controller: TextEditingController(text: _street),
-            onChanged: (v) => _street = v,
+            controller: _streetController,
             decoration: InputDecoration(
               hintText: 'Street address',
               hintStyle: textTheme.bodyLarge?.copyWith(color: colorScheme.outline),
@@ -150,23 +176,21 @@ class _LocationPageState extends State<LocationPage> {
           Text('City', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
           const SizedBox(height: 8),
           TextField(
-            controller: TextEditingController(text: _city),
-            onChanged: (v) => _city = v,
+            controller: _cityController,
             decoration: InputDecoration(filled: true, fillColor: colorScheme.surfaceContainerHigh),
           ),
           const SizedBox(height: 12),
           Text('State', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
           const SizedBox(height: 8),
           TextField(
-            controller: TextEditingController(text: _state),
-            onChanged: (v) => _state = v,
+            controller: _stateController,
             decoration: InputDecoration(filled: true, fillColor: colorScheme.surfaceContainerHigh),
           ),
 
           const Spacer(),
           PlokitchButton(
             text: _saving ? 'Saving...' : 'Save Location',
-            onPressed: (_street == null && _city == null && _state == null) || _saving ? null : _saveAddress,
+            onPressed: _saving ? null : _saveAddress,
           ),
         ],
       ),

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
+import '../models/order_model.dart';
 
 class ApiService {
   ApiService._();

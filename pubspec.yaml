@@ -1,4 +1,4 @@
-name: Plokitch
+name: plokitch
 description: "A new Flutter project."
 publish_to: 'none'
 version: 0.1.0+1
@@ -29,3 +29,4 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/images/

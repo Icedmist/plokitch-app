@@ -43,13 +43,15 @@ class _CartScreenState extends State<CartScreen> {
 
       final order = await ApiService.placeOrder(payload);
       await CartService.clearCart();
+      if (!mounted) return;
       setState(() => _cartItems.clear());
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order placed: ${order['id']}')));
       Navigator.pushReplacementNamed(context, '/order-history');
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to place order: $e')));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 

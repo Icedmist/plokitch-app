@@ -13,6 +13,38 @@ class AuthService {
 
   static Uri _uri(String path) => Uri.parse('$_baseUrl$path');
 
+  /// Sign up using email + password + role.
+  static Future<void> signUp({
+    required String name,
+    required String email,
+    required String password,
+    required String role,
+  }) async {
+    final uri = _uri('/api/auth/sign-up/email');
+    final res = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'name': name,
+        'email': email.trim(),
+        'password': password,
+        'role': role,
+      }),
+    );
+
+    if (res.statusCode >= 400) {
+      String message = 'Sign up failed';
+      try {
+        final body = json.decode(res.body);
+        message = body['error'] ?? body['message'] ?? message;
+      } catch (_) {}
+      throw Exception(message);
+    }
+
+    // Auto sign in after sign up
+    await signIn(email, password);
+  }
+
   /// Sign in using email + password. Stores session token (from Set-Cookie) in SharedPreferences.
   static Future<void> signIn(String email, String password) async {
     final uri = _uri('/api/auth/sign-in/email');
@@ -35,7 +67,7 @@ class AuthService {
     String? setCookie = res.headers['set-cookie'] ?? res.headers['Set-Cookie'];
     String? token;
     if (setCookie != null) {
-      final match = RegExp(r'plotkitch\.session_token=([^;]+)').firstMatch(setCookie);
+      final match = RegExp(r'plokitch\.session_token=([^;]+)').firstMatch(setCookie);
       if (match != null) token = match.group(1);
     }
 
@@ -110,7 +142,7 @@ class AuthService {
       String? setCookie = res.headers['set-cookie'] ?? res.headers['Set-Cookie'];
       String? newToken;
       if (setCookie != null) {
-        final match = RegExp(r'plotkitch\.session_token=([^;]+)').firstMatch(setCookie);
+        final match = RegExp(r'plokitch\.session_token=([^;]+)').firstMatch(setCookie);
         if (match != null) newToken = match.group(1);
       }
       if (newToken == null) {
@@ -133,7 +165,7 @@ class AuthService {
     final headers = <String, String>{'Content-Type': 'application/json'};
     if (token != null) {
       headers['x-better-auth-session'] = token;
-      headers['Cookie'] = 'plotkitch.session_token=$token';
+      headers['Cookie'] = 'plokitch.session_token=$token';
     }
     return headers;
   }
