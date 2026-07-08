@@ -51,6 +51,32 @@ class OrderModel {
     );
   }
 
+  OrderModel copyWith({
+    String? id,
+    String? customerId,
+    String? customerName,
+    String? vendorId,
+    String? vendorName,
+    List<Map<String, dynamic>>? items,
+    double? totalAmount,
+    String? status,
+    String? createdAt,
+    String? updatedAt,
+  }) {
+    return OrderModel(
+      id: id ?? this.id,
+      customerId: customerId ?? this.customerId,
+      customerName: customerName ?? this.customerName,
+      vendorId: vendorId ?? this.vendorId,
+      vendorName: vendorName ?? this.vendorName,
+      items: items ?? this.items,
+      totalAmount: totalAmount ?? this.totalAmount,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'customerId': customerId,

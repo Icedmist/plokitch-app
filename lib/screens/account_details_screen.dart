@@ -43,26 +43,31 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
 
     try {
       final profile = await AuthService.getProfile();
-      if (profile != null && mounted) {
-        setState(() {
-          _nameController.text = profile['name'] as String? ?? '';
-          _emailController.text = profile['email'] as String? ?? '';
-          _phoneController.text = profile['phone'] as String? ?? '';
-          final address = profile['address'];
-          if (address is String) {
-            _addressController.text = address;
-          } else if (address is Map) {
-            final street = address['street'] ?? '';
-            final city = address['city'] ?? '';
-            final state = address['state'] ?? '';
-            final parts = [street, city, state].where((p) => p != null && p.toString().isNotEmpty).toList();
-            _addressController.text = parts.join(', ');
-          }
-        });
+      if (mounted) {
+        if (profile == null) {
+          setState(() => _errorMessage = 'Failed to load account details. Please try again.');
+        } else {
+          setState(() {
+            _nameController.text = profile['name'] as String? ?? '';
+            _emailController.text = profile['email'] as String? ?? '';
+            _phoneController.text = profile['phone'] as String? ?? '';
+            final address = profile['address'];
+            if (address is String) {
+              _addressController.text = address;
+            } else if (address is Map) {
+              final street = address['street'] ?? '';
+              final city = address['city'] ?? '';
+              final state = address['state'] ?? '';
+              final parts = [street, city, state].where((p) => p != null && p.toString().isNotEmpty).toList();
+              _addressController.text = parts.join(', ');
+            }
+            _errorMessage = null;
+          });
+        }
       }
     } catch (error) {
       if (mounted) {
-        _errorMessage = 'Unable to load account details. Please try again.';
+        setState(() => _errorMessage = 'Error loading account details: ${error.toString()}'  );
       }
     } finally {
       if (mounted) {
@@ -118,6 +123,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Account Details')),
       body: _loading
@@ -128,12 +134,32 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                 key: _formKey,
                 child: ListView(
                   children: [
+                    if (_errorMessage != null) ...
+                      [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: colorScheme.errorContainer,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: colorScheme.error),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.error_outline, color: colorScheme.error, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                     Text('Personal information', style: textTheme.headlineSmall),
                     const SizedBox(height: 20),
-                    if (_errorMessage != null) ...[
-                      Text(_errorMessage!, style: textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.error)),
-                      const SizedBox(height: 16),
-                    ],
                     _buildTextField('Full Name', _nameController, TextInputType.name),
                     const SizedBox(height: 16),
                     _buildTextField('Email Address', _emailController, TextInputType.emailAddress),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 import '../main.dart';
@@ -11,6 +12,35 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  String _profileName = 'Plokitch User';
+  String _profileEmail = 'No email provided';
+  String _profileRole = 'customer';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await AuthService.getProfile();
+      final storedRole = await AuthService.storedRole();
+      if (!mounted) return;
+      setState(() {
+        _profileName = profile?['name'] as String? ?? _profileName;
+        _profileEmail = profile?['email'] as String? ?? _profileEmail;
+        _profileRole = profile?['role'] as String? ?? storedRole ?? _profileRole;
+      });
+    } catch (_) {
+      final storedRole = await AuthService.storedRole();
+      if (!mounted) return;
+      setState(() {
+        _profileRole = storedRole ?? _profileRole;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -50,8 +80,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Amina Yusuf', style: textTheme.titleLarge?.copyWith(color: Colors.white)),
-                      Text('amina@example.com', style: textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+                      Text(_profileName, style: textTheme.titleLarge?.copyWith(color: Colors.white)),
+                      Text(_profileEmail, style: textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+                      const SizedBox(height: 4),
+                      Text(_profileRole.toUpperCase(), style: textTheme.bodySmall?.copyWith(color: Colors.white54)),
                     ],
                   ),
                 ),
@@ -144,23 +176,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
       bottomNavigationBar: PlokitchBottomNav(
-        role: 'customer',
+        role: _profileRole,
         currentIndex: 3, // Profile
         onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/home');
-          if (index == 1) {
-            if ('customer' == 'chef') {
-              Navigator.pushReplacementNamed(context, '/kitchen');
-            } else {
-              Navigator.pushReplacementNamed(context, '/market', arguments: {'role': 'customer'});
-            }
-          }
-          if (index == 2) {
-            if ('customer' == 'chef') {
-              Navigator.pushReplacementNamed(context, '/chef-orders');
-            } else {
-              Navigator.pushReplacementNamed(context, '/order-history', arguments: {'role': 'customer'});
-            }
+          if (_profileRole == 'chef') {
+            if (index == 0) Navigator.pushReplacementNamed(context, '/chef-dashboard');
+            if (index == 1) Navigator.pushReplacementNamed(context, '/kitchen');
+            if (index == 2) Navigator.pushReplacementNamed(context, '/chef-orders');
+          } else if (_profileRole == 'rider') {
+            if (index == 0) Navigator.pushReplacementNamed(context, '/rider-dashboard');
+            if (index == 1) Navigator.pushReplacementNamed(context, '/market', arguments: {'role': 'rider'});
+            if (index == 2) Navigator.pushReplacementNamed(context, '/order-history', arguments: {'role': 'rider'});
+          } else {
+            if (index == 0) Navigator.pushReplacementNamed(context, '/home');
+            if (index == 1) Navigator.pushReplacementNamed(context, '/market', arguments: {'role': 'customer'});
+            if (index == 2) Navigator.pushReplacementNamed(context, '/order-history', arguments: {'role': 'customer'});
           }
         },
       ),

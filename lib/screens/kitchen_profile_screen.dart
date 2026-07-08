@@ -17,6 +17,8 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
   String? _error;
   VendorModel? _vendor;
   List<MenuItemModel> _menu = [];
+  int _retryCount = 0;
+  static const int _maxRetries = 2;
 
   @override
   void initState() {
@@ -26,19 +28,24 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
 
   Future<void> _loadData() async {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final vendorId = widget.id ?? args?['id'] as String?;
+    final vendorId = widget.id ?? args?['id'] as String? ?? args?['vendorId'] as String?;
 
-    if (vendorId == null) {
-      setState(() {
-        _error = 'Vendor not found';
-        _loading = false;
-      });
+    if (vendorId == null || vendorId.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _error = 'Kitchen ID is missing. Please go back and try again.';
+          _loading = false;
+        });
+      }
       return;
     }
 
-    setState(() => _loading = true);
+    if (mounted) setState(() => _loading = true);
     try {
       final vendorData = await ApiService.fetchVendor(vendorId);
+      if (vendorData == null || (vendorData is Map && vendorData.isEmpty)) {
+        throw Exception('Invalid vendor data received');
+      }
       final menuData = await ApiService.fetchVendorMenu(vendorId);
       
       if (mounted) {
@@ -46,16 +53,29 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
           _vendor = VendorModel.fromJson(vendorData);
           _menu = menuData.cast<MenuItemModel>();
           _loading = false;
+          _error = null;
+          _retryCount = 0;
         });
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _error = 'Failed to load kitchen details';
-          _loading = false;
-        });
+        if (_retryCount < _maxRetries) {
+          _retryCount++;
+          await Future.delayed(const Duration(milliseconds: 800));
+          await _loadData();
+        } else {
+          setState(() {
+            _error = 'Unable to load kitchen details. Please try again later.';
+            _loading = false;
+          });
+        }
       }
     }
+  }
+
+  void _retryLoad() {
+    _retryCount = 0;
+    _loadData();
   }
 
   @override
@@ -63,8 +83,45 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (_error != null || _vendor == null) return Scaffold(appBar: AppBar(), body: Center(child: Text(_error ?? 'Kitchen not found')));
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error != null || _vendor == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: colorScheme.error)  ,
+                const SizedBox(height: 16),
+                Text(
+                  _error ?? 'Kitchen not found',
+                  textAlign: TextAlign.center,
+                  style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _retryLoad,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Go Back'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: CustomScrollView(
@@ -125,7 +182,8 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
       child: InkWell(
         onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: {
           'foodItem': item.toJson(),
-          'kitchen': _vendor?.businessName ?? 'Unknown Kitchen'
+          'kitchen': _vendor?.businessName ?? 'Unknown Kitchen',
+          'vendorId': _vendor?.id,
         }),
         borderRadius: BorderRadius.circular(16),
         child: Padding(

@@ -23,16 +23,26 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _handleCheckout() async {
-    if (_cartItems.isEmpty) return;
+    if (_cartItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cart is empty')));
+      return;
+    }
+    
+    final vendorId = _cartItems.first['vendorId'] as String?;
+    if (vendorId == null || vendorId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen information is missing. Please add items again.')));
+      return;
+    }
+    
     setState(() => _loading = true);
     try {
       final payload = {
-        'vendorId': _cartItems.first['vendorId'] ?? _cartItems.first['vendor']?['id'],
+        'vendorId': vendorId,
         'items': _cartItems.map((i) => {
-              'menuItemId': i['id'],
+              'menuItemId': i['id'] as String?,
               'name': i['name'],
-              'price': i['price'],
-              'quantity': i['quantity'],
+              'price': double.tryParse(i['price'].toString()) ?? 0.0,
+              'quantity': i['quantity'] as int?,
             }).toList(),
         'deliveryAddress': {
           'street': 'User address placeholder',
@@ -49,7 +59,7 @@ class _CartScreenState extends State<CartScreen> {
       Navigator.pushReplacementNamed(context, '/order-history');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to place order: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to place order: ${e.toString()}')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

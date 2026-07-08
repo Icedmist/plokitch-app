@@ -32,6 +32,7 @@ class _SignInScreenState extends State<SignInScreen> {
       final profile = await AuthService.getProfile();
       if (!mounted) return;
       final role = profile?['role'] as String? ?? 'customer';
+      mockUserRole = role;
       if (role == 'chef') {
         Navigator.pushReplacementNamed(context, '/chef-dashboard');
       } else if (role == 'rider') {

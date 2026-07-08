@@ -38,6 +38,7 @@ class _ProfileSetupFlowState extends State<ProfileSetupFlow> {
         curve: Curves.easeInOut,
       );
     } else {
+      mockUserRole = _userRole;
       if (_userRole == 'chef') {
         Navigator.pushReplacementNamed(context, '/chef-dashboard');
       } else if (_userRole == 'rider') {
