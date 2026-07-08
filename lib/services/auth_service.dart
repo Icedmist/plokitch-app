@@ -13,6 +13,40 @@ class AuthService {
 
   static Uri _uri(String path) => Uri.parse('$_baseUrl$path');
 
+  /// Sign up using email + password.
+  static Future<void> signUp({
+    required String name,
+    required String email,
+    required String password,
+    required String role,
+    String? phone,
+  }) async {
+    final uri = _uri('/api/auth/sign-up/email');
+    final res = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'name': name,
+        'email': email.trim(),
+        'password': password,
+        'role': role,
+        'phone': phone,
+      }),
+    );
+
+    if (res.statusCode >= 400) {
+      String message = 'Sign up failed';
+      try {
+        final body = json.decode(res.body);
+        message = body['error'] ?? body['message'] ?? message;
+      } catch (_) {}
+      throw Exception(message);
+    }
+
+    // Usually sign up also returns a session or we auto sign in
+    await signIn(email, password);
+  }
+
   /// Sign in using email + password. Stores session token (from Set-Cookie) in SharedPreferences.
   static Future<void> signIn(String email, String password) async {
     final uri = _uri('/api/auth/sign-in/email');

@@ -277,6 +277,3 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 }
-
-  // Removed duplicate featured kitchen card (kept ListTile version above)
-}

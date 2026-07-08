@@ -356,4 +356,3 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
     );
   }
 }
-}
