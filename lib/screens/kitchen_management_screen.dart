@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../models/menu_item_model.dart';
 
 class KitchenManagementScreen extends StatefulWidget {
   const KitchenManagementScreen({super.key});
@@ -11,27 +14,10 @@ class KitchenManagementScreen extends StatefulWidget {
 
 class _KitchenManagementScreenState extends State<KitchenManagementScreen> with SingleTickerProviderStateMixin {
   late AnimationController _pingController;
-
-  final List<Map<String, dynamic>> _menuItems = [
-    {
-      'name': 'Classic Masa (6pcs)',
-      'price': '₦1,200',
-      'available': true,
-      'image': 'https://lh3.googleusercontent.com/aida-public/AB6AXuDVN2CwshbbQfVJHccjrnMbdxLfPsr1LIyt725dmgzQOtqQPo6m11AaZuiRjyNuqSSa_t-D-OfV2O50JDC4he7a3yDpKtHXBstfYdsdkl-PnrxgPCIeVy21BDEBgvw1oTzIqJTmhgdSqC6-9nKAVMvHJ98JN3uIRnJ67WhyUsKD_13t8XJRQLCNT1f-QpAXwpm1jbrBQ8B5p76IwMgPoZ4pLTFZf6lz19M6NWb_Km5a1ngU_5PymmiDDCCt8z0ODNIhchpB2-OK1pyA',
-    },
-    {
-      'name': 'Party Jollof & Chicken',
-      'price': '₦2,500',
-      'available': true,
-      'image': 'https://lh3.googleusercontent.com/aida-public/AB6AXuAX014lLz2WhK25mjpA6GhhujNyL5xnKGInUBu6vmdwagzzcorrS4oQZUB2yjTox3bQxJWWnHI_C7_v6x2HWE7DLXKQk9xrVJ8OI_MGDoVKmFEeCpzlvCVCXuij3GRAUmFWdD4LJn632srVvsQQLwCBNMezurSsMcXxmtRUDOWgviuEPpZx8mwpQ0spLiWtFJL1kHA2oIPv8w6AOo6dkJ9Oaonr2W7rutytfWPFuYh-9hpBnEQ-nFY3E83N2OYNZcsBJtzLV7GdeiNM',
-    },
-    {
-      'name': 'Tuwon Shinkafa & Kuka',
-      'price': '₦1,800',
-      'available': false,
-      'image': 'https://lh3.googleusercontent.com/aida-public/AB6AXuBq5jdOS8SfeQaPQsrDxH8LZjUCfTE4VAePEJEH7zZ6uAKRJp3X3-h3syePxTgarBoDbBXQXT0UtI7XtYDYRnIef7tMIIyO8fDUJWM9NsKo2KDvyM0hFZOz2AeGUlY_CGElT75xzxK8TvebkUTLo8cC-p4jFrcUbyXl9jw59gk7mU9HER_FLdIHQK24mr_yawcYd-3bJyftURE9ifXSyKKBAI2LU-U2mY6_WOnUg0l8fi6Pee-3nXJuImQb5tnB3pzMSYzbP5XE2Pki',
-    },
-  ];
+  List<MenuItemModel> _menuItems = [];
+  bool _loading = true;
+  String? _error;
+  String? _vendorId;
 
   @override
   void initState() {
@@ -40,6 +26,35 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
+    _loadKitchenData();
+  }
+
+  Future<void> _loadKitchenData() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final profile = await AuthService.getProfile();
+      _vendorId = profile?['vendorId'] ?? profile?['vendor_id'] ?? profile?['id'];
+      
+      if (_vendorId != null) {
+        final menu = await ApiService.fetchVendorMenu(_vendorId!);
+        if (mounted) {
+          setState(() {
+            _menuItems = menu.cast<MenuItemModel>();
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
   @override
@@ -242,11 +257,18 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                 const SizedBox(height: 16),
                 
                 // Menu List
-                ..._menuItems.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  return _buildMenuItem(index, item, colorScheme, textTheme);
-                }),
+                if (_loading)
+                  const Center(child: CircularProgressIndicator())
+                else if (_error != null)
+                  Center(child: Text('Error: $_error'))
+                else if (_menuItems.isEmpty)
+                  const Center(child: Text('No menu items found'))
+                else
+                  ..._menuItems.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    return _buildMenuItem(index, item, colorScheme, textTheme);
+                  }),
                 
                 const SizedBox(height: 24),
                 // Kitchen Tasks Prompt
@@ -290,14 +312,15 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
     );
   }
 
-  Widget _buildMenuItem(int index, Map<String, dynamic> item, ColorScheme colorScheme, TextTheme textTheme) {
-    final isAvailable = item['available'] as bool;
+  Widget _buildMenuItem(int index, MenuItemModel item, ColorScheme colorScheme, TextTheme textTheme) {
+    // Backend doesn't have 'available' field in model yet, assuming true for now
+    const isAvailable = true;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF642714).withOpacity(isAvailable ? 1.0 : 0.7),
+        color: const Color(0xFF642714).withValues(alpha: isAvailable ? 1.0 : 0.7),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -307,37 +330,31 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
             height: 64,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              image: DecorationImage(
-                image: NetworkImage(item['image']),
+              image: item.imageUrl != null ? DecorationImage(
+                image: NetworkImage(item.imageUrl!),
                 fit: BoxFit.cover,
-                colorFilter: isAvailable ? null : const ColorFilter.matrix([
-                  0.2126, 0.7152, 0.0722, 0, 0,
-                  0.2126, 0.7152, 0.0722, 0, 0,
-                  0.2126, 0.7152, 0.0722, 0, 0,
-                  0,      0,      0,      1, 0,
-                ]), // Grayscale effect
-              ),
+              ) : null,
+              color: Colors.grey,
             ),
+            child: item.imageUrl == null ? const Icon(Icons.fastfood, color: Colors.white) : null,
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item['name'], style: textTheme.bodyLarge?.copyWith(color: Colors.white)),
-                Text(item['price'], style: textTheme.bodySmall?.copyWith(color: const Color(0xFFFDDCCC))),
+                Text(item.name, style: textTheme.bodyLarge?.copyWith(color: Colors.white)),
+                Text('₦${item.price.toStringAsFixed(2)}', style: textTheme.bodySmall?.copyWith(color: const Color(0xFFFDDCCC))),
               ],
             ),
           ),
           Switch(
             value: isAvailable,
             onChanged: (value) {
-              setState(() {
-                _menuItems[index]['available'] = value;
-              });
+              // Status update not implemented yet
             },
             activeColor: colorScheme.primaryContainer,
-            activeTrackColor: colorScheme.primaryContainer.withOpacity(0.5),
+            activeTrackColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
             inactiveThumbColor: Colors.white,
             inactiveTrackColor: colorScheme.outlineVariant,
           ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
+import '../services/api_service.dart';
+import '../models/order_model.dart';
 
 class ChefDashboardScreen extends StatefulWidget {
   const ChefDashboardScreen({super.key});
@@ -10,45 +12,42 @@ class ChefDashboardScreen extends StatefulWidget {
 }
 
 class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
-  final List<Map<String, dynamic>> _orders = [
-    {
-      'id': '#PK-204',
-      'time': '12:45 PM',
-      'name': 'Masa & Miyan Taushe',
-      'customer': 'Amina Yusuf',
-      'status': 'new', // new, cooking
-    },
-    {
-      'id': '#PK-198',
-      'time': '12:30 PM',
-      'name': 'Tuwon Shinkafa & Begedi',
-      'customer': 'Musa Ibrahim',
-      'status': 'cooking',
-    },
-    {
-      'id': '#PK-210',
-      'time': '1:02 PM',
-      'name': 'Jollof Rice Feast (x2)',
-      'customer': 'Chioma Obi',
-      'status': 'new',
-    },
-    {
-      'id': '#PK-185',
-      'time': '15m late',
-      'name': 'Pounded Yam & Egusi',
-      'customer': 'Bello Garba',
-      'status': 'urgent',
-    },
-  ];
+  List<OrderModel> _orders = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final fetched = await ApiService.fetchOrders();
+      if (mounted) {
+        setState(() {
+          _orders = fetched;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
 
   void _handleAction(int index) {
-    setState(() {
-      if (_orders[index]['status'] == 'new' || _orders[index]['status'] == 'urgent') {
-        _orders[index]['status'] = 'cooking';
-      } else if (_orders[index]['status'] == 'cooking') {
-        _orders.removeAt(index);
-      }
-    });
+    // In a real app, this would call an API to update order status
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Status update not implemented in API yet')));
   }
 
   @override
@@ -166,18 +165,28 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
           const SizedBox(height: 16),
           
           // Orders List
-          ..._orders.asMap().entries.map((entry) {
-            final index = entry.key;
-            final order = entry.value;
-            return _buildOrderCard(index, order, colorScheme, textTheme);
-          }),
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (_error != null)
+            Center(child: Text('Error: $_error'))
+          else if (_orders.isEmpty)
+            const Center(child: Padding(
+              padding: EdgeInsets.all(32.0),
+              child: Text('No active orders', style: TextStyle(color: Colors.white70)),
+            ))
+          else
+            ..._orders.asMap().entries.map((entry) {
+              final index = entry.key;
+              final order = entry.value;
+              return _buildOrderCard(index, order, colorScheme, textTheme);
+            }),
         ],
       ),
       bottomNavigationBar: PlokitchBottomNav(
         role: 'chef',
         currentIndex: 0, // Home/Dashboard
         onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/chef-dashboard');
+          if (index == 0) _loadOrders();
           if (index == 1) Navigator.pushReplacementNamed(context, '/kitchen');
           if (index == 2) Navigator.pushReplacementNamed(context, '/chef-orders');
           if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
@@ -196,14 +205,17 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
     );
   }
 
-  Widget _buildOrderCard(int index, Map<String, dynamic> order, ColorScheme colorScheme, TextTheme textTheme) {
-    final status = order['status'];
+  Widget _buildOrderCard(int index, OrderModel order, ColorScheme colorScheme, TextTheme textTheme) {
+    final status = order.status.toLowerCase();
     final isUrgent = status == 'urgent';
-    final isCooking = status == 'cooking';
+    final isCooking = status == 'cooking' || status == 'processing';
     
     Color leftBorderColor = colorScheme.primaryContainer;
     if (isUrgent) leftBorderColor = colorScheme.error;
     if (isCooking) leftBorderColor = colorScheme.secondaryContainer;
+
+    final itemsSummary = order.items.map((i) => i['name'] ?? 'Item').join(', ');
+    final time = order.createdAt != null ? order.createdAt!.split('T').last.substring(0, 5) : '--:--';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -226,14 +238,14 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  isUrgent ? 'URGENT ${order['id']}' : order['id'],
+                  isUrgent ? 'URGENT ${order.id.substring(0, min(8, order.id.length))}' : '#${order.id.substring(0, min(8, order.id.length))}',
                   style: textTheme.labelSmall?.copyWith(
                     color: isUrgent ? colorScheme.onError : (isCooking ? colorScheme.onSecondaryContainer : const Color(0xFF642714)),
                   ),
                 ),
               ),
               Text(
-                order['time'],
+                time,
                 style: textTheme.bodySmall?.copyWith(
                   color: isUrgent ? colorScheme.errorContainer : Colors.white70,
                 ),
@@ -242,8 +254,10 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            order['name'],
+            itemsSummary,
             style: textTheme.headlineMedium?.copyWith(color: const Color(0xFFFFB86D)), // primary-fixed-dim
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           RichText(
@@ -251,7 +265,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
               style: textTheme.bodyMedium?.copyWith(color: isUrgent ? colorScheme.errorContainer : Colors.white70),
               children: [
                 const TextSpan(text: 'Customer: '),
-                TextSpan(text: order['customer'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                TextSpan(text: order.customerName ?? 'Guest', style: const TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -273,24 +287,12 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              if (!isUrgent)
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: colorScheme.outlineVariant),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    icon: Icon(isCooking ? Icons.timer : Icons.more_vert, color: colorScheme.surfaceContainerHigh),
-                    onPressed: () {},
-                  ),
-                ),
             ],
           ),
         ],
       ),
     );
   }
+
+  int min(int a, int b) => a < b ? a : b;
 }

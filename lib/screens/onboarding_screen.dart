@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_button.dart';
 import '../main.dart';
-import '../services/auth_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -15,55 +14,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
   String? _selectedRole;
   bool _isPasswordVisible = false;
-  bool _loading = false;
-
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _phoneController.dispose();
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleSignUp() async {
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    final role = _selectedRole ?? 'customer';
-
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
-      return;
-    }
-
-    setState(() => _loading = true);
-    try {
-      await AuthService.signUp(name: name, email: email, password: password, role: role);
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/profile-setup');
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
 
   void _nextPage() {
     if (_currentPage < 2) {
+      // selected role will be persisted during profile setup after signup
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
-      _handleSignUp();
+      Navigator.pushReplacementNamed(context, '/profile-setup');
     }
   }
 
@@ -215,7 +175,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildStep2ChooseVibe(BuildContext context, ColorScheme colorScheme, TextTheme textTheme) {
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,12 +218,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               textTheme: textTheme,
             ),
             
-            const Spacer(),
+            const SizedBox(height: 48),
             PlokitchButton(
               text: 'Continue',
               onPressed: _selectedRole != null ? _nextPage : () {},
-              // Disable if no role selected (using alpha to simulate)
-              // We'll wrap button to handle disable state natively next iteration if needed
             ),
           ],
         ),
@@ -359,7 +317,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 32),
             
             _buildTextField(
-              controller: _nameController,
               label: 'Full Name',
               hint: 'Amina Yusuf',
               icon: Icons.person_outline,
@@ -394,7 +351,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   Expanded(
                     child: TextField(
-                      controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       decoration: InputDecoration(
                         hintText: '801 234 5678',
@@ -410,7 +366,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 16),
             
             _buildTextField(
-              controller: _emailController,
               label: 'Email',
               hint: 'amina@example.com',
               icon: Icons.email_outlined,
@@ -424,7 +379,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Text('Password', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
             TextField(
-              controller: _passwordController,
               obscureText: !_isPasswordVisible,
               decoration: InputDecoration(
                 hintText: '••••••••',
@@ -459,8 +413,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 32),
             
             PlokitchButton(
-              text: _loading ? 'Creating Account...' : 'Create Account',
-              onPressed: _loading ? null : _nextPage,
+              text: 'Create Account',
+              onPressed: _nextPage,
             ),
             const SizedBox(height: 16),
             Center(
@@ -484,7 +438,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildTextField({
-    TextEditingController? controller,
     required String label,
     required String hint,
     required IconData icon,
@@ -498,7 +451,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         Text(label, style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
         const SizedBox(height: 8),
         TextField(
-          controller: controller,
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,

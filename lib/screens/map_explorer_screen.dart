@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-
 import '../widgets/plokitch_bottom_nav.dart';
+import '../services/api_service.dart';
+import '../models/vendor_model.dart';
+import '../services/location_service.dart';
 
 class MapExplorerScreen extends StatefulWidget {
   const MapExplorerScreen({super.key});
@@ -15,76 +17,62 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
   bool _isSheetExpanded = false;
   String _locationLabel = 'Gombe, Gombe State';
   String? _locationError;
-
-  // Gombe State city center approx coords: 10.2896° N, 11.1679° E
-  // Render a free OpenStreetMap basemap for Gombe state.
-  static const Map<String, String> _gombeLocations = {
-    'Gombe': 'Gombe, Gombe State',
-    'Bajoga': 'Bajoga, Funakaye',
-    'Akko': 'Akko, Gombe State',
-    'Billiri': 'Billiri, Gombe State',
-    'Gombe Airport': 'Gombe Airport, Kumo',
-    'Kaltungo': 'Kaltungo, Gombe State',
-    'Yalmatu': 'Yalmatu/Deba, Gombe State',
-    'Kumo': 'Kumo, Akko',
-    'Dukku': 'Dukku, Gombe State',
-    'Pindiga': 'Pindiga, Akko',
-  };
+  bool _loading = true;
+  List<VendorModel> _vendors = [];
+  LatLng _currentCenter = const LatLng(10.2896, 11.1679);
+  final MapController _mapController = MapController();
 
   @override
   void initState() {
     super.initState();
+    _initData();
   }
 
-  void _refreshLocation() {
+  Future<void> _initData() async {
+    await _refreshLocation();
+    await _loadVendors();
+  }
+
+  Future<void> _loadVendors() async {
+    setState(() => _loading = true);
     try {
-      final lat = 10.2896;
-      final lng = 11.1679;
-      _locationLabel = _labelFromCoordinates(lat, lng);
-      _locationError = null;
+      final fetched = await ApiService.fetchVendors();
+      if (mounted) {
+        setState(() {
+          _vendors = fetched.cast<VendorModel>();
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _locationError = 'Failed to load kitchens';
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshLocation() async {
+    try {
+      final pos = await LocationService.getCurrentPosition();
+      final addr = await LocationService.reverseGeocode(pos);
+      if (mounted) {
+        setState(() {
+          _currentCenter = LatLng(pos.latitude, pos.longitude);
+          _locationLabel = [addr['street'], addr['city']].where((s) => s != null && s.isNotEmpty).join(', ');
+          if (_locationLabel.isEmpty) _locationLabel = 'Current Location';
+          _locationError = null;
+        });
+        _mapController.move(_currentCenter, 14);
+      }
     } catch (error) {
-      _locationLabel = 'Gombe, Gombe State';
-      _locationError = 'Unable to locate your position. Please make sure location services are enabled and try again.';
+      if (mounted) {
+        setState(() {
+          _locationError = 'Unable to detect location. Using default.';
+        });
+      }
     }
-    setState(() {});
-  }
-
-  String _labelFromCoordinates(double latitude, double longitude) {
-    // Real reverse geocoding should be added later.
-    final locationKey = _findClosestLocation(latitude, longitude);
-    return _gombeLocations[locationKey] ?? 'Gombe, Gombe State';
-  }
-
-  String _findClosestLocation(double latitude, double longitude) {
-    // Example mapping for common Gombe State coordinates.
-    if (latitude >= 10.2 && latitude <= 10.4 && longitude >= 11.0 && longitude <= 11.3) {
-      return 'Gombe';
-    }
-    if (latitude >= 10.5 && latitude <= 10.8 && longitude >= 11.6 && longitude <= 11.9) {
-      return 'Bajoga';
-    }
-    if (latitude >= 10.2 && latitude <= 10.4 && longitude >= 11.8 && longitude <= 12.1) {
-      return 'Kaltungo';
-    }
-    if (latitude >= 10.6 && latitude <= 10.9 && longitude >= 11.5 && longitude <= 11.9) {
-      return 'Kumo';
-    }
-    if (latitude >= 10.0 && latitude <= 10.3 && longitude >= 11.1 && longitude <= 11.4) {
-      return 'Akko';
-    }
-    if (latitude >= 10.4 && latitude <= 10.7 && longitude >= 11.6 && longitude <= 11.9) {
-      return 'Billiri';
-    }
-    if (latitude >= 10.3 && latitude <= 10.5 && longitude >= 11.2 && longitude <= 11.6) {
-      return 'Gombe Airport';
-    }
-    if (latitude >= 10.4 && latitude <= 10.6 && longitude >= 11.3 && longitude <= 11.7) {
-      return 'Dukku';
-    }
-    if (latitude >= 10.5 && latitude <= 10.7 && longitude >= 11.4 && longitude <= 11.6) {
-      return 'Yalmatu';
-    }
-    return 'Gombe';
   }
 
   @override
@@ -98,15 +86,12 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
           // ── 1. Gombe State Map Background ──────────────────────────────
           Positioned.fill(
             child: FlutterMap(
+              mapController: _mapController,
               options: MapOptions(
-                center: const LatLng(10.2896, 11.1679),
-                zoom: 12,
+                center: _currentCenter,
+                zoom: 14,
                 minZoom: 10,
-                maxZoom: 16,
-                maxBounds: LatLngBounds(
-                  const LatLng(9.8, 10.5),
-                  const LatLng(11.4, 12.4),
-                ),
+                maxZoom: 18,
                 interactiveFlags: InteractiveFlag.all,
               ),
               children: [
@@ -117,49 +102,44 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                 ),
                 MarkerLayer(
                   markers: [
+                    // User Location Marker
                     Marker(
-                      width: 36,
-                      height: 36,
-                      point: const LatLng(10.2896, 11.1679),
-                      builder: (context) => const Icon(
-                        Icons.location_pin,
-                        color: Colors.redAccent,
-                        size: 32,
+                      width: 40,
+                      height: 40,
+                      point: _currentCenter,
+                      builder: (context) => Container(
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
+                    // Vendor Markers
+                    ..._vendors.where((v) => v.location != null && v.location!['lat'] != null).map((v) {
+                      final lat = (v.location!['lat'] as num).toDouble();
+                      final lng = (v.location!['lng'] as num).toDouble();
+                      return Marker(
+                        width: 120,
+                        height: 60,
+                        point: LatLng(lat, lng),
+                        builder: (context) => _buildMapPin(v.businessName, colorScheme, textTheme, vendorId: v.id),
+                      );
+                    }).toList(),
                   ],
                 ),
               ],
             ),
-          ),
-
-          // Gombe overlay tint
-          Positioned.fill(
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.15),
-            ),
-          ),
-
-          // ── 2. Map Pins ─────────────────────────────────────────────────
-          Positioned(
-            top: 220,
-            left: 90,
-            child: _buildMapPin('Masa', colorScheme, textTheme),
-          ),
-          Positioned(
-            top: 360,
-            right: 70,
-            child: _buildMapPin('Suya', colorScheme, textTheme, isSelected: true),
-          ),
-          Positioned(
-            top: 160,
-            right: 130,
-            child: _buildMapPin('Jollof', colorScheme, textTheme),
-          ),
-          Positioned(
-            top: 300,
-            left: 160,
-            child: _buildMapPin('Tuwo', colorScheme, textTheme),
           ),
 
           // ── 3. Top Bar ─────────────────────────────────────────────────
@@ -171,56 +151,41 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 8),
-
                   // ── Location Banner ──────────────────────────────────────
                   GestureDetector(
                     onTap: _refreshLocation,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
                         color: colorScheme.surface.withValues(alpha: 0.92),
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 6,
-                          ),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6),
                         ],
                       ),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.location_on,
-                              color: colorScheme.primary, size: 18),
+                          Icon(Icons.location_on, color: colorScheme.primary, size: 18),
                           const SizedBox(width: 6),
-                          Flexible(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   _locationLabel,
-                                  style: textTheme.labelLarge?.copyWith(
-                                    color: colorScheme.onSurface,
-                                  ),
+                                  style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurface),
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                if (_locationError != null) ...[
-                                  const SizedBox(height: 2),
+                                if (_locationError != null)
                                   Text(
                                     _locationError!,
-                                    style: textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.error,
-                                    ),
+                                    style: textTheme.bodySmall?.copyWith(color: colorScheme.error),
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                ],
                               ],
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Icon(Icons.refresh,
-                              size: 14, color: colorScheme.outline),
+                          Icon(Icons.refresh, size: 14, color: colorScheme.outline),
                         ],
                       ),
                     ),
@@ -236,10 +201,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
             bottom: MediaQuery.of(context).size.height * 0.45,
             child: Column(
               children: [
-                _buildFloatingIcon(Icons.layers, colorScheme),
-                const SizedBox(height: 12),
-                _buildFloatingIcon(Icons.my_location, colorScheme,
-                    onTap: _refreshLocation),
+                _buildFloatingIcon(Icons.my_location, colorScheme, onTap: _refreshLocation),
               ],
             ),
           ),
@@ -265,11 +227,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                       topRight: Radius.circular(24),
                     ),
                     boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, -5),
-                      ),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, -5)),
                     ],
                   ),
                   child: ListView(
@@ -280,33 +238,30 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                         child: Container(
                           width: 40,
                           height: 4,
-                          decoration: BoxDecoration(
-                            color: colorScheme.outlineVariant,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
+                          decoration: BoxDecoration(color: colorScheme.outlineVariant, borderRadius: BorderRadius.circular(2)),
                         ),
                       ),
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Nearby Kitchens',
-                            style: textTheme.headlineMedium
-                                ?.copyWith(color: colorScheme.primary),
-                          ),
-                          // Notifications shortcut
+                          Text('Nearby Kitchens', style: textTheme.headlineMedium?.copyWith(color: colorScheme.primary)),
                           IconButton(
-                            icon: Icon(Icons.notifications_none,
-                                color: colorScheme.onSurfaceVariant),
-                            onPressed: () =>
-                                Navigator.pushNamed(context, '/notifications'),
-                            tooltip: 'Notifications',
+                            icon: Icon(Icons.notifications_none, color: colorScheme.onSurfaceVariant),
+                            onPressed: () => Navigator.pushNamed(context, '/notifications'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      _buildBentoGrid(colorScheme, textTheme, context),
+                      if (_loading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_vendors.isEmpty)
+                        const Center(child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Text('No kitchens found nearby'),
+                        ))
+                      else
+                        ..._vendors.map((v) => _buildVendorListCard(v, colorScheme, textTheme)).toList(),
                       const SizedBox(height: 100),
                     ],
                   ),
@@ -328,290 +283,77 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
     );
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-  Widget _floatingCircle({
-    required Widget child,
-    required ColorScheme colorScheme,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+  Widget _buildMapPin(String label, ColorScheme colorScheme, TextTheme textTheme, {required String vendorId}) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': vendorId}),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colorScheme.primary, width: 1.5),
+              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, 2))],
+            ),
+            child: Text(
+              label,
+              style: textTheme.labelSmall?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
+          const Icon(Icons.arrow_drop_down, size: 20, color: Colors.orange),
         ],
       ),
-      child: child,
     );
   }
 
-  Widget _buildMapPin(
-    String label,
-    ColorScheme colorScheme,
-    TextTheme textTheme, {
-    bool isSelected = false,
-  }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color:
-                isSelected ? colorScheme.primaryContainer : colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.outlineVariant,
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isSelected
-                    ? colorScheme.primaryContainer.withValues(alpha: 0.4)
-                    : Colors.black12,
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isSelected) ...[
-                Icon(Icons.star,
-                    size: 12, color: colorScheme.onPrimaryContainer),
-                const SizedBox(width: 4),
-              ],
-              Text(
-                isSelected ? '< $label >' : label,
-                style: textTheme.labelLarge?.copyWith(
-                  color: isSelected
-                      ? colorScheme.onPrimaryContainer
-                      : colorScheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: isSelected ? colorScheme.primary : colorScheme.outlineVariant,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFloatingIcon(IconData icon, ColorScheme colorScheme,
-      {VoidCallback? onTap}) {
+  Widget _buildFloatingIcon(IconData icon, ColorScheme colorScheme, {VoidCallback? onTap}) {
     return Container(
       width: 48,
       height: 48,
       decoration: BoxDecoration(
         color: colorScheme.surface,
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))],
       ),
-      child: IconButton(
-        icon: Icon(icon, color: colorScheme.onSurfaceVariant),
-        onPressed: onTap ?? () {},
-      ),
+      child: IconButton(icon: Icon(icon, color: colorScheme.onSurfaceVariant), onPressed: onTap),
     );
   }
 
-  Widget _buildBentoGrid(
-      ColorScheme colorScheme, TextTheme textTheme, BuildContext context) {
-    return Column(
-      children: [
-        // Hero card
-        GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/cart'),
-          child: Container(
-            height: 180,
-            decoration: BoxDecoration(
-              color: const Color(0xFF642714),
-              borderRadius: BorderRadius.circular(16),
-              image: const DecorationImage(
-                image: NetworkImage(
-                    'https://images.unsplash.com/photo-1555939594-58d7cb561ad1'
-                    '?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'),
-                fit: BoxFit.cover,
-                colorFilter:
-                    ColorFilter.mode(Colors.black45, BlendMode.darken),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text('TOP RATED',
-                        style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onPrimaryContainer)),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Hajiya\'s Suya Spot',
-                      style: textTheme.headlineSmall
-                          ?.copyWith(color: Colors.white)),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 16),
-                      const SizedBox(width: 4),
-                      Text('4.9 (120 reviews) · 1.2km',
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: Colors.white)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+  Widget _buildVendorListCard(VendorModel vendor, ColorScheme colorScheme, TextTheme textTheme) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: vendor.imageUrl != null 
+            ? Image.network(vendor.imageUrl!, width: 60, height: 60, fit: BoxFit.cover)
+            : Container(width: 60, height: 60, color: colorScheme.surfaceContainerHigh, child: const Icon(Icons.storefront)),
         ),
-        const SizedBox(height: 16),
-
-        // Two cards row
-        Row(
+        title: Text(vendor.businessName, style: textTheme.titleMedium),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/cart'),
-                child: _buildKitchenCard(
-                  colorScheme: colorScheme,
-                  textTheme: textTheme,
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1604328698692-f76ea9498e76'
-                      '?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-                  name: 'Binta\'s Masa',
-                  eta: '15 mins',
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/cart'),
-                child: _buildKitchenCard(
-                  colorScheme: colorScheme,
-                  textTheme: textTheme,
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1574484284002-952d92456975'
-                      '?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-                  name: 'Mama Jollof',
-                  eta: '25 mins',
-                ),
-              ),
+            Text(vendor.description ?? 'Local Kitchen', maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.star, size: 14, color: Colors.amber.shade700),
+                const SizedBox(width: 4),
+                const Text('4.8 · 1.2km away', style: TextStyle(fontSize: 12)),
+              ],
             ),
           ],
         ),
-
-        const SizedBox(height: 16),
-
-        // Promo banner (only when expanded)
-        if (_isSheetExpanded)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.local_fire_department,
-                    color: colorScheme.primaryContainer, size: 32),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Free Delivery Today!',
-                          style: textTheme.titleMedium
-                              ?.copyWith(color: Colors.white)),
-                      Text('On all orders above ₦5,000',
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: Colors.white70)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildKitchenCard({
-    required ColorScheme colorScheme,
-    required TextTheme textTheme,
-    required String imageUrl,
-    required String name,
-    required String eta,
-  }) {
-    return Container(
-      height: 140,
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-                image: DecorationImage(
-                  image: NetworkImage(imageUrl),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name,
-                    style: textTheme.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                Text(eta,
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: colorScheme.primary)),
-              ],
-            ),
-          ),
-        ],
+        trailing: Icon(Icons.chevron_right, color: colorScheme.primary),
+        onTap: () => Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': vendor.id}),
       ),
     );
   }
+}
 }

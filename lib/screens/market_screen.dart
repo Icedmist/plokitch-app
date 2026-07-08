@@ -21,6 +21,7 @@ class _MarketScreenState extends State<MarketScreen> {
   String? _error;
   List<MenuItemModel> _foods = [];
   List<VendorModel> _vendors = [];
+  final Map<String, String> _foodIdToVendorName = {};
 
   @override
   void initState() {
@@ -38,29 +39,37 @@ class _MarketScreenState extends State<MarketScreen> {
       final fetched = await ApiService.fetchVendors();
       final foods = <MenuItemModel>[];
       final vendorList = fetched is List ? fetched : List.from(fetched as Iterable);
+      
+      _vendors.clear();
+      _foodIdToVendorName.clear();
+
       for (final v in vendorList) {
         final vm = v as VendorModel;
         _vendors.add(vm);
-        // fetch vendor menu and collect items
         try {
           final menuRaw = await ApiService.fetchVendorMenu(vm.id);
           final menuList = menuRaw is List ? menuRaw : List.from(menuRaw as Iterable);
           for (final mi in menuList) {
             final item = mi as MenuItemModel;
             foods.add(item);
+            _foodIdToVendorName[item.id] = vm.businessName;
           }
-        } catch (_) {
-          // ignore menu fetch errors per vendor
-        }
+        } catch (_) {}
       }
 
-      setState(() {
-        _foods = foods;
-      });
+      if (mounted) {
+        setState(() {
+          _foods = foods;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -78,56 +87,65 @@ class _MarketScreenState extends State<MarketScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        title: const Text('Market'),
-        centerTitle: true,
-      ),
+      backgroundColor: colorScheme.surface,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text('Error: $_error'))
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    Text('Browse Foods & Kitchens', style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary)),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Select a category, explore kitchens, and review food details before you buy.',
-                      style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      height: 40,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _categories.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
-                        itemBuilder: (context, index) {
-                          final category = _categories[index];
-                          final isSelected = index == _selectedCategory;
-                          return ChoiceChip(
-                            label: Text(category),
-                            selected: isSelected,
-                            onSelected: (_) => setState(() => _selectedCategory = index),
-                            selectedColor: colorScheme.primary,
-                            backgroundColor: colorScheme.surfaceVariant,
-                            labelStyle: TextStyle(
-                              color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    ..._filteredFoods.map((food) => _buildFoodCard(context, food, colorScheme, textTheme)).toList(),
-                    const SizedBox(height: 20),
-                    Text('Featured Kitchens', style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary)),
-                    const SizedBox(height: 12),
-                    ..._vendors.take(2).map((v) => _buildFeaturedKitchenCard(context, v, textTheme, colorScheme)).toList(),
-                    const SizedBox(height: 100),
+          : CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 120,
+                  floating: true,
+                  pinned: true,
+                  flexibleSpace: FlexibleSpaceBar(
+                    title: Text('Marketplace', style: TextStyle(color: colorScheme.onSurface)),
+                    centerTitle: false,
+                    titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+                  ),
+                  actions: [
+                    IconButton(icon: const Icon(Icons.search), onPressed: () {}),
+                    IconButton(icon: const Icon(Icons.shopping_cart_outlined), onPressed: () => Navigator.pushNamed(context, '/cart')),
                   ],
                 ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Explore local flavors', style: textTheme.bodyLarge?.copyWith(color: colorScheme.outline)),
+                        const SizedBox(height: 20),
+                        _buildCategoryFilter(colorScheme),
+                        const SizedBox(height: 24),
+                        if (_error != null) Center(child: Text('Error: $_error')) else ...[
+                          Text('Featured Kitchens', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          _buildKitchenSection(context),
+                          const SizedBox(height: 32),
+                          Text('Popular Dishes', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 0.75,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _buildFoodGridCard(context, _filteredFoods[index], colorScheme, textTheme),
+                      childCount: _filteredFoods.length,
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
+            ),
       bottomNavigationBar: PlokitchBottomNav(
         role: currentRole,
         currentIndex: 1,
@@ -139,7 +157,6 @@ class _MarketScreenState extends State<MarketScreen> {
               Navigator.pushReplacementNamed(context, '/home');
             }
           }
-          if (index == 1) return;
           if (index == 2) Navigator.pushReplacementNamed(context, '/order-history', arguments: {'role': currentRole});
           if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
         },
@@ -147,61 +164,108 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Widget _buildFoodCard(BuildContext context, MenuItemModel food, ColorScheme colorScheme, TextTheme textTheme) {
-    final displayPrice = '₦${food.price.toStringAsFixed(2)}';
+  Widget _buildCategoryFilter(ColorScheme colorScheme) {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final isSelected = _selectedCategory == index;
+          return ChoiceChip(
+            label: Text(_categories[index]),
+            selected: isSelected,
+            onSelected: (_) => setState(() => _selectedCategory = index),
+            selectedColor: colorScheme.primary,
+            labelStyle: TextStyle(color: isSelected ? Colors.white : colorScheme.onSurface),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildKitchenSection(BuildContext context) {
+    return SizedBox(
+      height: 180,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _vendors.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final vendor = _vendors[index];
+          return GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': vendor.id}),
+            child: Container(
+              width: 240,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                image: vendor.imageUrl != null ? DecorationImage(image: NetworkImage(vendor.imageUrl!), fit: BoxFit.cover) : null,
+                color: Colors.grey.shade200,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)]),
+                ),
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(vendor.businessName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(vendor.description ?? 'Local Kitchen', style: const TextStyle(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFoodGridCard(BuildContext context, MenuItemModel food, ColorScheme colorScheme, TextTheme textTheme) {
+    final kitchenName = _foodIdToVendorName[food.id] ?? 'Kitchen';
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: {'foodItem': food.toJson(), 'role': widget.role}),
+      onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: {
+        'foodItem': food.toJson(),
+        'kitchen': kitchenName,
+      }),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: colorScheme.surfaceVariant,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: colorScheme.outlineVariant),
+          color: colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if ((food.imageUrl as String?) != null)
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  topRight: Radius.circular(18),
-                ),
-                child: Image.network(
-                  food.imageUrl ?? '',
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                child: food.imageUrl != null 
+                  ? Image.network(food.imageUrl!, width: double.infinity, fit: BoxFit.cover)
+                  : Container(color: Colors.grey.shade300, child: const Icon(Icons.fastfood, size: 40, color: Colors.white)),
               ),
+            ),
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(food.name, style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
-                  const SizedBox(height: 6),
-                  Text('', style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
-                  const SizedBox(height: 12),
+                  Text(food.name, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(kitchenName, style: textTheme.bodySmall?.copyWith(color: colorScheme.primary), maxLines: 1),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.star, size: 18, color: Colors.amber),
-                          const SizedBox(width: 4),
-                          Text('', style: textTheme.bodyLarge),
-                        ],
+                      Text('₦${food.price.toStringAsFixed(0)}', style: textTheme.titleMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold)),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(color: colorScheme.primary, shape: BoxShape.circle),
+                        child: const Icon(Icons.add, color: Colors.white, size: 16),
                       ),
-                      Text(displayPrice, style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      Chip(label: Text(food.toJson()['category'] ?? '')), 
-                      const SizedBox.shrink(),
                     ],
                   ),
                 ],
@@ -212,23 +276,7 @@ class _MarketScreenState extends State<MarketScreen> {
       ),
     );
   }
-
-  Widget _buildFeaturedKitchenCard(BuildContext context, VendorModel kitchen, TextTheme textTheme, ColorScheme colorScheme) {
-    final image = kitchen.imageUrl ?? '';
-    final name = kitchen.businessName;
-    final rating = '';
-    final specialty = kitchen.description ?? '';
-
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: image.isNotEmpty ? Image.network(image, width: 64, height: 64, fit: BoxFit.cover) : null,
-        title: Text(name, style: textTheme.titleMedium),
-        subtitle: Text('$specialty · Rated $rating'),
-        trailing: TextButton(onPressed: () => Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': kitchen.id}), child: const Text('View')),
-      ),
-    );
-  }
+}
 
   // Removed duplicate featured kitchen card (kept ListTile version above)
 }

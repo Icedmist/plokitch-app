@@ -43,26 +43,33 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
 
     try {
       final profile = await AuthService.getProfile();
-      if (profile != null) {
-        _nameController.text = profile['name'] as String? ?? '';
-        _emailController.text = profile['email'] as String? ?? '';
-        _phoneController.text = profile['phone'] as String? ?? '';
-        final address = profile['address'];
-        if (address is String) {
-          _addressController.text = address;
-        } else if (address is Map) {
-          final street = address['street'] ?? '';
-          final city = address['city'] ?? '';
-          final state = address['state'] ?? '';
-          _addressController.text = [street, city, state].where((part) => part != null && part.toString().isNotEmpty).join(', ');
-        }
+      if (profile != null && mounted) {
+        setState(() {
+          _nameController.text = profile['name'] as String? ?? '';
+          _emailController.text = profile['email'] as String? ?? '';
+          _phoneController.text = profile['phone'] as String? ?? '';
+          final address = profile['address'];
+          if (address is String) {
+            _addressController.text = address;
+          } else if (address is Map) {
+            final street = address['street'] ?? '';
+            final city = address['city'] ?? '';
+            final state = address['state'] ?? '';
+            final parts = [street, city, state].where((p) => p != null && p.toString().isNotEmpty).toList();
+            _addressController.text = parts.join(', ');
+          }
+        });
       }
     } catch (error) {
-      _errorMessage = 'Unable to load account details. Please try again.';
+      if (mounted) {
+        _errorMessage = 'Unable to load account details. Please try again.';
+      }
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -84,19 +91,27 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
         },
       };
       await ApiService.updateUserProfile(profilePayload);
+      
+      // Re-fetch profile to ensure local data is updated
+      await AuthService.getProfile();
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Account details saved successfully.')),
         );
       }
     } catch (error) {
-      setState(() {
-        _errorMessage = 'Unable to save account details. Please try again.';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Unable to save account details. ${error.toString()}';
+        });
+      }
     } finally {
-      setState(() {
-        _saving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
     }
   }
 

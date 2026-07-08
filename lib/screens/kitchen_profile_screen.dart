@@ -1,123 +1,158 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import '../models/vendor_model.dart';
+import '../models/menu_item_model.dart';
 
-class KitchenProfileScreen extends StatelessWidget {
-  final Map<String, dynamic>? kitchenData;
-  final String role;
+class KitchenProfileScreen extends StatefulWidget {
+  final String? id;
 
-  const KitchenProfileScreen({super.key, this.kitchenData, this.role = 'foodie'});
+  const KitchenProfileScreen({super.key, this.id});
 
-  Map<String, dynamic> _resolveKitchen(BuildContext context) {
-    final args = kitchenData ?? ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final name = args?['name'] as String? ?? 'Local Kitchen';
+  @override
+  State<KitchenProfileScreen> createState() => _KitchenProfileScreenState();
+}
 
-    final kitchens = {
-      'Hajiya\'s Suya Spot': {
-        'name': 'Hajiya\'s Suya Spot',
-        'rating': '4.9',
-        'location': 'Kumbiya, Gombe',
-        'description': 'A local favorite for perfectly grilled suya, served with fresh onions and spicy pepper.',
-        'image': 'https://images.unsplash.com/photo-1551218808-94e220e084d2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        'dishes': [
-          'Suya Platter',
-          'Kilishi Bites',
-          'Fura da Nono',
-        ],
-      },
-      'Mama Kike\'s Kitchen': {
-        'name': 'Mama Kike\'s Kitchen',
-        'rating': '4.9',
-        'location': 'Wuse 2, Gombe',
-        'description': 'Known for slow-cooked jollof rice and family recipes from the northern region.',
-        'image': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        'dishes': [
-          'Jollof Rice Feast',
-          'Tuwo Shinkafa & Miyan Kuka',
-          'Masa & Miyan Taushe',
-        ],
-      },
-      'Chef Emeka\'s Spot': {
-        'name': 'Chef Emeka\'s Spot',
-        'rating': '4.8',
-        'location': 'Town, Gombe',
-        'description': 'A chef-owned kitchen offering hearty yam meals and rich soups.',
-        'image': 'https://images.unsplash.com/photo-1478145046317-39f10e56b5e9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        'dishes': [
-          'Pounded Yam & Egusi',
-          'Yam Porridge',
-          'Beef Pepper Soup',
-        ],
-      },
-    };
+class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
+  bool _loading = true;
+  String? _error;
+  VendorModel? _vendor;
+  List<MenuItemModel> _menu = [];
 
-    return kitchens[name] ?? kitchens.values.first;
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final vendorId = widget.id ?? args?['id'] as String?;
+
+    if (vendorId == null) {
+      setState(() {
+        _error = 'Vendor not found';
+        _loading = false;
+      });
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final vendorData = await ApiService.fetchVendor(vendorId);
+      final menuData = await ApiService.fetchVendorMenu(vendorId);
+      
+      if (mounted) {
+        setState(() {
+          _vendor = VendorModel.fromJson(vendorData);
+          _menu = menuData.cast<MenuItemModel>();
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load kitchen details';
+          _loading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final kitchen = _resolveKitchen(context);
-    final roleArg = kitchenData ?? ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final currentRole = role != 'foodie' ? role : (roleArg?['role'] as String? ?? 'foodie');
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_error != null || _vendor == null) return Scaffold(appBar: AppBar(), body: Center(child: Text(_error ?? 'Kitchen not found')));
 
     return Scaffold(
-      appBar: AppBar(title: Text(kitchen['name'])),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.network(kitchen['image'], height: 220, width: double.infinity, fit: BoxFit.cover),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 200,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              background: _vendor!.imageUrl != null
+                  ? Image.network(_vendor!.imageUrl!, fit: BoxFit.cover)
+                  : Container(color: colorScheme.surfaceContainerHigh, child: const Icon(Icons.storefront, size: 64)),
+            ),
           ),
-          const SizedBox(height: 18),
-          Text(kitchen['name'], style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Text('${kitchen['rating']} ⭐ · ${kitchen['location']}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700)),
-          const SizedBox(height: 16),
-          Text(kitchen['description'], style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 24),
-          Text('Menu', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 12),
-          ...List<Widget>.from(kitchen['dishes'].map<Widget>((dish) {
-            return Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                title: Text(dish),
-                subtitle: const Text('Tap to view food details'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/food-detail',
-                    arguments: {
-                      'foodItem': {
-                        'name': dish,
-                        'kitchen': kitchen['name'],
-                        'price': '₦2,900',
-                        'rating': kitchen['rating'],
-                        'image': kitchen['image'],
-                        'description': 'Delicious $dish prepared by ${kitchen['name']}.',
-                        'location': kitchen['location'],
-                      },
-                      'role': currentRole,
-                    },
-                  );
-                },
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_vendor!.businessName, style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.star, size: 18, color: Colors.amber.shade700),
+                      const SizedBox(width: 4),
+                      Text('4.8 · 1.2km away · ', style: textTheme.bodyMedium),
+                      Text('Open Now', style: textTheme.bodyMedium?.copyWith(color: Colors.green, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(_vendor!.description ?? 'Local Kitchen specialized in authentic flavors.', style: textTheme.bodyLarge),
+                  const Divider(height: 40),
+                  Text('Menu', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                ],
               ),
-            );
-          })),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              if (currentRole == 'rider') {
-                Navigator.pushReplacementNamed(context, '/rider-dashboard');
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-            child: const Text('Back to Market'),
-            style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+            ),
           ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final item = _menu[index];
+                return _buildMenuItemCard(item, colorScheme, textTheme);
+              },
+              childCount: _menu.length,
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItemCard(MenuItemModel item, ColorScheme colorScheme, TextTheme textTheme) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: {
+          'foodItem': item.toJson(),
+          'kitchen': _vendor?.businessName ?? 'Unknown Kitchen'
+        }),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.name, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(item.description ?? '', style: textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 8),
+                    Text('₦${item.price.toStringAsFixed(2)}', style: textTheme.titleMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              if (item.imageUrl != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(item.imageUrl!, width: 80, height: 80, fit: BoxFit.cover),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

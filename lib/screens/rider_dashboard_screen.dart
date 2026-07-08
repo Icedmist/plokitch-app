@@ -1,30 +1,10 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
+import '../services/api_service.dart';
+import '../models/order_model.dart';
 
 enum RiderStatus { offline, online, delivering }
-
-class _DeliveryJob {
-  final String id;
-  final String customerName;
-  final String pickupLocation;
-  final String dropoffLocation;
-  final String items;
-  final String fee;
-  final String distance;
-  final String eta;
-
-  const _DeliveryJob({
-    required this.id,
-    required this.customerName,
-    required this.pickupLocation,
-    required this.dropoffLocation,
-    required this.items,
-    required this.fee,
-    required this.distance,
-    required this.eta,
-  });
-}
 
 class RiderDashboardScreen extends StatefulWidget {
   const RiderDashboardScreen({super.key});
@@ -38,36 +18,17 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
   RiderStatus _status = RiderStatus.online;
   bool _hasActiveDelivery = false;
   late AnimationController _pingController;
-
-  final List<_DeliveryJob> _availableJobs = const [
-    _DeliveryJob(
-      id: '#PK-8250',
-      customerName: 'Amina Yusuf',
-      pickupLocation: 'Mama Kike\'s Kitchen, Wuse 2',
-      dropoffLocation: '15 Aminu Kano Way, Wuse 2',
-      items: 'Jollof Rice Feast (x2)',
-      fee: '₦800',
-      distance: '2.4 km',
-      eta: '12 mins',
-    ),
-    _DeliveryJob(
-      id: '#PK-8248',
-      customerName: 'Musa Ibrahim',
-      pickupLocation: 'Arewa Delicacies, Garki',
-      dropoffLocation: '4 Gwandu St, Area 1',
-      items: 'Tuwo Shinkafa & Kuka (x3)',
-      fee: '₦1,200',
-      distance: '5.1 km',
-      eta: '24 mins',
-    ),
-  ];
+  
+  List<OrderModel> _availableOrders = [];
+  bool _loading = true;
+  String? _error;
 
   // Stats
   final Map<String, String> _todayStats = {
-    'deliveries': '7',
-    'earned': '₦6,800',
-    'rating': '4.9',
-    'hours': '3h 20m',
+    'deliveries': '0',
+    'earned': '₦0',
+    'rating': '5.0',
+    'hours': '0h',
   };
 
   @override
@@ -77,6 +38,31 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
+    _loadAvailableOrders();
+  }
+
+  Future<void> _loadAvailableOrders() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final fetched = await ApiService.fetchOrders();
+      // In a real app, filter for orders that are "ready" or "looking for rider"
+      if (mounted) {
+        setState(() {
+          _availableOrders = fetched.where((o) => o.status.toLowerCase() != 'delivered' && o.status.toLowerCase() != 'cancelled').toList();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
   @override
@@ -85,13 +71,13 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     super.dispose();
   }
 
-  void _acceptJob(_DeliveryJob job) {
+  void _acceptJob(OrderModel job) {
     setState(() {
       _hasActiveDelivery = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Delivery ${job.id} accepted! Head to ${job.pickupLocation}.'),
+        content: Text('Delivery #${job.id.substring(0, 8)} accepted! Head to ${job.vendorName ?? 'Kitchen'}.'),
         backgroundColor: const Color(0xFF663B00),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -216,7 +202,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
           const SizedBox(height: 24),
 
           // Active Delivery Banner
-          if (_hasActiveDelivery) ...[
+          if (_hasActiveDelivery && _availableOrders.isNotEmpty) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -238,12 +224,12 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    _availableJobs[0].customerName,
+                    _availableOrders[0].customerName ?? 'Guest',
                     style: textTheme.headlineMedium?.copyWith(color: colorScheme.onPrimaryContainer),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _availableJobs[0].dropoffLocation,
+                    'Delivery to location',
                     style: textTheme.bodyMedium?.copyWith(color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8)),
                   ),
                   const SizedBox(height: 16),
@@ -291,21 +277,32 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Available Jobs', style: textTheme.headlineMedium?.copyWith(color: colorScheme.primary)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
+                if (_loading)
+                  const CircularProgressIndicator()
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_availableOrders.length} near you',
+                      style: textTheme.labelSmall?.copyWith(color: Colors.green.shade700),
+                    ),
                   ),
-                  child: Text(
-                    '${_availableJobs.length} near you',
-                    style: textTheme.labelSmall?.copyWith(color: Colors.green.shade700),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 12),
-            ..._availableJobs.map((job) => _buildJobCard(job, colorScheme, textTheme)),
+            if (_error != null)
+              Center(child: Text('Error: $_error'))
+            else if (_availableOrders.isEmpty && !_loading)
+              const Center(child: Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Text('No jobs available right now'),
+              ))
+            else
+              ..._availableOrders.map((job) => _buildJobCard(job, colorScheme, textTheme)),
           ],
 
           if (!isOnline) ...[
@@ -374,7 +371,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     );
   }
 
-  Widget _buildJobCard(_DeliveryJob job, ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildJobCard(OrderModel job, ColorScheme colorScheme, TextTheme textTheme) {
+    final itemsSummary = job.items.map((i) => i['name'] ?? 'Item').join(', ');
+    final fee = '₦800'; // Default fee as it's not in OrderModel yet
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -389,7 +389,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(job.id, style: textTheme.labelLarge?.copyWith(color: colorScheme.primary)),
+              Text('#${job.id.substring(0, 8)}', style: textTheme.labelLarge?.copyWith(color: colorScheme.primary)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -397,7 +397,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  job.fee,
+                  fee,
                   style: textTheme.labelLarge?.copyWith(color: colorScheme.onPrimaryContainer),
                 ),
               ),
@@ -409,7 +409,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
               Icon(Icons.storefront, size: 16, color: colorScheme.primary),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(job.pickupLocation, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface)),
+                child: Text(job.vendorName ?? 'Local Kitchen', style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface)),
               ),
             ],
           ),
@@ -424,22 +424,18 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
               Icon(Icons.location_on, size: 16, color: colorScheme.error),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(job.dropoffLocation, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface)),
+                child: Text('Delivery Location', style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface)),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(job.items, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+          Text(itemsSummary, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
           const Divider(height: 20),
           Row(
             children: [
-              Icon(Icons.straighten, size: 14, color: colorScheme.outline),
+              const Icon(Icons.timer, size: 14, color: Colors.grey),
               const SizedBox(width: 4),
-              Text(job.distance, style: textTheme.bodySmall?.copyWith(color: colorScheme.outline)),
-              const SizedBox(width: 12),
-              Icon(Icons.timer, size: 14, color: colorScheme.outline),
-              const SizedBox(width: 4),
-              Text(job.eta, style: textTheme.bodySmall?.copyWith(color: colorScheme.outline)),
+              Text(job.status, style: textTheme.bodySmall?.copyWith(color: Colors.grey)),
               const Spacer(),
               ElevatedButton(
                 onPressed: () => _acceptJob(job),
