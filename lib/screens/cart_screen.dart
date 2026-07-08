@@ -23,16 +23,40 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _handleCheckout() async {
-    if (_cartItems.isEmpty) return;
+    if (_cartItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cart is empty')));
+      return;
+    }
+    
+    String? vendorId = _cartItems.first['vendorId'] as String? ?? _cartItems.first['vendor']?['id'] as String?;
+    if (vendorId == null || vendorId.isEmpty) {
+      // Attempt to repair cart by looking for vendorId in items
+      for (final it in _cartItems) {
+        final found = it['vendorId'] as String? ?? (it['vendor'] is Map ? (it['vendor']['id'] as String?) : null);
+        if (found != null && found.isNotEmpty) {
+          for (final migrate in _cartItems) {
+            migrate['vendorId'] = migrate['vendorId'] ?? (migrate['vendor'] is Map ? migrate['vendor']['id'] : null);
+          }
+          await CartService.saveCart(_cartItems);
+          vendorId = found;
+          break;
+        }
+      }
+      if (vendorId == null || vendorId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen information is missing. Please add items again.')));
+        return;
+      }
+    }
+    
     setState(() => _loading = true);
     try {
       final payload = {
-        'vendorId': _cartItems.first['vendorId'] ?? _cartItems.first['vendor']?['id'],
+        'vendorId': vendorId,
         'items': _cartItems.map((i) => {
-              'menuItemId': i['id'],
+              'menuItemId': i['id'] as String?,
               'name': i['name'],
-              'price': i['price'],
-              'quantity': i['quantity'],
+              'price': double.tryParse(i['price'].toString()) ?? 0.0,
+              'quantity': i['quantity'] as int?,
             }).toList(),
         'deliveryAddress': {
           'street': 'User address placeholder',
@@ -43,13 +67,15 @@ class _CartScreenState extends State<CartScreen> {
 
       final order = await ApiService.placeOrder(payload);
       await CartService.clearCart();
+      if (!mounted) return;
       setState(() => _cartItems.clear());
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order placed: ${order['id']}')));
       Navigator.pushReplacementNamed(context, '/order-history');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to place order: $e')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to place order: ${e.toString()}')));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -58,8 +84,12 @@ class _CartScreenState extends State<CartScreen> {
     setState(() => _cartItems.addAll(items));
   }
 
-  int get _subtotal {
-    return _cartItems.fold(0, (sum, item) => sum + ((item['price'] as int) * (item['quantity'] as int)));
+  double get _subtotal {
+    return _cartItems.fold(0.0, (sum, item) {
+      final price = (item['price'] is num) ? (item['price'] as num).toDouble() : double.tryParse(item['price'].toString()) ?? 0.0;
+      final quantity = item['quantity'] is int ? item['quantity'] as int : int.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
+      return sum + price * quantity;
+    });
   }
   
   final int _deliveryFee = 800;
@@ -141,7 +171,7 @@ class _CartScreenState extends State<CartScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _buildReceiptRow('Subtotal', '₦${_subtotal}', textTheme),
+                          _buildReceiptRow('Subtotal', '₦$_subtotal', textTheme),
                           const SizedBox(height: 8),
                           _buildReceiptRow('Delivery', '₦$_deliveryFee', textTheme),
                           const SizedBox(height: 16),

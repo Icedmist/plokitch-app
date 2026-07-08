@@ -1,36 +1,65 @@
 import 'package:flutter/material.dart';
+import '../services/cart_service.dart';
 
-class FoodDetailScreen extends StatelessWidget {
+class FoodDetailScreen extends StatefulWidget {
   final Map<String, dynamic>? foodItem;
   final String role;
 
   const FoodDetailScreen({super.key, this.foodItem, this.role = 'foodie'});
 
   @override
+  State<FoodDetailScreen> createState() => _FoodDetailScreenState();
+}
+
+class _FoodDetailScreenState extends State<FoodDetailScreen> {
+  bool _addingToCart = false;
+
+  @override
   Widget build(BuildContext context) {
-    final item = foodItem ?? ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final map = item ?? {
-      'name': 'Unknown Food',
-      'kitchen': 'Unknown Kitchen',
-      'price': '₦0',
-      'rating': '0.0',
-      'image': 'https://images.unsplash.com/photo-1498603283035-8dc0f94d7ea4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      'description': 'No description available.',
-      'location': 'Unknown',
-    };
-    final currentRole = role != 'foodie' ? role : (item?['role'] as String? ?? 'foodie');
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final itemRaw = widget.foodItem ?? args?['foodItem'] as Map<String, dynamic>?;
+    final kitchenName = args?['kitchen'] as String? ?? itemRaw?['kitchen'] as String? ?? 'Unknown Kitchen';
+    final vendorId = args?['vendorId'] as String? ?? itemRaw?['vendorId'] as String?;
+
+    if (itemRaw == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Detail')),
+        body: const Center(child: Text('Food item not found')),
+      );
+    }
+
+    final name = itemRaw['name'] as String? ?? 'Unknown Food';
+    final priceNum = itemRaw['price'] is String ? double.tryParse(itemRaw['price']) : (itemRaw['price'] as num?)?.toDouble();
+    final price = '₦${(priceNum ?? 0).toStringAsFixed(2)}';
+    final imageUrl = itemRaw['imageUrl'] ?? itemRaw['image_url'] ?? '';
+    final description = itemRaw['description'] as String? ?? 'No description available.';
+    final category = itemRaw['category'] as String? ?? 'Food';
+    final location = itemRaw['location'] as String? ?? 'Gombe';
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(map['name']),
+        title: Text(name),
         centerTitle: true,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.network(map['image'], height: 240, width: double.infinity, fit: BoxFit.cover),
-          ),
+          if (imageUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.network(
+                imageUrl,
+                height: 240,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  height: 240,
+                  width: double.infinity,
+                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                  child: const Icon(Icons.broken_image, size: 64),
+                ),
+              ),
+            ),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,30 +68,22 @@ class FoodDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(map['name'], style: Theme.of(context).textTheme.headlineSmall),
+                    Text(name, style: Theme.of(context).textTheme.headlineSmall),
                     const SizedBox(height: 4),
-                    Text(map['kitchen'], style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.primary)),
+                    Text(kitchenName, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.primary)),
                   ],
                 ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(map['price'], style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.primary)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 18, color: Colors.amber),
-                      const SizedBox(width: 4),
-                      Text(map['rating'], style: Theme.of(context).textTheme.bodyMedium),
-                    ],
-                  ),
+                  Text(price, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.primary)),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Text(map['description'], style: Theme.of(context).textTheme.bodyMedium),
+          Text(description, style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 20),
           const Text('Kitchen', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
@@ -71,10 +92,16 @@ class FoodDetailScreen extends StatelessWidget {
             elevation: 0,
             child: ListTile(
               contentPadding: const EdgeInsets.all(16),
-              title: Text(map['kitchen'], style: Theme.of(context).textTheme.titleMedium),
-              subtitle: Text('${map['location']} · Rated ${map['rating']}', style: Theme.of(context).textTheme.bodySmall),
-              trailing: TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/kitchen-profile', arguments: {'name': map['kitchen'], 'role': currentRole}),
+              title: Text(kitchenName, style: Theme.of(context).textTheme.titleMedium),
+              subtitle: Text(location),
+                trailing: TextButton(
+                onPressed: () {
+                  if (vendorId == null || vendorId.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen information is missing.')));
+                    return;
+                  }
+                  Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': vendorId, 'name': kitchenName});
+                },
                 child: const Text('View Profile'),
               ),
             ),
@@ -82,14 +109,34 @@ class FoodDetailScreen extends StatelessWidget {
           const SizedBox(height: 20),
           const Text('More Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          _buildDetailRow(Icons.food_bank, 'Category', item?['category'] ?? 'Food'),
-          _buildDetailRow(Icons.location_on, 'Location', item?['location'] ?? 'Gombe'),
-          _buildDetailRow(Icons.timer, 'Preparation', '10 - 15 mins'),
+          _buildDetailRow(Icons.food_bank, 'Category', category),
+          _buildDetailRow(Icons.location_on, 'Location', location),
+          _buildDetailRow(Icons.timer, 'Preparation', '10 - 25 mins'),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             icon: const Icon(Icons.shopping_cart),
-            label: const Text('Buy Now'),
-            onPressed: () => Navigator.pushNamed(context, '/cart'),
+            label: Text(_addingToCart ? 'Adding…' : 'Add to Cart'),
+            onPressed: _addingToCart
+                ? null
+                : () async {
+                    if (vendorId == null || vendorId.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen information is missing.')));
+                      return;
+                    }
+                    if (itemRaw['vendorId'] == null) {
+                      itemRaw['vendorId'] = vendorId;
+                    }
+                    setState(() => _addingToCart = true);
+                    await _addToCart(
+                      itemRaw,
+                      vendorId,
+                      kitchenName,
+                      imageUrl,
+                      description,
+                      priceNum ?? 0,
+                    );
+                    if (mounted) setState(() => _addingToCart = false);
+                  },
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -99,6 +146,46 @@ class FoodDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _addToCart(
+    Map<String, dynamic> itemRaw,
+    String vendorId,
+    String kitchenName,
+    String imageUrl,
+    String description,
+    double price,
+  ) async {
+    final cart = await CartService.loadCart();
+    if (cart.isNotEmpty && cart.first['vendorId'] != vendorId) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Your cart already contains items from another kitchen. Please checkout first.'),
+      ));
+      return;
+    }
+
+    final itemId = itemRaw['id']?.toString() ?? '';
+    final existingIndex = cart.indexWhere((item) => item['id'] == itemId && item['vendorId'] == vendorId);
+    if (existingIndex >= 0) {
+      cart[existingIndex]['quantity'] = (cart[existingIndex]['quantity'] as int? ?? 1) + 1;
+    } else {
+      cart.add({
+        'id': itemId,
+        'name': itemRaw['name']?.toString() ?? 'Food item',
+        'description': description,
+        'image': imageUrl,
+        'price': price,
+        'quantity': 1,
+        'vendorId': vendorId,
+        'vendorName': kitchenName,
+      });
+    }
+
+    await CartService.saveCart(cart);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added to cart.')));
+    Navigator.pushNamed(context, '/cart');
   }
 
   Widget _buildDetailRow(IconData icon, String label, String value) {

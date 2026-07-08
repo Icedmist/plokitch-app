@@ -28,8 +28,11 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() => _loading = true);
     try {
       await AuthService.signIn(email, password);
+      if (!mounted) return;
       final profile = await AuthService.getProfile();
+      if (!mounted) return;
       final role = profile?['role'] as String? ?? 'customer';
+      mockUserRole = role;
       if (role == 'chef') {
         Navigator.pushReplacementNamed(context, '/chef-dashboard');
       } else if (role == 'rider') {
@@ -38,9 +41,10 @@ class _SignInScreenState extends State<SignInScreen> {
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
