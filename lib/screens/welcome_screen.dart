@@ -68,13 +68,16 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 
   void _startSequence() async {
-    // Check if user is already signed in
+    // Check if user is already signed in and validate the cached session
     try {
-      final storedRole = await AuthService.storedRole();
-      if (storedRole != null && storedRole.isNotEmpty) {
+      final profile = await AuthService.getProfile(forceRefresh: true);
+      final storedRole = profile?['role'] as String?;
+      final fallbackRole = await AuthService.storedRole();
+      final role = (storedRole != null && storedRole.isNotEmpty) ? storedRole : fallbackRole;
+      if (role != null && role.isNotEmpty) {
         // User is already logged in, skip welcome animation
         if (mounted) {
-          _navigateToRoleHome(storedRole);
+          _navigateToRoleHome(role);
         }
         return;
       }
@@ -157,14 +160,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Left bracket (slides from left)
+                        // Left image asset (slides from left)
                         Transform.translate(
                           offset: Offset(_leftBracketSlide.value, 0),
-                          child: Text(
-                            '<',
-                            style: bracketStyle.copyWith(
-                              color: const Color(0xFFFF9B04),
-                            ),
+                          child: Image.asset(
+                            'assets/images/Plokitch_Bracket_Left.png',
+                            width: 72,
+                            height: 72,
+                            fit: BoxFit.contain,
                           ),
                         ),
 
@@ -184,14 +187,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           ),
                         ),
 
-                        // Right bracket (slides from right)
+                        // Right image asset (slides from right)
                         Transform.translate(
                           offset: Offset(_rightBracketSlide.value, 0),
-                          child: Text(
-                            '>',
-                            style: bracketStyle.copyWith(
-                              color: const Color(0xFFFF9B04),
-                            ),
+                          child: Image.asset(
+                            'assets/images/Plokitch_Bracket_Right.png',
+                            width: 72,
+                            height: 72,
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ],

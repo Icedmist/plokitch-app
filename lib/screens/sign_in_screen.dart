@@ -37,7 +37,11 @@ class _SignInScreenState extends State<SignInScreen> {
         throw Exception('Failed to load profile. Please try signing in again.');
       }
       
-      final role = (profile['role'] as String?)?.toLowerCase() ?? 'customer';
+      final profileRole = (profile['role'] as String?)?.toLowerCase();
+      final fallbackRole = await AuthService.storedRole();
+      final role = (profileRole != null && profileRole.isNotEmpty)
+          ? profileRole
+          : (fallbackRole?.toLowerCase() ?? 'customer');
       mockUserRole = role;
       
       // Navigate to appropriate role-based dashboard
