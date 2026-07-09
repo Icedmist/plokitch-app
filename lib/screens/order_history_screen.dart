@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../models/order_model.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
@@ -28,7 +29,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       _error = null;
     });
     try {
-      final fetched = await ApiService.fetchOrders();
+      final profile = await AuthService.getProfile();
+      final customerId = profile?['id'];
+      
+      final fetched = await ApiService.fetchOrders(customerId: customerId);
       if (mounted) {
         setState(() {
           _orders = fetched;

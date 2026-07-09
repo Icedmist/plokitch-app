@@ -3,6 +3,8 @@ import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_button.dart';
 import '../services/cart_service.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../services/mail_service.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -80,13 +82,23 @@ class _CartScreenState extends State<CartScreen> {
         return;
       }
 
+      final profile = await AuthService.getProfile();
+      final address = profile?['address'];
+      String street = 'User delivery address';
+      if (address is String) {
+        street = address;
+      } else if (address is Map) {
+        street = address['street'] ?? street;
+      }
+
       final payload = {
         'vendorId': vendorId.trim(),
+        'customerId': profile?['id'],
         'items': items,
         'deliveryAddress': {
-          'street': 'Delivery Address',
-          'city': 'Lagos',
-          'state': 'Lagos',
+          'street': street,
+          'city': 'Gombe',
+          'state': 'Gombe State',
           'country': 'Nigeria',
         },
         'totalAmount': _subtotal + _deliveryFee,
@@ -96,6 +108,15 @@ class _CartScreenState extends State<CartScreen> {
       final order = await ApiService.placeOrder(payload);
       if (!mounted) return;
       
+      // Trigger Order Mail
+      if (profile?['email'] != null) {
+        await MailService.notifyOrderPlaced(
+          order['id'].toString(), 
+          profile!['email'].toString(),
+          'kitchen@plokitch.com', // In real app, vendor email comes from vendor profile
+        );
+      }
+
       await CartService.clearCart();
       if (!mounted) return;
       
@@ -255,7 +276,7 @@ class _CartScreenState extends State<CartScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16.0),
                             child: Text(
-                              'Add More?',
+                              'Recommended Add-ons',
                               style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary),
                             ),
                           ),

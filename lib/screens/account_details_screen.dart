@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../widgets/plokitch_error_banner.dart';
 
 class AccountDetailsScreen extends StatefulWidget {
   const AccountDetailsScreen({super.key});
@@ -16,9 +17,11 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
+  final _avatarUrlController = TextEditingController();
   bool _loading = true;
   bool _saving = false;
   String? _errorMessage;
+  String? _currentAvatarUrl;
 
   @override
   void initState() {
@@ -32,6 +35,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _avatarUrlController.dispose();
     super.dispose();
   }
 
@@ -51,6 +55,8 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
             _nameController.text = profile['name'] as String? ?? '';
             _emailController.text = profile['email'] as String? ?? '';
             _phoneController.text = profile['phone'] as String? ?? '';
+            _currentAvatarUrl = profile['avatarUrl'] as String? ?? profile['avatar_url'] as String?;
+            _avatarUrlController.text = _currentAvatarUrl ?? '';
             final address = profile['address'];
             if (address is String) {
               _addressController.text = address;
@@ -91,16 +97,17 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'address': {
-          'street': _addressController.text.trim(),
-        },
+        'avatarUrl': _avatarUrlController.text.trim(),
+        'address': _addressController.text.trim(),
       };
       await ApiService.updateUserProfile(profilePayload);
       
-      // Re-fetch profile to ensure local data is updated
       await AuthService.getProfile();
       
       if (mounted) {
+        setState(() {
+           _currentAvatarUrl = _avatarUrlController.text.trim();
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Account details saved successfully.')),
         );
@@ -108,7 +115,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
     } catch (error) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Unable to save account details. ${error.toString()}';
+          _errorMessage = error.toString().replaceAll('Exception: ', '');
         });
       }
     } finally {
@@ -118,6 +125,12 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
         });
       }
     }
+  }
+
+  void _deleteProfilePicture() {
+    setState(() {
+      _avatarUrlController.clear();
+    });
   }
 
   @override
@@ -134,30 +147,59 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                 key: _formKey,
                 child: ListView(
                   children: [
-                    if (_errorMessage != null) ...
-                      [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: colorScheme.errorContainer,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: colorScheme.error),
+                    if (_errorMessage != null) ...[
+                      PlokitchErrorBanner(
+                        message: _errorMessage!,
+                        onDismiss: () => setState(() => _errorMessage = null),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    Center(
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: colorScheme.surfaceContainerHigh,
+                              border: Border.all(color: colorScheme.primary, width: 2),
+                              image: _avatarUrlController.text.isNotEmpty
+                                  ? DecorationImage(
+                                      image: NetworkImage(_avatarUrlController.text),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: _avatarUrlController.text.isEmpty
+                                ? Icon(Icons.person, size: 50, color: colorScheme.outline)
+                                : null,
                           ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.error_outline, color: colorScheme.error, size: 20),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  _errorMessage!,
-                                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Row(
+                              children: [
+                                _buildCircleButton(
+                                  icon: Icons.edit,
+                                  color: colorScheme.primary,
+                                  onTap: () => _showAvatarUrlDialog(),
                                 ),
-                              ),
-                            ],
+                                if (_avatarUrlController.text.isNotEmpty) ...[
+                                  const SizedBox(width: 4),
+                                  _buildCircleButton(
+                                    icon: Icons.delete,
+                                    color: colorScheme.error,
+                                    onTap: _deleteProfilePicture,
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
                     Text('Personal information', style: textTheme.headlineSmall),
                     const SizedBox(height: 20),
                     _buildTextField('Full Name', _nameController, TextInputType.name),
@@ -167,11 +209,18 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                     _buildTextField('Phone Number', _phoneController, TextInputType.phone),
                     const SizedBox(height: 16),
                     _buildTextField('Delivery Address', _addressController, TextInputType.streetAddress, maxLines: 3),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: _saving ? null : _saveDetails,
-                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                      child: _saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save Details'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                      child: _saving 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                          : const Text('Save Details', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(height: 16),
                     Text('Manage your account and delivery preferences here.', style: textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
@@ -179,6 +228,40 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildCircleButton({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+        child: Icon(icon, color: Colors.white, size: 14),
+      ),
+    );
+  }
+
+  void _showAvatarUrlDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Update Profile Picture'),
+        content: TextField(
+          controller: _avatarUrlController,
+          decoration: const InputDecoration(labelText: 'Image URL', hintText: 'https://example.com/image.jpg'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              setState(() {});
+              Navigator.pop(context);
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
     );
   }
 

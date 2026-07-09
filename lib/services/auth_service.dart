@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'data_cache_service.dart';
 
 class AuthService {
   AuthService._();
@@ -102,7 +103,13 @@ class AuthService {
     await prefs.remove(_roleKey);
   }
 
-  static Future<Map<String, dynamic>?> getProfile() async {
+  static Future<Map<String, dynamic>?> getProfile({bool forceRefresh = false}) async {
+    const cacheKey = 'user_profile';
+    if (!forceRefresh) {
+      final cached = DataCacheService.get(cacheKey);
+      if (cached != null) return cached;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_sessionKey);
     final uri = _uri('/api/users/me');
@@ -115,6 +122,7 @@ class AuthService {
       if (role != null) {
         await prefs.setString(_roleKey, role);
       }
+      DataCacheService.set(cacheKey, data);
     }
     return data;
   }

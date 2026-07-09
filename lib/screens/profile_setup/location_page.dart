@@ -142,7 +142,7 @@ class _LocationPageState extends State<LocationPage> {
                   child: ElevatedButton.icon(
                     onPressed: _locating ? null : _findMe,
                     icon: const Icon(Icons.my_location, size: 16),
-                    label: Text(_locating ? 'Detecting...' : 'Find me on Map'),
+                    label: Text(_locating ? 'Detecting...' : 'Locate Me Automatically'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colorScheme.surface,
                       foregroundColor: colorScheme.primary,
