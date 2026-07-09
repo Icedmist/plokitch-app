@@ -31,13 +31,6 @@ class _SignInScreenState extends State<SignInScreen> {
       await AuthService.signIn(email, password);
       if (!mounted) return;
       
-      // Save a login notification
-      await ApiService.addNotification(
-        title: 'Login Alert',
-        body: 'You successfully logged into your account.',
-        type: 'system',
-      );
-      
       final profile = await AuthService.getProfile(forceRefresh: true);
       if (!mounted) return;
       
@@ -45,6 +38,21 @@ class _SignInScreenState extends State<SignInScreen> {
         throw Exception('Failed to load profile. Please try signing in again.');
       }
       
+      final bool loginNotifEnabled = profile['loginNotificationsEnabled'] as bool? ??
+          profile['login_notifications_enabled'] as bool? ??
+          true;
+
+      if (loginNotifEnabled) {
+        // Save login notification in background database
+        await ApiService.addNotification(
+          title: 'Login Alert',
+          body: 'You successfully logged into your account.',
+          type: 'system',
+        );
+        // Force refresh profile again to update notification count
+        await AuthService.getProfile(forceRefresh: true);
+      }
+
       final profileRole = (profile['role'] as String?)?.toLowerCase();
       final fallbackRole = await AuthService.storedRole();
       final role = (profileRole != null && profileRole.isNotEmpty)
@@ -59,7 +67,12 @@ class _SignInScreenState extends State<SignInScreen> {
               ? '/rider-dashboard'
               : '/home';
       
-      Navigator.pushReplacementNamed(context, route);
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(
+        context, 
+        route, 
+        arguments: {'showLoginToast': loginNotifEnabled},
+      );
     } catch (e) {
       if (!mounted) return;
       final message = _friendlyAuthError(e);

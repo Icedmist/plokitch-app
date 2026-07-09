@@ -16,6 +16,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   bool _saving = false;
   bool _pushNotifications = true;
   bool _marketingEmails = false;
+  bool _loginNotifications = true;
   String? _errorMessage;
 
   @override
@@ -41,10 +42,14 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       final bool profileEmailVal = profile?['marketingEmailsEnabled'] as bool? ??
           profile?['marketing_emails_enabled'] as bool? ??
           false;
+      final bool profileLoginVal = profile?['loginNotificationsEnabled'] as bool? ??
+          profile?['login_notifications_enabled'] as bool? ??
+          true;
 
       setState(() {
         _pushNotifications = prefs.getBool('pref_push_notifications') ?? profilePushVal;
         _marketingEmails = prefs.getBool('pref_marketing_emails') ?? profileEmailVal;
+        _loginNotifications = prefs.getBool('pref_login_notifications') ?? profileLoginVal;
       });
     } catch (e) {
       _errorMessage = 'Failed to load preferences.';
@@ -57,7 +62,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     }
   }
 
-  Future<void> _saveSettings(bool pushVal, bool emailVal) async {
+  Future<void> _saveSettings(bool pushVal, bool emailVal, bool loginVal) async {
     setState(() {
       _saving = true;
     });
@@ -66,6 +71,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('pref_push_notifications', pushVal);
       await prefs.setBool('pref_marketing_emails', emailVal);
+      await prefs.setBool('pref_login_notifications', loginVal);
 
       // Send both camelCase and snake_case to the backend for maximum compatibility
       final payload = {
@@ -73,10 +79,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         'push_notifications_enabled': pushVal,
         'marketingEmailsEnabled': emailVal,
         'marketing_emails_enabled': emailVal,
+        'loginNotificationsEnabled': loginVal,
+        'login_notifications_enabled': loginVal,
       };
 
       await ApiService.updateUserProfile(payload);
-      await AuthService.getProfile();
+      await AuthService.getProfile(forceRefresh: true);
     } catch (_) {
       // Silently fall back to local preferences if the API update fails
     } finally {
@@ -134,7 +142,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                                   setState(() {
                                     _pushNotifications = value;
                                   });
-                                  _saveSettings(value, _marketingEmails);
+                                  _saveSettings(value, _marketingEmails, _loginNotifications);
                                 },
                         ),
                         const Divider(height: 1),
@@ -149,7 +157,22 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                                   setState(() {
                                     _marketingEmails = value;
                                   });
-                                  _saveSettings(_pushNotifications, value);
+                                  _saveSettings(_pushNotifications, value, _loginNotifications);
+                                },
+                        ),
+                        const Divider(height: 1),
+                        SwitchListTile(
+                          title: const Text('Login Alerts', style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: const Text('Receive alerts and top-sliding notifications whenever you sign in.'),
+                          value: _loginNotifications,
+                          activeThumbColor: colorScheme.primary,
+                          onChanged: _saving
+                              ? null
+                              : (bool value) {
+                                  setState(() {
+                                    _loginNotifications = value;
+                                  });
+                                  _saveSettings(_pushNotifications, _marketingEmails, value);
                                 },
                         ),
                       ],

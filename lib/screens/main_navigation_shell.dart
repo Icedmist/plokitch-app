@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_bottom_nav.dart';
+import '../widgets/plokitch_toast.dart';
 import '../services/auth_service.dart';
 import '../main.dart';
 
@@ -35,6 +36,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _loadRole();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['showLoginToast'] == true) {
+        args['showLoginToast'] = false;
+        PlokitchToast.show(
+          context,
+          'You successfully logged into your account.',
+          icon: Icons.vpn_key_outlined,
+        );
+      }
+    });
   }
 
   @override
