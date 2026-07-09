@@ -24,7 +24,9 @@ graph TD
 ### 2. Navigation & Performance Optimizations
 * **Action**: Introduced a unified `MainNavigationShell` to resolve screen flashing.
 * **Details**: 
-  * Replaced individual screen `bottomNavigationBar` configurations with a parent wrapper utilizing an `IndexedStack`.
+  * Replaced individual screen `bottomNavigationBar` configurations with a parent wrapper.
+  * Replaced `IndexedStack` with a custom `FadeIndexedStack` that animates transitions.
+  * **Snappy Tab Switching Animation**: Implemented a smooth 180ms cross-fade animation between tabs while preserving the states/caches of all active screens (so data does not reload when switching).
   * Removed `Navigator.pushReplacementNamed` page transitions for tab switching, allowing tabs to change instantaneously with zero rebuild-induced screen flashing.
   * Disallowed screen overlap by disabling Scaffold's `extendBody` property, which resolves nested Scaffold constraints.
 
