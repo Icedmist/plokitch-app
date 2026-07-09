@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/plokitch_app_bar.dart';
-import '../widgets/plokitch_bottom_nav.dart';
 
 class _Notification {
   final String id;
@@ -205,14 +204,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: PlokitchBottomNav(
-        currentIndex: 3,
-        onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/home');
-          if (index == 2) Navigator.pushReplacementNamed(context, '/tracking');
-          if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
-        },
       ),
     );
   }

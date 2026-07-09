@@ -96,6 +96,7 @@ graph TD
   * **Faded Circular Back Buttons**: Styled the leading back button in [plokitch_app_bar.dart](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_app_bar.dart#L43) with a custom circular container utilizing a faded primary tint (`colorScheme.primary.withValues(alpha: 0.08)`).
   * **Reactive Marketplace Cart Badge**: Integrated a badge counter overlay on the inline Marketplace cart icon. It reads item quantities using `CartService.loadCart()` and automatically updates whenever the user returns from the Cart or Food Detail screens.
   * **Centered Cart Icon & Badge**: Fixed alignment issues where the default padding of `IconButton` pushed the cart icon off-center and clipped the badge. Replaced the `IconButton` with a centered `GestureDetector` wrapping a direct `Badge` + `Icon` layout for pixel-perfect centering inside the circular button.
+  * **Hidden Bottom Navigation in Notifications**: Removed the `bottomNavigationBar` component entirely from [notifications_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/notifications_screen.dart#L209) so that it is properly hidden when viewing notifications.
 
 ---
 
@@ -119,6 +120,7 @@ graph TD
 * [**lib/screens/market_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/market_screen.dart)
 * [**lib/screens/map_explorer_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/map_explorer_screen.dart)
 * [**lib/screens/notification_settings_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/notification_settings_screen.dart)
+* [**lib/screens/notifications_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/notifications_screen.dart)
 * [**lib/screens/food_detail_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/food_detail_screen.dart)
 * [**lib/widgets/plokitch_app_bar.dart**](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_app_bar.dart)
 * [**lib/widgets/plokitch_toast.dart**](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_toast.dart)
