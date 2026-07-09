@@ -1,7 +1,7 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/plokitch_app_bar.dart';
-import '../widgets/plokitch_bottom_nav.dart';
 import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -64,50 +64,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           // Profile Anchor Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF642714), // warmBrown
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: colorScheme.primaryContainer, width: 2),
-                    image: _avatarUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(_avatarUrl!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    color: colorScheme.primaryContainer.withValues(alpha: 0.1),
-                  ),
-                  child: _avatarUrl == null ? const Icon(Icons.person, color: Colors.white, size: 32) : null,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_profileName, style: textTheme.titleLarge?.copyWith(color: Colors.white)),
-                      Text(_profileEmail, style: textTheme.bodyMedium?.copyWith(color: Colors.white70)),
-                      const SizedBox(height: 4),
-                      Text(_profileRole.toUpperCase(), style: textTheme.bodySmall?.copyWith(color: Colors.white54)),
-                    ],
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.15),
+                    width: 1,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.white),
-                  onPressed: () async {
-                    await Navigator.pushNamed(context, '/account-details');
-                    _loadProfile();
-                  },
+                child: Row(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: colorScheme.primaryContainer, width: 2),
+                        image: _avatarUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(_avatarUrl!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                        color: colorScheme.primaryContainer.withValues(alpha: 0.1),
+                      ),
+                      child: _avatarUrl == null ? Icon(Icons.person, color: colorScheme.primary, size: 32) : null,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_profileName, style: textTheme.titleLarge?.copyWith(color: colorScheme.onSurface)),
+                          Text(_profileEmail, style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
+                          const SizedBox(height: 4),
+                          Text(_profileRole.toUpperCase(), style: textTheme.bodySmall?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.edit, color: colorScheme.primary),
+                      onPressed: () async {
+                        await Navigator.pushNamed(context, '/account-details');
+                        _loadProfile();
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -129,11 +139,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _loadProfile();
               }),
           _buildSettingsItem(Icons.notifications_none, 'Notifications', colorScheme, textTheme,
-              onTap: () => Navigator.pushNamed(context, '/notifications')),
+              onTap: () => Navigator.pushNamed(context, '/notification-settings')),
           _buildSettingsItem(Icons.payment, 'Payment Methods', colorScheme, textTheme,
               onTap: () => Navigator.pushNamed(context, '/payment-methods')),
-          _buildSettingsItem(Icons.history, 'Order History', colorScheme, textTheme,
-              onTap: () => Navigator.pushNamed(context, '/order-history')),
           
           const SizedBox(height: 32),
           Text('Appearance', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),

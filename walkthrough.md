@@ -70,6 +70,13 @@ graph TD
   * **API Response Mapping**: Enhanced `AccountDetailsScreen`, `SettingsScreen`, and `ChefDashboardScreen` to look for the `'image'` key in the user profile payload first, before falling back to `'avatarUrl'` or `'avatar_url'`.
   * **Reactive Settings Refresh**: Changed the navigation transitions from `SettingsScreen` to `AccountDetailsScreen` to `await` the navigation pop. When returning from the edit profile page, the settings page automatically calls `_loadProfile()` to instantly reflect the new profile name, email, and avatar picture on the UI without requiring an app reload.
 
+### 8. Custom Notification Settings, Clean Navigation & Glassmorphic Blur
+* **Action**: Implemented Notification settings, cleaned up redundant settings items, and added a premium blurred glass header card.
+* **Details**:
+  * **Notification Settings Screen**: Created a brand-matching [notification_settings_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/notification_settings_screen.dart) featuring toggles for Push Alerts and Marketing Emails, integrated with local SharedPreferences caching and backend API sync.
+  * **Redundant Order History Removed**: Removed the 'Order History' settings item from the Preferences list to keep the profile page clean, as orders are already managed by the dedicated bottom navigation tab.
+  * **Glassmorphic Header Blur**: Styled the profile details anchor card with frosted glass aesthetics utilizing `ClipRRect` and `BackdropFilter` (blur sigma: 10). Replaced the solid thick background with a semitransparent primary theme overlay (`primary.withValues(alpha: 0.12)`) and a delicate primary border.
+
 ---
 
 ## 📂 Modified Files
@@ -90,6 +97,7 @@ graph TD
 * [**lib/screens/rider_dashboard_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/rider_dashboard_screen.dart)
 * [**lib/screens/market_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/market_screen.dart)
 * [**lib/screens/map_explorer_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/map_explorer_screen.dart)
+* [**lib/screens/notification_settings_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/notification_settings_screen.dart)
 
 ---
 
