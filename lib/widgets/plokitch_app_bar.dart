@@ -11,6 +11,7 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onCartPressed;
   final VoidCallback? onAvatarPressed;
   final VoidCallback? onNotificationPressed;
+  final bool automaticallyImplyLeading;
 
   const PlokitchAppBar({
     super.key,
@@ -24,6 +25,7 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onCartPressed,
     this.onAvatarPressed,
     this.onNotificationPressed,
+    this.automaticallyImplyLeading = true,
   });
 
   @override
@@ -32,6 +34,7 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return AppBar(
+      automaticallyImplyLeading: automaticallyImplyLeading,
       leading: showMenu
           ? IconButton(
               icon: Icon(Icons.menu, color: colorScheme.primary),

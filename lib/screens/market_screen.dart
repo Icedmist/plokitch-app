@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/plokitch_bottom_nav.dart';
 import '../services/api_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
@@ -117,6 +116,7 @@ class _MarketScreenState extends State<MarketScreen> {
           : CustomScrollView(
               slivers: [
                 SliverAppBar(
+                  automaticallyImplyLeading: false,
                   expandedHeight: 120,
                   floating: true,
                   pinned: true,
@@ -125,10 +125,6 @@ class _MarketScreenState extends State<MarketScreen> {
                     centerTitle: false,
                     titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
                   ),
-                  actions: [
-                    if (!isChef)
-                      IconButton(icon: const Icon(Icons.shopping_cart_outlined), onPressed: () => Navigator.pushNamed(context, '/cart')),
-                  ],
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
@@ -137,23 +133,61 @@ class _MarketScreenState extends State<MarketScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Search Bar
-                        TextField(
-                          controller: _searchController,
-                          onChanged: (v) => setState(() => _searchQuery = v),
-                          decoration: InputDecoration(
-                            hintText: isChef ? 'Search your kitchen items...' : 'Search for food or kitchens...',
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: _searchQuery.isNotEmpty 
-                                ? IconButton(icon: const Icon(Icons.close), onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _searchQuery = '');
-                                  })
-                                : null,
-                            filled: true,
-                            fillColor: colorScheme.surfaceContainerHigh,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        if (isChef)
+                          TextField(
+                            controller: _searchController,
+                            onChanged: (v) => setState(() => _searchQuery = v),
+                            decoration: InputDecoration(
+                              hintText: 'Search your kitchen items...',
+                              prefixIcon: const Icon(Icons.search),
+                              suffixIcon: _searchQuery.isNotEmpty 
+                                  ? IconButton(icon: const Icon(Icons.close), onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                    })
+                                  : null,
+                              filled: true,
+                              fillColor: colorScheme.surfaceContainerHigh,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                            ),
+                          )
+                        else
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  onChanged: (v) => setState(() => _searchQuery = v),
+                                  decoration: InputDecoration(
+                                    hintText: 'Search for food or kitchens...',
+                                    prefixIcon: const Icon(Icons.search),
+                                    suffixIcon: _searchQuery.isNotEmpty 
+                                        ? IconButton(icon: const Icon(Icons.close), onPressed: () {
+                                            _searchController.clear();
+                                            setState(() => _searchQuery = '');
+                                          })
+                                        : null,
+                                    filled: true,
+                                    fillColor: colorScheme.surfaceContainerHigh,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHigh,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: IconButton(
+                                  icon: Icon(Icons.shopping_cart_outlined, color: colorScheme.primary),
+                                  onPressed: () => Navigator.pushNamed(context, '/cart'),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
                         const SizedBox(height: 20),
                         Text(isChef ? 'Manage your posted dishes' : 'Explore local flavors', style: textTheme.bodyLarge?.copyWith(color: colorScheme.outline)),
                         const SizedBox(height: 20),

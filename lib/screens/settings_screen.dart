@@ -59,6 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: const PlokitchAppBar(
         title: 'Settings',
         showMenu: false,
+        automaticallyImplyLeading: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),

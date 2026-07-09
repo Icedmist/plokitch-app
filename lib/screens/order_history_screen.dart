@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
-import '../widgets/plokitch_bottom_nav.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../models/order_model.dart';
@@ -58,6 +57,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       appBar: const PlokitchAppBar(
         title: 'Order History',
         showMenu: false,
+        automaticallyImplyLeading: false,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

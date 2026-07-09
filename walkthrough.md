@@ -77,6 +77,12 @@ graph TD
   * **Redundant Order History Removed**: Removed the 'Order History' settings item from the Preferences list to keep the profile page clean, as orders are already managed by the dedicated bottom navigation tab.
   * **Glassmorphic Header Blur**: Styled the profile details anchor card with frosted glass aesthetics utilizing `ClipRRect` and `BackdropFilter` (blur sigma: 10). Replaced the solid thick background with a semitransparent primary theme overlay (`primary.withValues(alpha: 0.12)`) and a delicate primary border.
 
+### 9. Top-Level Back Buttons Removed & Marketplace Search Bar Cart Alignment
+* **Action**: Hidden redundant back buttons on main tab views and redesigned the Marketplace search area to place the cart inline.
+* **Details**:
+  * **Removed Implied Back Buttons**: Added an `automaticallyImplyLeading` parameter to [plokitch_app_bar.dart](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_app_bar.dart) and set it to `false` for [settings_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart) and [order_history_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/order_history_screen.dart). Also disabled `automaticallyImplyLeading` in [market_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/market_screen.dart)'s `SliverAppBar`.
+  * **Aligned Marketplace Search & Cart**: Moved the marketplace shopping cart icon out of the app bar and placed it in a side-by-side `Row` next to the search `TextField`. The cart button resides in a matching 56x56 rounded container, while the search bar expands to fill the remaining horizontal space.
+
 ---
 
 ## 📂 Modified Files
@@ -98,6 +104,7 @@ graph TD
 * [**lib/screens/market_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/market_screen.dart)
 * [**lib/screens/map_explorer_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/map_explorer_screen.dart)
 * [**lib/screens/notification_settings_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/notification_settings_screen.dart)
+* [**lib/widgets/plokitch_app_bar.dart**](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_app_bar.dart)
 
 ---
 
