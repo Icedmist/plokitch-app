@@ -56,6 +56,13 @@ graph TD
   * **Raw JSON Rendering on Orders Screen**: Corrected the string parser helper `_extractString` in [order_model.dart](file:///home/adam/Projects/plokitch-app/lib/models/order_model.dart) to extract the `'businessName'` and `'business_name'` keys from vendor JSON maps (instead of printing the raw serialized map object on the screen).
   * **Horizontal Overflow**: Wrapped the vendor name text inside [order_history_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/order_history_screen.dart) with an `Expanded` widget and `TextOverflow.ellipsis`, ensuring the UI behaves responsively on tablets and wider displays without breaking the layout.
 
+### 6. Branded Success Dialogs & FilePicker API Upgrade
+* **Action**: Fixed static analysis compiler error and customized save/upload success alerts in [account_details_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/account_details_screen.dart).
+* **Details**:
+  * **FilePicker API Update**: Migrated the library call from `FilePicker.platform.pickFiles` to the static `FilePicker.pickFiles` method to support the `file_picker` version `11.0.2` API changes, resolving the `'platform' isn't defined` compiler error.
+  * **Background Blur Popups**: Replaced standard black `SnackBar` success alerts with a custom, branded dialog widget (`_showSuccessDialog`).
+  * **Brand Aesthetics**: The popup dialog utilizes `BackdropFilter` (blur sigma: 5.0) to blur the background screen elements, displays a styled primary-color check icon, renders headings in `Lilita One`, bodies in `Plus Jakarta Sans`, and includes a custom primary action button matching the app's brand theme.
+
 ---
 
 ## 📂 Modified Files
