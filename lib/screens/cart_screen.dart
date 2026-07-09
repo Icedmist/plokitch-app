@@ -15,6 +15,7 @@ class _CartScreenState extends State<CartScreen> {
   // Cart items will be sourced from backend when a persisted cart exists.
   final List<Map<String, dynamic>> _cartItems = [];
   bool _loading = false;
+  String? _vendorImageUrl;
 
   @override
   void initState() {
@@ -81,7 +82,13 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _loadCart() async {
     final items = await CartService.loadCart();
-    setState(() => _cartItems.addAll(items));
+    final vendorImageUrl = items.isNotEmpty
+        ? (items.first['vendorImageUrl'] as String?) ?? (items.first['image'] as String?)
+        : null;
+    setState(() {
+      _cartItems.addAll(items);
+      _vendorImageUrl = vendorImageUrl;
+    });
   }
 
   double get _subtotal {
@@ -121,7 +128,7 @@ class _CartScreenState extends State<CartScreen> {
         title: 'Cart',
         showMenu: false,
         showAvatar: true,
-        avatarUrl: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        avatarUrl: _vendorImageUrl,
       ),
       body: _cartItems.isEmpty
           ? Center(

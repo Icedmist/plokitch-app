@@ -18,6 +18,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
   String? _error;
   String? _vendorId;
   String? _vendorName;
+  String? _avatarUrl;
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
     });
     try {
       final profile = await AuthService.getProfile();
+      _avatarUrl = profile?['avatarUrl'] as String? ?? profile?['avatar_url'] as String?;
       final rawVendorId = profile?['vendorId'] ?? profile?['vendor_id'] ?? profile?['id'];
       _vendorId = rawVendorId != null ? rawVendorId.toString() : null;
       final rawVendorName = profile?['name'] ?? profile?['businessName'] ?? profile?['vendorName'];
@@ -154,7 +156,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
         title: 'Chef Dashboard',
         showMenu: true,
         showAvatar: true,
-        avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC1gXjr87jg3akcU1Mwi3bCdesg0x-bVOWPW52a-ynSkxaF24VNY08iKMVRnGbe63il2UEzHVrzg696zTn0xUyhwAhI4ED2MBsr-fB4Eq_pMGsLh1ERMuICPBNUEQsGAuc8bHuZzOotcr71bmiAkrIEh5QSO3w6Pn09XC0-PTaj94-XT2K8JOF6brkz0KYG8-dtVLmSrCLDM8BSWdts7C8ioBeisiM2uJa68vlufdXxeNinVhbY6Ju7P-08X_VjgINOwGUrfF8sNrYK',
+        avatarUrl: _avatarUrl,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 
@@ -31,78 +32,73 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   late List<_Notification> _notifications;
+  bool _loading = true;
+  String? _profileName;
 
   @override
   void initState() {
     super.initState();
-    _notifications = [
-      _Notification(
-        id: '1',
-        title: 'Order Confirmed! 🎉',
-        body: 'Your order #PK-8249 has been placed. Chef is cooking your Jollof Rice Feast.',
-        time: '2 mins ago',
-        icon: Icons.check_circle,
-        type: 'order',
-      ),
-      _Notification(
-        id: '2',
-        title: 'Rider En Route',
-        body: 'Musa Ibrahim is on his way. ETA: 12 minutes. Track your order live.',
-        time: '18 mins ago',
-        icon: Icons.two_wheeler,
-        type: 'order',
-      ),
-      _Notification(
-        id: '3',
-        title: '🔥 Weekend Special',
-        body: 'Get 20% off all Masa orders this weekend. Use code MASA20 at checkout.',
-        time: '2 hrs ago',
-        icon: Icons.local_offer,
-        isRead: true,
-        type: 'promo',
-      ),
-      _Notification(
-        id: '4',
-        title: 'Order Delivered ✅',
-        body: 'Your order #PK-8201 was delivered. Enjoy your meal! Rate your experience.',
-        time: 'Yesterday',
-        icon: Icons.home,
-        isRead: true,
-        type: 'order',
-      ),
-      _Notification(
-        id: '5',
-        title: 'New Chef in Your Area',
-        body: "Mama Ngozi's Kitchen just joined Plokitch. Try her Pounded Yam & Egusi!",
-        time: 'Yesterday',
-        icon: Icons.restaurant,
-        isRead: true,
-        type: 'system',
-      ),
-      _Notification(
-        id: '6',
-        title: '💸 Wallet Topped Up',
-        body: 'Your Plokitch Wallet has been credited with ₦5,000. Balance: ₦25,000.',
-        time: '3 days ago',
-        icon: Icons.account_balance_wallet,
-        isRead: true,
-        type: 'system',
-      ),
-    ];
+    _notifications = [];
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    setState(() {
+      _loading = true;
+    });
+    try {
+      final profile = await AuthService.getProfile();
+      _profileName = profile?['name'] as String? ?? profile?['email'] as String?;
+      final data = profile?['notifications'] as List<dynamic>? ?? profile?['notifications_list'] as List<dynamic>?;
+      if (data != null) {
+        _notifications = data.map((entry) {
+          final map = Map<String, dynamic>.from(entry as Map);
+          return _Notification(
+            id: map['id']?.toString() ?? UniqueKey().toString(),
+            title: map['title']?.toString() ?? 'Notification',
+            body: map['body']?.toString() ?? map['message']?.toString() ?? 'You have a new notification.',
+            time: map['time']?.toString() ?? map['createdAt']?.toString() ?? 'Just now',
+            icon: _iconForType(map['type']?.toString() ?? 'system'),
+            isRead: map['isRead'] as bool? ?? map['read'] as bool? ?? false,
+            type: map['type']?.toString() ?? 'system',
+          );
+        }).toList();
+      }
+    } catch (_) {
+      _notifications = [];
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   void _markAllRead() {
     setState(() {
       _notifications = _notifications.map((n) => _Notification(
-        id: n.id,
-        title: n.title,
-        body: n.body,
-        time: n.time,
-        icon: n.icon,
-        isRead: true,
-        type: n.type,
-      )).toList();
+            id: n.id,
+            title: n.title,
+            body: n.body,
+            time: n.time,
+            icon: n.icon,
+            isRead: true,
+            type: n.type,
+          )).toList();
     });
+  }
+
+  IconData _iconForType(String type) {
+    switch (type) {
+      case 'order':
+        return Icons.check_circle;
+      case 'promo':
+        return Icons.local_offer;
+      case 'system':
+      default:
+        return Icons.info;
+    }
   }
 
   void _markRead(String id) {
@@ -134,7 +130,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       body: Column(
         children: [
-          if (_unreadCount > 0)
+          if (_loading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (_notifications.isEmpty)
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.notifications_off, size: 72, color: colorScheme.onSurfaceVariant),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No notifications yet',
+                        style: textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _profileName != null
+                            ? 'Hello $_profileName, you will see alerts here when new updates are available.'
+                            : 'Updates and alerts will appear here when they are available.',
+                        style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else
+            if (_unreadCount > 0)
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
