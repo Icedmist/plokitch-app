@@ -16,6 +16,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final itemRaw = widget.foodItem ?? args?['foodItem'] as Map<String, dynamic>?;
     final kitchenName = args?['kitchen'] as String? ?? itemRaw?['kitchen'] as String? ?? 'Unknown Kitchen';
@@ -112,6 +114,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
           _buildDetailRow(Icons.food_bank, 'Category', category),
           _buildDetailRow(Icons.location_on, 'Location', location),
           _buildDetailRow(Icons.timer, 'Preparation', '10 - 25 mins'),
+          if (widget.role == 'chef') _buildChefControls(itemRaw, colorScheme, textTheme),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             icon: const Icon(Icons.shopping_cart),
@@ -143,6 +146,43 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
             ),
           ),
           const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChefControls(Map<String, dynamic> item, ColorScheme colorScheme, TextTheme textTheme) {
+    bool isAddOn = item['isAddOn'] == true || item['is_add_on'] == true;
+    return Container(
+      margin: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Dish Management', style: textTheme.titleMedium?.copyWith(color: colorScheme.primary)),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Mark as Add-on'),
+              Switch(
+                value: isAddOn,
+                onChanged: (v) {
+                  // logic to update item via API
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Add-ons are suggested to customers during checkout to increase your sales.',
+            style: textTheme.bodySmall?.copyWith(color: colorScheme.outline),
+          ),
         ],
       ),
     );

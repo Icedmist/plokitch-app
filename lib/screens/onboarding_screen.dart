@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/plokitch_button.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
+import '../widgets/plokitch_error_banner.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -372,25 +373,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 32),
             
             if (_error != null) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: colorScheme.errorContainer.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colorScheme.error.withValues(alpha: 0.5)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline, color: colorScheme.error, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _error!,
-                        style: textTheme.bodyMedium?.copyWith(color: colorScheme.error, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
+              PlokitchErrorBanner(
+                message: _error!,
+                onDismiss: () => setState(() => _error = null),
               ),
               const SizedBox(height: 24),
             ],

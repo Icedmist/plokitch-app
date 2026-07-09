@@ -5,7 +5,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'theme/plokitch_theme.dart';
 import 'services/auth_service.dart';
 import 'screens/welcome_screen.dart';
-import 'screens/about_plokitch_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/sign_in_screen.dart';
 import 'screens/profile_setup/profile_setup_flow.dart';
@@ -25,6 +24,7 @@ import 'screens/food_detail_screen.dart';
 import 'screens/account_details_screen.dart';
 import 'screens/payment_methods_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/kitchen_settings_screen.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 String mockUserRole = 'customer'; // updated at startup from stored profile when available
@@ -88,7 +88,6 @@ class PlokitchApp extends StatelessWidget {
           initialRoute: '/',
           routes: {
             '/': (context) => const WelcomeScreen(),
-            '/about': (context) => const AboutPlokitchScreen(),
             '/onboarding': (context) => const OnboardingScreen(),
             '/sign-in': (context) => const SignInScreen(),
             '/profile-setup': (context) => const ProfileSetupFlow(),
@@ -109,6 +108,7 @@ class PlokitchApp extends StatelessWidget {
             '/account-details': (context) => const AccountDetailsScreen(),
             '/payment-methods': (context) => const PaymentMethodsScreen(),
             '/rider-dashboard': (context) => const RiderDashboardScreen(),
+            '/kitchen-settings': (context) => const KitchenSettingsScreen(),
           },
         );
       },

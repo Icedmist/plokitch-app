@@ -3,6 +3,10 @@ import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_button.dart';
 import '../services/cart_service.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../services/mail_service.dart';
+import '../models/menu_item_model.dart';
+import '../widgets/plokitch_error_banner.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -14,6 +18,7 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   // Cart items will be sourced from backend when a persisted cart exists.
   final List<Map<String, dynamic>> _cartItems = [];
+  List<MenuItemModel> _addOns = [];
   bool _loading = false;
   String? _vendorImageUrl;
   String? _errorMessage;
@@ -80,13 +85,23 @@ class _CartScreenState extends State<CartScreen> {
         return;
       }
 
+      final profile = await AuthService.getProfile();
+      final address = profile?['address'];
+      String street = 'User delivery address';
+      if (address is String) {
+        street = address;
+      } else if (address is Map) {
+        street = address['street'] ?? street;
+      }
+
       final payload = {
         'vendorId': vendorId.trim(),
+        'customerId': profile?['id'],
         'items': items,
         'deliveryAddress': {
-          'street': 'Delivery Address',
-          'city': 'Lagos',
-          'state': 'Lagos',
+          'street': street,
+          'city': 'Gombe',
+          'state': 'Gombe State',
           'country': 'Nigeria',
         },
         'totalAmount': _subtotal + _deliveryFee,
@@ -96,6 +111,15 @@ class _CartScreenState extends State<CartScreen> {
       final order = await ApiService.placeOrder(payload);
       if (!mounted) return;
       
+      // Trigger Order Mail
+      if (profile?['email'] != null) {
+        await MailService.notifyOrderPlaced(
+          order['id'].toString(), 
+          profile!['email'].toString(),
+          'kitchen@plokitch.com', // In real app, vendor email comes from vendor profile
+        );
+      }
+
       await CartService.clearCart();
       if (!mounted) return;
       
@@ -125,10 +149,27 @@ class _CartScreenState extends State<CartScreen> {
     final vendorImageUrl = items.isNotEmpty
         ? (items.first['vendorImageUrl'] as String?) ?? (items.first['image'] as String?)
         : null;
-    setState(() {
-      _cartItems.addAll(items);
-      _vendorImageUrl = vendorImageUrl;
-    });
+    
+    if (mounted) {
+      setState(() {
+        _cartItems.addAll(items);
+        _vendorImageUrl = vendorImageUrl;
+      });
+    }
+
+    if (items.isNotEmpty) {
+      final vendorId = items.first['vendorId']?.toString();
+      if (vendorId != null) {
+        try {
+          final menu = await ApiService.fetchVendorMenu(vendorId);
+          if (mounted) {
+            setState(() {
+              _addOns = menu.cast<MenuItemModel>().where((item) => item.isAddOn).toList();
+            });
+          }
+        } catch (_) {}
+      }
+    }
   }
 
   double get _subtotal {
@@ -159,27 +200,13 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   String _friendlyOrderError(Object error) {
-    final message = error.toString().toLowerCase();
+    final message = error.toString();
+    print('Order error: $message'); // Debug log
     
-    if (message.contains('internal server error') || message.contains('server_error') || message.contains('500')) {
-      return 'Our kitchen team is experiencing technical difficulties. Please try again in a moment.';
+    if (message.contains('internal server error') || message.contains('500')) {
+      return 'Server error. Our team has been notified. Please try again later.';
     }
-    if (message.contains('authentication') || message.contains('unauthorized') || message.contains('401')) {
-      return 'Your session expired. Please sign in again to place your order.';
-    }
-    if (message.contains('not found') || message.contains('404')) {
-      return 'One of your items is no longer available. Please review your cart and try again.';
-    }
-    if (message.contains('invalid') || message.contains('validation')) {
-      return 'Some order details are incomplete. Please review and try again.';
-    }
-    if (message.contains('network') || message.contains('socket') || message.contains('connection')) {
-      return 'Network connection lost. Please check your internet and try again.';
-    }
-    if (message.contains('timeout')) {
-      return 'The request took too long. Please check your connection and try again.';
-    }
-    return 'Unable to place your order at this time. Please try again in a few moments.';
+    return 'Unable to place order: ${message.replaceAll('Exception: ', '')}';
   }
 
   Widget _buildErrorCard(ColorScheme colorScheme, TextTheme textTheme, String message) {
@@ -255,7 +282,7 @@ class _CartScreenState extends State<CartScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16.0),
                             child: Text(
-                              'Add More?',
+                              'Recommended Add-ons',
                               style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary),
                             ),
                           ),
@@ -412,20 +439,21 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildRecommendations(ColorScheme colorScheme, TextTheme textTheme) {
-    final recommendations = [
-      {'name': 'Zobo Drink', 'price': 800, 'image': 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
-      {'name': 'Plantain', 'price': 1200, 'image': 'https://images.unsplash.com/photo-1604328698692-f76ea9498e76?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'}, // fallback image
-      {'name': 'Extra Beef', 'price': 1500, 'image': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'},
-    ];
+    if (_addOns.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.0),
+        child: Text('No add-ons available from this kitchen', style: TextStyle(color: Colors.grey)),
+      );
+    }
 
     return SizedBox(
       height: 160,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: recommendations.length,
+        itemCount: _addOns.length,
         itemBuilder: (context, index) {
-          final rec = recommendations[index];
+          final rec = _addOns[index];
           return Container(
             width: 120,
             margin: const EdgeInsets.only(right: 12),
@@ -440,11 +468,12 @@ class _CartScreenState extends State<CartScreen> {
                   height: 80,
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
-                    image: DecorationImage(
-                      image: NetworkImage(rec['image'] as String),
+                    image: rec.imageUrl != null ? DecorationImage(
+                      image: NetworkImage(rec.imageUrl!),
                       fit: BoxFit.cover,
-                    ),
+                    ) : null,
                   ),
+                  child: rec.imageUrl == null ? const Center(child: Icon(Icons.fastfood, color: Colors.grey)) : null,
                 ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -452,7 +481,7 @@ class _CartScreenState extends State<CartScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        rec['name'] as String,
+                        rec.name,
                         style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -461,8 +490,13 @@ class _CartScreenState extends State<CartScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('₦${rec['price']}', style: textTheme.bodySmall?.copyWith(color: colorScheme.primary)),
-                          Icon(Icons.add_circle, color: colorScheme.primaryContainer, size: 20),
+                          Text('₦${rec.price.toStringAsFixed(0)}', style: textTheme.bodySmall?.copyWith(color: colorScheme.primary)),
+                          GestureDetector(
+                            onTap: () {
+                              // logic to add to cart
+                            },
+                            child: Icon(Icons.add_circle, color: colorScheme.primaryContainer, size: 20),
+                          ),
                         ],
                       ),
                     ],

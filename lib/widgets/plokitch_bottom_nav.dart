@@ -61,7 +61,7 @@ class PlokitchBottomNav extends StatelessWidget {
       case 'chef':
         return const [
           _NavItem(Icons.home, 'Home'),
-          _NavItem(Icons.restaurant_menu, 'Kitchen'),
+          _NavItem(Icons.restaurant, 'Kitchen'),
           _NavItem(Icons.receipt_long, 'Orders'),
           _NavItem(Icons.person, 'Profile'),
         ];

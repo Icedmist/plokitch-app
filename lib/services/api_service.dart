@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
+import 'data_cache_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
 import '../models/order_model.dart';
@@ -21,21 +22,39 @@ class ApiService {
     return base;
   }
 
-  static Future<List<dynamic>> fetchVendors({int limit = 50, int offset = 0}) async {
+  static Future<List<dynamic>> fetchVendors({int limit = 50, int offset = 0, bool forceRefresh = false}) async {
+    const cacheKey = 'vendors_list';
+    if (!forceRefresh) {
+      final cached = DataCacheService.get(cacheKey);
+      if (cached != null) return cached;
+    }
+
     final uri = _uri('/api/vendors?limit=$limit&offset=$offset');
     final res = await http.get(uri, headers: await _headers());
     if (res.statusCode != 200) throw Exception('Failed to fetch vendors');
     final body = json.decode(res.body) as Map<String, dynamic>;
     final list = body['data'] as List<dynamic>;
-    return list.map((e) => VendorModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+    final result = list.map((e) => VendorModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+    
+    DataCacheService.set(cacheKey, result);
+    return result;
   }
 
-  static Future<Map<String, dynamic>> fetchVendor(String idOrSlug) async {
+  static Future<Map<String, dynamic>> fetchVendor(String idOrSlug, {bool forceRefresh = false}) async {
+    final cacheKey = 'vendor_$idOrSlug';
+    if (!forceRefresh) {
+      final cached = DataCacheService.get(cacheKey);
+      if (cached != null) return cached;
+    }
+
     final uri = _uri('/api/vendors/$idOrSlug');
     final res = await http.get(uri, headers: await _headers());
     if (res.statusCode != 200) throw Exception('Failed to fetch vendor');
     final body = json.decode(res.body) as Map<String, dynamic>;
-    return body['data'] as Map<String, dynamic>;
+    final result = body['data'] as Map<String, dynamic>;
+    
+    DataCacheService.set(cacheKey, result);
+    return result;
   }
 
   static Future<Map<String, dynamic>> updateVendor(String vendorId, Map<String, dynamic> payload) async {
@@ -45,16 +64,29 @@ class ApiService {
       throw Exception('Failed to update vendor: ${res.body}');
     }
     final body = json.decode(res.body) as Map<String, dynamic>;
+    
+    DataCacheService.invalidate('vendor_$vendorId');
+    DataCacheService.invalidate('vendors_list');
+    
     return body['data'] as Map<String, dynamic>;
   }
 
-  static Future<List<dynamic>> fetchVendorMenu(String vendorId) async {
+  static Future<List<dynamic>> fetchVendorMenu(String vendorId, {bool forceRefresh = false}) async {
+    final cacheKey = 'menu_$vendorId';
+    if (!forceRefresh) {
+      final cached = DataCacheService.get(cacheKey);
+      if (cached != null) return cached;
+    }
+
     final uri = _uri('/api/vendors/$vendorId/menu');
     final res = await http.get(uri, headers: await _headers());
     if (res.statusCode != 200) throw Exception('Failed to fetch menu');
     final body = json.decode(res.body) as Map<String, dynamic>;
     final list = body['data'] as List<dynamic>;
-    return list.map((e) => MenuItemModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+    final result = list.map((e) => MenuItemModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+    
+    DataCacheService.set(cacheKey, result);
+    return result;
   }
 
   static Future<Map<String, dynamic>> placeOrder(Map<String, dynamic> payload) async {
@@ -64,6 +96,9 @@ class ApiService {
       throw Exception('Failed to place order: ${res.body}');
     }
     final body = json.decode(res.body) as Map<String, dynamic>;
+    
+    DataCacheService.invalidate('orders_list');
+    
     return body['data'] as Map<String, dynamic>;
   }
 
@@ -73,6 +108,7 @@ class ApiService {
     if (res.statusCode >= 400) {
       throw Exception('Failed to save location: ${res.body}');
     }
+    DataCacheService.invalidate('user_profile');
   }
 
   static Future<void> updateUserProfile(Map<String, dynamic> payload) async {
@@ -81,16 +117,35 @@ class ApiService {
     if (res.statusCode >= 400) {
       throw Exception('Failed to update profile: ${res.body}');
     }
+    DataCacheService.invalidate('user_profile');
   }
 
-  static Future<List<OrderModel>> fetchOrders({int limit = 50, int offset = 0}) async {
-    final uri = _uri('/api/orders?limit=$limit&offset=$offset');
+  static Future<List<OrderModel>> fetchOrders({int limit = 50, int offset = 0, String? customerId, String? vendorId, bool forceRefresh = false}) async {
+    final cacheKey = 'orders_list_${customerId ?? ""}_${vendorId ?? ""}';
+    if (!forceRefresh) {
+      final cached = DataCacheService.get(cacheKey);
+      if (cached != null) return cached;
+    }
+
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      'offset': offset.toString(),
+    };
+    if (customerId != null) queryParams['customerId'] = customerId;
+    if (vendorId != null) queryParams['vendorId'] = vendorId;
+
+    final queryString = Uri(queryParameters: queryParams).query;
+    final uri = _uri('/api/orders?$queryString');
+    
     final res = await http.get(uri, headers: await _headers());
     if (res.statusCode != 200) throw Exception('Failed to fetch orders');
     final body = json.decode(res.body) as Map<String, dynamic>;
     final list = body['data'] as List<dynamic>;
-    return list
+    final result = list
         .map((e) => OrderModel.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList();
+    
+    DataCacheService.set(cacheKey, result);
+    return result;
   }
 }
