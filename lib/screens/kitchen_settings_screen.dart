@@ -39,7 +39,7 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
       _vendorId = profile?['vendorId'] ?? profile?['vendor_id'] ?? profile?['id'];
       
       if (_vendorId != null) {
-        final vendorData = await ApiService.fetchVendor(_vendorId!);
+        final vendorData = await ApiService.fetchVendor(_vendorId!, forceRefresh: true);
         if (mounted) {
           setState(() {
             _businessNameController.text = vendorData['businessName'] as String? ?? vendorData['business_name'] as String? ?? '';

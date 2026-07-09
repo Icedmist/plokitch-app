@@ -26,8 +26,10 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
   final _dishNameController = TextEditingController();
   final _dishPriceController = TextEditingController();
   final _dishDescController = TextEditingController();
+  final _dishCategoryController = TextEditingController();
   List<String> _selectedImageUrls = [];
   bool _isDishAddOn = false;
+  bool _isDishAvailable = true;
   bool _isSavingDish = false;
 
   @override
@@ -50,8 +52,8 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       _vendorId = profile?['vendorId'] ?? profile?['vendor_id'] ?? profile?['id'];
       
       if (_vendorId != null) {
-        final fetchedVendor = await ApiService.fetchVendor(_vendorId!);
-        final menu = await ApiService.fetchVendorMenu(_vendorId!);
+        final fetchedVendor = await ApiService.fetchVendor(_vendorId!, forceRefresh: true);
+        final menu = await ApiService.fetchVendorMenu(_vendorId!, forceRefresh: true);
         final orders = await ApiService.fetchOrders(vendorId: _vendorId!);
         if (mounted) {
           setState(() {
@@ -96,17 +98,21 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       _dishNameController.text = existingItem.name;
       _dishPriceController.text = existingItem.price.toString();
       _dishDescController.text = existingItem.description ?? '';
+      _dishCategoryController.text = existingItem.category ?? '';
       _selectedImageUrls = List.from(existingItem.images);
       if (_selectedImageUrls.isEmpty && existingItem.imageUrl != null) {
         _selectedImageUrls.add(existingItem.imageUrl!);
       }
       _isDishAddOn = existingItem.isAddOn;
+      _isDishAvailable = existingItem.isAvailable;
     } else {
       _dishNameController.clear();
       _dishPriceController.clear();
       _dishDescController.clear();
+      _dishCategoryController.clear();
       _selectedImageUrls = [];
       _isDishAddOn = false;
+      _isDishAvailable = true;
     }
 
     showModalBottomSheet(
@@ -153,13 +159,29 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                       decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 16),
+                    TextField(
+                      controller: _dishCategoryController,
+                      decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Mark as Add-on'),
+                        Expanded(child: Text('Mark as Add-on', style: Theme.of(context).textTheme.bodyLarge)),
                         Switch(
                           value: _isDishAddOn,
                           onChanged: (v) => setModalState(() => _isDishAddOn = v),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(child: Text('Available for order', style: Theme.of(context).textTheme.bodyLarge)),
+                        Switch(
+                          value: _isDishAvailable,
+                          onChanged: (v) => setModalState(() => _isDishAvailable = v),
                         ),
                       ],
                     ),
@@ -221,7 +243,8 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                     final name = _dishNameController.text.trim();
                     final price = double.tryParse(_dishPriceController.text) ?? 0.0;
                     final desc = _dishDescController.text.trim();
-                    
+                    final category = _dishCategoryController.text.trim();
+
                     if (name.isEmpty || price <= 0) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter valid name and price.')));
                       return;
@@ -233,7 +256,9 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                         'name': name,
                         'price': price,
                         'description': desc,
+                        'category': category.isNotEmpty ? category : null,
                         'isAddOn': _isDishAddOn,
+                        'isAvailable': _isDishAvailable,
                         'imageUrl': _selectedImageUrls.isNotEmpty ? _selectedImageUrls.first : null,
                         'images': _selectedImageUrls,
                       };
@@ -275,6 +300,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
     _dishNameController.dispose();
     _dishPriceController.dispose();
     _dishDescController.dispose();
+    _dishCategoryController.dispose();
     super.dispose();
   }
 
@@ -401,7 +427,20 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.name, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                Text('₦${item.price.toStringAsFixed(0)}', style: textTheme.bodySmall?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold)),
+                if (item.category != null && item.category!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(item.category!, style: textTheme.bodySmall?.copyWith(color: colorScheme.primary)),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text('₦${item.price.toStringAsFixed(0)}', style: textTheme.bodySmall?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold)),
+                ),
+                if (!item.isAvailable)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('Unavailable', style: textTheme.bodySmall?.copyWith(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                  ),
                 if (item.isAddOn)
                   Container(
                     margin: const EdgeInsets.only(top: 4),
