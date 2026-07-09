@@ -34,7 +34,7 @@ class _CartScreenState extends State<CartScreen> {
       setState(() => _errorMessage = 'Your cart is empty. Please add items before checking out.');
       return;
     }
-    
+
     String? vendorId = _cartItems.first['vendorId'] as String? ?? _cartItems.first['vendor']?['id'] as String?;
     if (vendorId == null || vendorId.isEmpty) {
       for (final it in _cartItems) {
@@ -53,12 +53,12 @@ class _CartScreenState extends State<CartScreen> {
         return;
       }
     }
-    
+
     setState(() {
       _loading = true;
       _errorMessage = null;
     });
-    
+
     try {
       final items = _cartItems
           .map((i) {
@@ -86,7 +86,15 @@ class _CartScreenState extends State<CartScreen> {
       }
 
       final profile = await AuthService.getProfile();
-      final address = profile?['address'];
+      if (profile == null || profile['id'] == null) {
+        setState(() {
+          _errorMessage = 'Unable to verify your account. Please sign in again.';
+          _loading = false;
+        });
+        return;
+      }
+
+      final address = profile['address'];
       String street = 'User delivery address';
       if (address is String) {
         street = address;
@@ -94,9 +102,17 @@ class _CartScreenState extends State<CartScreen> {
         street = address['street'] ?? street;
       }
 
+      String? vendorEmail;
+      if (_cartItems.first['vendor'] is Map<String, dynamic>) {
+        vendorEmail = (_cartItems.first['vendor'] as Map<String, dynamic>)['email'] as String?;
+      }
+
       final payload = {
         'vendorId': vendorId.trim(),
-        'customerId': profile?['id'],
+        'vendorEmail': vendorEmail,
+        'customerId': profile['id'],
+        'customerName': profile['name'],
+        'customerEmail': profile['email'],
         'items': items,
         'deliveryAddress': {
           'street': street,
@@ -108,36 +124,13 @@ class _CartScreenState extends State<CartScreen> {
         'deliveryFee': _deliveryFee,
       };
 
-      final order = await ApiService.placeOrder(payload);
       if (!mounted) return;
-      
-      // Trigger Order Mail
-      if (profile?['email'] != null) {
-        await MailService.notifyOrderPlaced(
-          order['id'].toString(), 
-          profile!['email'].toString(),
-          'kitchen@plokitch.com', // In real app, vendor email comes from vendor profile
-        );
-      }
-
-      await CartService.clearCart();
-      if (!mounted) return;
-      
-      setState(() {
-        _cartItems.clear();
-        _errorMessage = null;
-      });
-      
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Order placed successfully! Order ID: ${order['id']}')),
-      );
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/order-history');
+      Navigator.pushNamed(context, '/payment', arguments: payload);
+      return;
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = _friendlyOrderError(e);
+        _errorMessage = 'Unable to prepare payment: ${e.toString().replaceAll('Exception: ', '')}';
       });
     } finally {
       if (mounted) setState(() => _loading = false);

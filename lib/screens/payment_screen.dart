@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_button.dart';
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../services/cart_service.dart';
+import '../services/mail_service.dart';
 
 enum PaymentPhase { select, processing, success }
 
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({super.key});
+  final Map<String, dynamic>? orderPayload;
+
+  const PaymentScreen({super.key, this.orderPayload});
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -14,7 +20,10 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProviderStateMixin {
   PaymentPhase _phase = PaymentPhase.select;
   String _selectedMethod = 'wallet';
-  
+  String? _errorMessage;
+  String? _confirmedOrderId;
+  double _amountPaid = 0.0;
+
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
@@ -28,6 +37,12 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    if (widget.orderPayload != null) {
+      _amountPaid = (widget.orderPayload!['totalAmount'] is num)
+          ? (widget.orderPayload!['totalAmount'] as num).toDouble()
+          : double.tryParse(widget.orderPayload!['totalAmount']?.toString() ?? '0') ?? 0.0;
+    }
   }
 
   @override
@@ -37,17 +52,50 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
   }
 
   void _processPayment() {
+    if (widget.orderPayload == null) {
+      setState(() {
+        _errorMessage = 'Unable to complete payment. Your order details are missing.';
+      });
+      return;
+    }
+
     setState(() {
       _phase = PaymentPhase.processing;
+      _errorMessage = null;
     });
     
-    // Simulate network request
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
+    Future.delayed(const Duration(seconds: 3), () async {
+      if (!mounted) return;
+
+      try {
+        final order = await ApiService.placeOrder(widget.orderPayload!);
+        _confirmedOrderId = order['id']?.toString() ?? 'Unknown';
+        _amountPaid = (order['totalAmount'] is num)
+            ? (order['totalAmount'] as num).toDouble()
+            : double.tryParse(order['totalAmount']?.toString() ?? _amountPaid.toString()) ?? _amountPaid;
+
+        final profile = await AuthService.getProfile();
+        if (profile != null && profile['email'] != null) {
+          await MailService.notifyOrderPlaced(
+            _confirmedOrderId!,
+            profile['email'].toString(),
+            widget.orderPayload!['vendorEmail']?.toString() ?? 'kitchen@plokitch.com',
+          );
+        }
+
+        await CartService.clearCart();
+
+        if (!mounted) return;
         setState(() {
           _phase = PaymentPhase.success;
         });
         _pulseController.repeat(reverse: true);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _phase = PaymentPhase.select;
+          _errorMessage = 'Payment succeeded, but the order could not be completed. Please try again or contact support.';
+        });
       }
     });
   }
@@ -155,8 +203,10 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
           
           const Spacer(),
           PlokitchButton(
-            text: 'Confirm & Pay ₦14,500',
-            onPressed: _processPayment,
+            text: widget.orderPayload != null
+                ? 'Confirm & Pay ₦${_amountPaid.toStringAsFixed(0)}'
+                : 'Unable to pay',
+            onPressed: widget.orderPayload != null ? _processPayment : null,
           ),
         ],
       ),
@@ -344,7 +394,7 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Order ID', style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
-                    Text('#PK-8249', style: textTheme.titleMedium),
+                    Text(_confirmedOrderId ?? 'Pending', style: textTheme.titleMedium),
                   ],
                 ),
                 const Divider(height: 24),
@@ -352,7 +402,7 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Amount Paid', style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
-                    Text('₦14,500', style: textTheme.titleMedium),
+                    Text('₦${_amountPaid.toStringAsFixed(0)}', style: textTheme.titleMedium),
                   ],
                 ),
                 const Divider(height: 24),

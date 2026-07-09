@@ -101,6 +101,7 @@ class AuthService {
     } catch (_) {}
     await prefs.remove(_sessionKey);
     await prefs.remove(_roleKey);
+    DataCacheService.clear();
   }
 
   static Future<Map<String, dynamic>?> getProfile({bool forceRefresh = false}) async {
@@ -112,9 +113,21 @@ class AuthService {
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_sessionKey);
+    if (token == null || token.isEmpty) {
+      DataCacheService.invalidate(cacheKey);
+      return null;
+    }
+
     final uri = _uri('/api/users/me');
     final res = await http.get(uri, headers: _buildHeaders(token));
-    if (res.statusCode != 200) return null;
+    if (res.statusCode != 200) {
+      if (res.statusCode == 401 || res.statusCode == 403) {
+        await prefs.remove(_sessionKey);
+        await prefs.remove(_roleKey);
+        DataCacheService.invalidate(cacheKey);
+      }
+      return null;
+    }
     final body = json.decode(res.body) as Map<String, dynamic>;
     final data = body['data'] as Map<String, dynamic>?;
     if (data != null) {
@@ -145,6 +158,7 @@ class AuthService {
       if (res.statusCode != 200) {
         await prefs.remove(_sessionKey);
         await prefs.remove(_roleKey);
+        DataCacheService.invalidate('user_profile');
         return false;
       }
       // parse new token from Set-Cookie or body

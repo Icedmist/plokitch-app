@@ -94,7 +94,10 @@ class PlokitchApp extends StatelessWidget {
             // Role-based home: always resolves to the correct dashboard
             '/home': (context) => _roleHome(),
             '/cart': (context) => const CartScreen(),
-            '/payment': (context) => const PaymentScreen(),
+            '/payment': (context) {
+              final args = ModalRoute.of(context)?.settings.arguments;
+              return PaymentScreen(orderPayload: args is Map<String, dynamic> ? args : null);
+            },
             '/tracking': (context) => const OrderTrackingScreen(),
             '/order-history': (context) => const OrderHistoryScreen(),
             '/notifications': (context) => const NotificationsScreen(),
