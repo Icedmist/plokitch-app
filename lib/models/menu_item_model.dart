@@ -4,8 +4,9 @@ class MenuItemModel {
   final String? description;
   final double price;
   final String? imageUrl;
+  final bool isAddOn;
 
-  MenuItemModel({required this.id, required this.name, this.description, required this.price, this.imageUrl});
+  MenuItemModel({required this.id, required this.name, this.description, required this.price, this.imageUrl, this.isAddOn = false});
 
   factory MenuItemModel.fromJson(Map<String, dynamic> json) {
     return MenuItemModel(
@@ -14,6 +15,7 @@ class MenuItemModel {
       description: json['description'] as String?,
       price: (json['price'] is String) ? double.parse(json['price']) : (json['price'] as num).toDouble(),
       imageUrl: json['imageUrl'] ?? json['image_url'] as String?,
+      isAddOn: json['isAddOn'] == true || json['is_add_on'] == true,
     );
   }
 
@@ -23,5 +25,6 @@ class MenuItemModel {
         'description': description,
         'price': price,
         'imageUrl': imageUrl,
+        'isAddOn': isAddOn,
       };
 }

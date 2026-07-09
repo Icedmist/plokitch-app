@@ -16,27 +16,14 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
   late AnimationController _pingController;
   List<MenuItemModel> _menuItems = [];
   bool _loading = true;
-  bool _saving = false;
   String? _error;
   String? _vendorId;
   Map<String, dynamic>? _vendorData;
-
-  late TextEditingController _businessNameController;
-  late TextEditingController _descriptionController;
-  late TextEditingController _imageUrlController;
-  late TextEditingController _streetController;
-  late TextEditingController _cityController;
-  late TextEditingController _stateController;
+  List<OrderModel> _activeOrders = [];
 
   @override
   void initState() {
     super.initState();
-    _businessNameController = TextEditingController();
-    _descriptionController = TextEditingController();
-    _imageUrlController = TextEditingController();
-    _streetController = TextEditingController();
-    _cityController = TextEditingController();
-    _stateController = TextEditingController();
     _pingController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -56,17 +43,12 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       if (_vendorId != null) {
         final fetchedVendor = await ApiService.fetchVendor(_vendorId!);
         final menu = await ApiService.fetchVendorMenu(_vendorId!);
+        final orders = await ApiService.fetchOrders(vendorId: _vendorId!);
         if (mounted) {
           setState(() {
             _vendorData = fetchedVendor;
             _menuItems = menu.cast<MenuItemModel>();
-            _businessNameController.text = _vendorData?['businessName'] as String? ?? _vendorData?['business_name'] as String? ?? '';
-            _descriptionController.text = _vendorData?['description'] as String? ?? '';
-            _imageUrlController.text = _vendorData?['imageUrl'] as String? ?? _vendorData?['image_url'] as String? ?? '';
-            final location = _vendorData?['location'] as Map<String, dynamic>?;
-            _streetController.text = location?['street'] as String? ?? '';
-            _cityController.text = location?['city'] as String? ?? '';
-            _stateController.text = location?['state'] as String? ?? '';
+            _activeOrders = orders.where((o) => !['delivered', 'cancelled', 'completed'].contains(o.status.toLowerCase())).toList();
           });
         }
       }
@@ -84,12 +66,6 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
   @override
   void dispose() {
     _pingController.dispose();
-    _businessNameController.dispose();
-    _descriptionController.dispose();
-    _imageUrlController.dispose();
-    _streetController.dispose();
-    _cityController.dispose();
-    _stateController.dispose();
     super.dispose();
   }
 
@@ -97,6 +73,10 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
+    if (_loading && _vendorData == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       appBar: PlokitchAppBar(
@@ -106,6 +86,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
         avatarUrl: _vendorData?['imageUrl'] as String? ?? _vendorData?['image_url'] as String?,
       ),
       body: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
         children: [
           // Broadcast Message Section
           if (_vendorData?['broadcastMessage'] != null && (_vendorData?['broadcastMessage'] as String).isNotEmpty)
@@ -185,130 +166,20 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                
-                // Analytics Bento Summary
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 140,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF642714), // warmBrown
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Icon(Icons.trending_up, color: colorScheme.primaryContainer, size: 32),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('42', style: textTheme.headlineLarge?.copyWith(color: colorScheme.primaryContainer)),
-                                Text('ORDERS TODAY', style: textTheme.labelLarge?.copyWith(color: const Color(0xFFFDDCCC), fontSize: 10)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: SizedBox(
-                        height: 140,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF642714),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text('RATING', style: textTheme.labelLarge?.copyWith(color: const Color(0xFFFDDCCC), fontSize: 10)),
-                                        Text('4.9', style: textTheme.headlineMedium?.copyWith(color: colorScheme.primaryContainer)),
-                                      ],
-                                    ),
-                                    Icon(Icons.star, color: colorScheme.primaryContainer),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text('EARNED', style: textTheme.labelLarge?.copyWith(color: colorScheme.onPrimaryContainer, fontSize: 10)),
-                                        Text('₦12.5k', style: textTheme.headlineMedium?.copyWith(color: colorScheme.onPrimaryContainer)),
-                                      ],
-                                    ),
-                                    Icon(Icons.payments, color: colorScheme.onPrimaryContainer),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 24),
                 
-                // Kitchen Details Section
-                Text('Kitchen Details', style: textTheme.headlineMedium?.copyWith(color: colorScheme.secondary)),
-                const SizedBox(height: 12),
-                _buildTextField('Business Name', _businessNameController),
-                const SizedBox(height: 12),
-                _buildTextField('Description', _descriptionController, maxLines: 4),
-                const SizedBox(height: 12),
-                _buildTextField('Image URL', _imageUrlController),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(child: _buildTextField('Street', _streetController)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildTextField('City', _cityController)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildTextField('State', _stateController),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _saving ? null : _saveVendorDetails,
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: Text(_saving ? 'Saving...' : 'Save Kitchen Details'),
-                ),
-                const SizedBox(height: 24),
                 // Current Menu Section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Current Menu', style: textTheme.headlineMedium?.copyWith(color: colorScheme.secondary)),
-                    Text('Manage All', style: textTheme.labelLarge?.copyWith(
-                      color: colorScheme.primary, 
-                      decoration: TextDecoration.underline,
-                    )),
+                    GestureDetector(
+                      onTap: () {}, // Add functionality later
+                      child: Text('Add Dish', style: textTheme.labelLarge?.copyWith(
+                        color: colorScheme.primary, 
+                        decoration: TextDecoration.underline,
+                      )),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -346,7 +217,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                           children: [
                             Icon(Icons.restaurant_menu, color: colorScheme.onPrimaryContainer),
                             const SizedBox(width: 12),
-                            Text('New Orders (3)', style: textTheme.headlineMedium?.copyWith(color: colorScheme.onPrimaryContainer)),
+                            Text('Active Orders (${_activeOrders.length})', style: textTheme.headlineMedium?.copyWith(color: colorScheme.onPrimaryContainer)),
                           ],
                         ),
                         Icon(Icons.chevron_right, color: colorScheme.onPrimaryContainer),
@@ -354,6 +225,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                     ),
                   ),
                 ),
+                const SizedBox(height: 100),
               ],
             ),
           ),

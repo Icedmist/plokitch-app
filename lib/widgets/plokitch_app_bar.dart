@@ -38,10 +38,37 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: onMenuPressed ?? () => Scaffold.of(context).openDrawer(),
             )
           : null,
-      title: Text(
-        '< ${title ?? 'Plokitch'} >',
-        style: textTheme.headlineLarge?.copyWith(
-          color: colorScheme.primary,
+      centerTitle: true,
+      title: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '<',
+              style: textTheme.headlineLarge?.copyWith(
+                color: const Color(0xFFFF9B04), // Branded Orange
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title ?? 'Plokitch',
+              style: textTheme.titleLarge?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '>',
+              style: textTheme.headlineLarge?.copyWith(
+                color: const Color(0xFFFF9B04), // Branded Orange
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
         ),
       ),
       actions: [

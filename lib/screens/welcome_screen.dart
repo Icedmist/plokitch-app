@@ -163,7 +163,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           child: Text(
                             '<',
                             style: bracketStyle.copyWith(
-                              color: colorScheme.primary,
+                              color: const Color(0xFFFF9B04),
                             ),
                           ),
                         ),
@@ -190,7 +190,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           child: Text(
                             '>',
                             style: bracketStyle.copyWith(
-                              color: colorScheme.secondary,
+                              color: const Color(0xFFFF9B04),
                             ),
                           ),
                         ),

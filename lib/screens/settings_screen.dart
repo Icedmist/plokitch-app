@@ -15,6 +15,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _profileName = 'Plokitch User';
   String _profileEmail = 'No email provided';
   String _profileRole = 'customer';
+  String? _avatarUrl;
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _profileName = profile?['name'] as String? ?? _profileName;
         _profileEmail = profile?['email'] as String? ?? _profileEmail;
         _profileRole = profile?['role'] as String? ?? storedRole ?? _profileRole;
+        _avatarUrl = profile?['avatarUrl'] as String? ?? profile?['avatar_url'] as String?;
       });
     } catch (_) {
       final storedRole = await AuthService.storedRole();
@@ -38,6 +40,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _profileRole = storedRole ?? _profileRole;
       });
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    await AuthService.signOut();
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/sign-in', (route) => false);
     }
   }
 
@@ -69,11 +78,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: colorScheme.primaryContainer, width: 2),
-                    image: const DecorationImage(
-                      image: NetworkImage('https://images.unsplash.com/photo-1531123897727-8f129e1688ce?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'),
-                      fit: BoxFit.cover,
-                    ),
+                    image: _avatarUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(_avatarUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    color: colorScheme.primaryContainer.withValues(alpha: 0.1),
                   ),
+                  child: _avatarUrl == null ? const Icon(Icons.person, color: Colors.white, size: 32) : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -89,13 +102,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.white),
-                  onPressed: () {},
+                  onPressed: () => Navigator.pushNamed(context, '/account-details'),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 32),
           
+          if (_profileRole == 'chef') ...[
+            Text('Kitchen Management', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
+            const SizedBox(height: 16),
+            _buildSettingsItem(Icons.storefront, 'Kitchen Profile', colorScheme, textTheme,
+                onTap: () => Navigator.pushNamed(context, '/kitchen-settings')),
+            const SizedBox(height: 32),
+          ],
+
           Text('Preferences', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
           const SizedBox(height: 16),
           
@@ -138,8 +159,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text('Support', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
           const SizedBox(height: 16),
           _buildSettingsItem(Icons.help_outline, 'Help & Support', colorScheme, textTheme, onTap: () {}),
-          _buildSettingsItem(Icons.info_outline, 'About Plokitch', colorScheme, textTheme,
-              onTap: () => Navigator.pushNamed(context, '/about')),
           
           const SizedBox(height: 48),
           
@@ -147,9 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SizedBox(
             width: double.infinity,
             child: TextButton.icon(
-              onPressed: () {
-                Navigator.pushReplacementNamed(context, '/');
-              },
+              onPressed: _handleLogout,
               icon: Icon(Icons.logout, color: colorScheme.error),
               label: Text(
                 'LOG OUT',
