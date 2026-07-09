@@ -42,17 +42,6 @@ class _SignInScreenState extends State<SignInScreen> {
           profile['login_notifications_enabled'] as bool? ??
           true;
 
-      if (loginNotifEnabled) {
-        // Save login notification in background database
-        await ApiService.addNotification(
-          title: 'Login Alert',
-          body: 'You successfully logged into your account.',
-          type: 'system',
-        );
-        // Force refresh profile again to update notification count
-        await AuthService.getProfile(forceRefresh: true);
-      }
-
       final profileRole = (profile['role'] as String?)?.toLowerCase();
       final fallbackRole = await AuthService.storedRole();
       final role = (profileRole != null && profileRole.isNotEmpty)
