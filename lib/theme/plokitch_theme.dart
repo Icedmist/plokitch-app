@@ -59,8 +59,6 @@ class PlokitchTheme {
         onError: Color(0xFFFFFFFF),
         errorContainer: Color(0xFFFFDAD6),
         surface: surface,
-        surfaceContainer: surfaceContainer,
-        surfaceContainerHigh: surfaceContainerHigh,
         onSurface: Color(0xFF000000), // Updated to stark black
         outline: Color(0xFF877361),
         outlineVariant: Color(0xFFDAC2AD),

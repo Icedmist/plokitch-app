@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/plokitch_theme.dart';
 import '../services/api_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
@@ -108,6 +109,10 @@ class _MarketScreenState extends State<MarketScreen> {
     final isChef = currentRole == 'chef';
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final containerColor = isDark 
+        ? colorScheme.surfaceContainerHigh 
+        : PlokitchTheme.surfaceContainerHigh;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -137,7 +142,7 @@ class _MarketScreenState extends State<MarketScreen> {
                                       })
                                     : null,
                                 filled: true,
-                                fillColor: colorScheme.surfaceContainerHigh,
+                                fillColor: containerColor,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
                                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
                                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
@@ -160,7 +165,7 @@ class _MarketScreenState extends State<MarketScreen> {
                                             })
                                           : null,
                                       filled: true,
-                                      fillColor: colorScheme.surfaceContainerHigh,
+                                      fillColor: containerColor,
                                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
                                       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
                                       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
@@ -172,7 +177,7 @@ class _MarketScreenState extends State<MarketScreen> {
                                   width: 56,
                                   height: 56,
                                   decoration: BoxDecoration(
-                                    color: colorScheme.surfaceContainerHigh,
+                                    color: containerColor,
                                     borderRadius: BorderRadius.circular(28),
                                   ),
                                   child: IconButton(
