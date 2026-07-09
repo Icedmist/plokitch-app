@@ -102,6 +102,37 @@ class ApiService {
     return body['data'] as Map<String, dynamic>;
   }
 
+  static Future<Map<String, dynamic>> addMenuItem(String vendorId, Map<String, dynamic> payload) async {
+    final uri = _uri('/api/vendors/$vendorId/menu');
+    final res = await http.post(uri, headers: await _headers(), body: json.encode(payload));
+    if (res.statusCode >= 400) {
+      throw Exception('Failed to add menu item: ${res.body}');
+    }
+    final body = json.decode(res.body) as Map<String, dynamic>;
+    DataCacheService.invalidate('menu_$vendorId');
+    return body['data'] as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> updateMenuItem(String vendorId, String itemId, Map<String, dynamic> payload) async {
+    final uri = _uri('/api/vendors/$vendorId/menu/$itemId');
+    final res = await http.patch(uri, headers: await _headers(), body: json.encode(payload));
+    if (res.statusCode >= 400) {
+      throw Exception('Failed to update menu item: ${res.body}');
+    }
+    final body = json.decode(res.body) as Map<String, dynamic>;
+    DataCacheService.invalidate('menu_$vendorId');
+    return body['data'] as Map<String, dynamic>;
+  }
+
+  static Future<void> deleteMenuItem(String vendorId, String itemId) async {
+    final uri = _uri('/api/vendors/$vendorId/menu/$itemId');
+    final res = await http.delete(uri, headers: await _headers());
+    if (res.statusCode >= 400) {
+      throw Exception('Failed to delete menu item: ${res.body}');
+    }
+    DataCacheService.invalidate('menu_$vendorId');
+  }
+
   static Future<void> saveUserLocation(Map<String, dynamic> payload) async {
     final uri = _uri('/api/users/me');
     final res = await http.patch(uri, headers: await _headers(), body: json.encode(payload));

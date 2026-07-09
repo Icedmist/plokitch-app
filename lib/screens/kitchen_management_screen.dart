@@ -3,6 +3,7 @@ import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/image_service.dart';
 import '../models/menu_item_model.dart';
 import '../models/order_model.dart';
 
@@ -21,6 +22,13 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
   String? _vendorId;
   Map<String, dynamic>? _vendorData;
   List<OrderModel> _activeOrders = [];
+
+  final _dishNameController = TextEditingController();
+  final _dishPriceController = TextEditingController();
+  final _dishDescController = TextEditingController();
+  List<String> _selectedImageUrls = [];
+  bool _isDishAddOn = false;
+  bool _isSavingDish = false;
 
   @override
   void initState() {
@@ -64,9 +72,209 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
     }
   }
 
+  Future<void> _pickAndUploadImages() async {
+    try {
+      final images = await ImageService.pickImages(maxImages: 4 - _selectedImageUrls.length);
+      if (images.isEmpty) return;
+
+      setState(() => _isSavingDish = true);
+
+      for (final image in images) {
+        final compressed = await ImageService.compressImage(image);
+        final url = await ImageService.uploadImage(compressed, 'dishes', _vendorId ?? 'unknown');
+        _selectedImageUrls.add(url);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+    } finally {
+      setState(() => _isSavingDish = false);
+    }
+  }
+
+  void _showAddDishModal({MenuItemModel? existingItem}) {
+    if (existingItem != null) {
+      _dishNameController.text = existingItem.name;
+      _dishPriceController.text = existingItem.price.toString();
+      _dishDescController.text = existingItem.description ?? '';
+      _selectedImageUrls = List.from(existingItem.images);
+      if (_selectedImageUrls.isEmpty && existingItem.imageUrl != null) {
+        _selectedImageUrls.add(existingItem.imageUrl!);
+      }
+      _isDishAddOn = existingItem.isAddOn;
+    } else {
+      _dishNameController.clear();
+      _dishPriceController.clear();
+      _dishDescController.clear();
+      _selectedImageUrls = [];
+      _isDishAddOn = false;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(existingItem == null ? 'Add New Dish' : 'Edit Dish', 
+                       style: Theme.of(context).textTheme.headlineMedium),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView(
+                  children: [
+                    TextField(
+                      controller: _dishNameController,
+                      decoration: const InputDecoration(labelText: 'Dish Name', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _dishPriceController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Price (₦)', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _dishDescController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Mark as Add-on'),
+                        Switch(
+                          value: _isDishAddOn,
+                          onChanged: (v) => setModalState(() => _isDishAddOn = v),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Images (Max 4)', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ..._selectedImageUrls.map((url) => Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(url, width: 80, height: 80, fit: BoxFit.cover),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: () => setModalState(() => _selectedImageUrls.remove(url)),
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                  child: const Icon(Icons.close, color: Colors.white, size: 12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )),
+                        if (_selectedImageUrls.length < 4)
+                          GestureDetector(
+                            onTap: () async {
+                              await _pickAndUploadImages();
+                              setModalState(() {});
+                            },
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.add_a_photo, color: Colors.grey),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSavingDish ? null : () async {
+                    if (_vendorId == null) return;
+                    
+                    final name = _dishNameController.text.trim();
+                    final price = double.tryParse(_dishPriceController.text) ?? 0.0;
+                    final desc = _dishDescController.text.trim();
+                    
+                    if (name.isEmpty || price <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter valid name and price.')));
+                      return;
+                    }
+
+                    setState(() => _isSavingDish = true);
+                    try {
+                      final payload = {
+                        'name': name,
+                        'price': price,
+                        'description': desc,
+                        'isAddOn': _isDishAddOn,
+                        'imageUrl': _selectedImageUrls.isNotEmpty ? _selectedImageUrls.first : null,
+                        'images': _selectedImageUrls,
+                      };
+
+                      if (existingItem == null) {
+                        await ApiService.addMenuItem(_vendorId!, payload);
+                      } else {
+                        await ApiService.updateMenuItem(_vendorId!, existingItem.id, payload);
+                      }
+                      
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _loadKitchenData();
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+                      }
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isSavingDish = false);
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                  child: Text(_isSavingDish ? 'Saving...' : 'Save Dish'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _pingController.dispose();
+    _dishNameController.dispose();
+    _dishPriceController.dispose();
+    _dishDescController.dispose();
     super.dispose();
   }
 
@@ -108,7 +316,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
             children: [
               Text('Your Menu', style: textTheme.headlineMedium?.copyWith(color: colorScheme.secondary)),
               ElevatedButton.icon(
-                onPressed: () {}, // Add logic
+                onPressed: () => _showAddDishModal(),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Add Dish'),
                 style: ElevatedButton.styleFrom(
@@ -206,11 +414,35 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
           ),
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
-            onPressed: () {},
+            onPressed: () => _showAddDishModal(existingItem: item),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-            onPressed: () {},
+            onPressed: () async {
+              if (_vendorId == null) return;
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Delete Dish'),
+                  content: Text('Are you sure you want to delete "${item.name}"?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                  ],
+                ),
+              );
+              
+              if (confirmed == true) {
+                try {
+                  await ApiService.deleteMenuItem(_vendorId!, item.id);
+                  _loadKitchenData();
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+                  }
+                }
+              }
+            },
           ),
         ],
       ),

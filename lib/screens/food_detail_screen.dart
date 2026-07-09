@@ -114,7 +114,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
           _buildDetailRow(Icons.food_bank, 'Category', category),
           _buildDetailRow(Icons.location_on, 'Location', location),
           _buildDetailRow(Icons.timer, 'Preparation', '10 - 25 mins'),
-          if (widget.role == 'chef') _buildChefControls(itemRaw, colorScheme, textTheme),
+          if (args?['role'] == 'chef') _buildChefControls(itemRaw, colorScheme, textTheme),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             icon: const Icon(Icons.shopping_cart),

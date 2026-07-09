@@ -1,10 +1,7 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:path/provider.dart';
-import 'package:path/path.dart' as path;
 
 class ImageService {
   static final ImagePicker _picker = ImagePicker();
