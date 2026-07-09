@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/plokitch_theme.dart';
 import '../services/api_service.dart';
+import '../services/cart_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
 
@@ -25,11 +26,28 @@ class _MarketScreenState extends State<MarketScreen> {
   final Map<String, String> _foodIdToVendorId = {};
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  int _cartItemCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadVendors();
+    _loadCartCount();
+  }
+
+  Future<void> _loadCartCount() async {
+    try {
+      final cart = await CartService.loadCart();
+      int count = 0;
+      for (final item in cart) {
+        count += item['quantity'] as int? ?? 1;
+      }
+      if (mounted) {
+        setState(() {
+          _cartItemCount = count;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -173,18 +191,32 @@ class _MarketScreenState extends State<MarketScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                Container(
-                                  width: 56,
-                                  height: 56,
-                                  decoration: BoxDecoration(
-                                    color: containerColor,
-                                    borderRadius: BorderRadius.circular(28),
-                                  ),
-                                  child: IconButton(
-                                    icon: Icon(Icons.shopping_cart_outlined, color: colorScheme.primary),
-                                    onPressed: () => Navigator.pushNamed(context, '/cart'),
-                                  ),
-                                ),
+                                 GestureDetector(
+                                   onTap: () async {
+                                     await Navigator.pushNamed(context, '/cart');
+                                     _loadCartCount();
+                                   },
+                                   child: Container(
+                                     width: 56,
+                                     height: 56,
+                                     decoration: BoxDecoration(
+                                       color: containerColor,
+                                       borderRadius: BorderRadius.circular(28),
+                                     ),
+                                     alignment: Alignment.center,
+                                     child: Badge(
+                                       label: Text('$_cartItemCount'),
+                                       isLabelVisible: _cartItemCount > 0,
+                                       backgroundColor: colorScheme.primaryContainer,
+                                       textColor: colorScheme.onPrimaryContainer,
+                                       child: Icon(
+                                         Icons.shopping_cart_outlined,
+                                         color: colorScheme.primary,
+                                         size: 24,
+                                       ),
+                                     ),
+                                   ),
+                                 ),
                               ],
                             ),
                         const SizedBox(height: 20),
@@ -316,12 +348,25 @@ class _MarketScreenState extends State<MarketScreen> {
       foodArgs['vendorId'] = vendorId;
     }
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: foodArgs),
+      onTap: () async {
+        await Navigator.pushNamed(context, '/food-detail', arguments: foodArgs);
+        _loadCartCount();
+      },
       child: Container(
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHigh,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))],
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

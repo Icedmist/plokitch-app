@@ -85,6 +85,18 @@ graph TD
   * **Capsule Rounded Search & Cart**: Redesigned the search and cart area. The search bar is placed in an inline `Row` with the cart button (which sits in a 56x56 container). Both have been styled with fully circular capsule rounded corners (`BorderRadius.circular(28)`).
   * **Theme Color Sync**: Added `surfaceContainer` and `surfaceContainerHigh` keys to the `lightTheme` configuration inside [plokitch_theme.dart](file:///home/adam/Projects/plokitch-app/lib/theme/plokitch_theme.dart). This ensures that the search bar and cart button backgrounds correctly use the warm cream container color rather than rendering transparently.
 
+### 10. Custom Animated Top-Toast, Branded Logout Warn & Market/Detail UI Polish
+* **Action**: Created a reusable animated notification, added a logout warning, and polished button/card themes.
+* **Details**:
+  * **Custom PlokitchToast Notification**: Built [plokitch_toast.dart](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_toast.dart) — an Overlay-based custom notification that slides down from the top of the screen using an elastic curve (`Curves.easeOutBack`) and matches the brand's styling and shapes. We integrated it in [food_detail_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/food_detail_screen.dart) to replace all generic bottom SnackBars.
+  * **Branded Logout Confirmation Dialog**: Added a custom confirmation pop-up using `BackdropFilter` and error-tinted badge warnings in [settings_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart#L53) to ask users to verify before logging out.
+  * **Polished Add to Cart Button**: Styled the "Add to Cart" button in [food_detail_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/food_detail_screen.dart#L121) using the brand's solid `primaryContainer` (orange) and `onPrimaryContainer` (dark brown) colors for clean visibility in Light mode.
+  * **Outlined Dish Grid Cards**: Added a thin outline (`Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.4))`) and clean shadow to the popular dishes cards in [market_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/market_screen.dart#L320) to make them stand out elegantly.
+  * **Dynamic Dark/Light Search Inputs**: Handled dark mode backgrounds for search and cart containers, shifting from the brand's warm cream to a matching charcoal gray (`colorScheme.surfaceContainerHigh`) on dark themes.
+  * **Faded Circular Back Buttons**: Styled the leading back button in [plokitch_app_bar.dart](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_app_bar.dart#L43) with a custom circular container utilizing a faded primary tint (`colorScheme.primary.withValues(alpha: 0.08)`).
+  * **Reactive Marketplace Cart Badge**: Integrated a badge counter overlay on the inline Marketplace cart icon. It reads item quantities using `CartService.loadCart()` and automatically updates whenever the user returns from the Cart or Food Detail screens.
+  * **Centered Cart Icon & Badge**: Fixed alignment issues where the default padding of `IconButton` pushed the cart icon off-center and clipped the badge. Replaced the `IconButton` with a centered `GestureDetector` wrapping a direct `Badge` + `Icon` layout for pixel-perfect centering inside the circular button.
+
 ---
 
 ## 📂 Modified Files
@@ -107,7 +119,9 @@ graph TD
 * [**lib/screens/market_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/market_screen.dart)
 * [**lib/screens/map_explorer_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/map_explorer_screen.dart)
 * [**lib/screens/notification_settings_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/notification_settings_screen.dart)
+* [**lib/screens/food_detail_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/food_detail_screen.dart)
 * [**lib/widgets/plokitch_app_bar.dart**](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_app_bar.dart)
+* [**lib/widgets/plokitch_toast.dart**](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_toast.dart)
 
 ---
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/cart_service.dart';
+import '../widgets/plokitch_app_bar.dart';
+import '../widgets/plokitch_toast.dart';
 
 class FoodDetailScreen extends StatefulWidget {
   final Map<String, dynamic>? foodItem;
@@ -39,9 +41,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
     final location = itemRaw['location'] as String? ?? 'Gombe';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(name),
-        centerTitle: true,
+      appBar: PlokitchAppBar(
+        title: name,
+        showMenu: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -99,7 +101,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                 trailing: TextButton(
                 onPressed: () {
                   if (vendorId == null || vendorId.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen information is missing.')));
+                    PlokitchToast.show(context, 'Kitchen information is missing.', isError: true, icon: Icons.error_outline_rounded);
                     return;
                   }
                   Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': vendorId, 'name': kitchenName});
@@ -123,7 +125,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                 ? null
                 : () async {
                     if (vendorId == null || vendorId.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen information is missing.')));
+                      PlokitchToast.show(context, 'Kitchen information is missing.', isError: true, icon: Icons.error_outline_rounded);
                       return;
                     }
                     if (itemRaw['vendorId'] == null) {
@@ -141,8 +143,11 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                     if (mounted) setState(() => _addingToCart = false);
                   },
             style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.primaryContainer,
+              foregroundColor: colorScheme.onPrimaryContainer,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
             ),
           ),
           const SizedBox(height: 20),
@@ -199,9 +204,12 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
     final cart = await CartService.loadCart();
     if (cart.isNotEmpty && cart.first['vendorId'] != vendorId) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Your cart already contains items from another kitchen. Please checkout first.'),
-      ));
+      PlokitchToast.show(
+        context,
+        'Your cart already contains items from another kitchen. Please checkout first.',
+        isError: true,
+        icon: Icons.error_outline_rounded,
+      );
       return;
     }
 
@@ -224,7 +232,11 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
 
     await CartService.saveCart(cart);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added to cart.')));
+    PlokitchToast.show(
+      context,
+      'Item added to cart.',
+      icon: Icons.shopping_cart_checkout_rounded,
+    );
     Navigator.pushNamed(context, '/cart');
   }
 

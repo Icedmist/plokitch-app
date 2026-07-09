@@ -40,7 +40,24 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
               icon: Icon(Icons.menu, color: colorScheme.primary),
               onPressed: onMenuPressed ?? () => Scaffold.of(context).openDrawer(),
             )
-          : null,
+          : (Navigator.of(context).canPop() && automaticallyImplyLeading)
+              ? Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, size: 20),
+                      color: colorScheme.primary,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.maybePop(context),
+                    ),
+                  ),
+                )
+              : null,
       centerTitle: true,
       title: FittedBox(
         fit: BoxFit.scaleDown,
