@@ -271,15 +271,6 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: PlokitchBottomNav(
-        role: 'foodie',
-        currentIndex: 0,
-        onTap: (index) {
-          if (index == 1) Navigator.pushNamed(context, '/market');
-          if (index == 2) Navigator.pushReplacementNamed(context, '/order-history');
-          if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
-        },
-      ),
     );
   }
 

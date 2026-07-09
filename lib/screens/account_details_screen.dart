@@ -1,4 +1,7 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -20,6 +23,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
   final _avatarUrlController = TextEditingController();
   bool _loading = true;
   bool _saving = false;
+  bool _uploadingImage = false;
   String? _errorMessage;
   String? _currentAvatarUrl;
 
@@ -55,7 +59,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
             _nameController.text = profile['name'] as String? ?? '';
             _emailController.text = profile['email'] as String? ?? '';
             _phoneController.text = profile['phone'] as String? ?? '';
-            _currentAvatarUrl = profile['avatarUrl'] as String? ?? profile['avatar_url'] as String?;
+            _currentAvatarUrl = profile['image'] as String? ?? profile['avatarUrl'] as String? ?? profile['avatar_url'] as String?;
             _avatarUrlController.text = _currentAvatarUrl ?? '';
             final address = profile['address'];
             if (address is String) {
@@ -97,7 +101,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'avatarUrl': _avatarUrlController.text.trim(),
+        'image': _avatarUrlController.text.trim(),
         'address': _addressController.text.trim(),
       };
       await ApiService.updateUserProfile(profilePayload);
@@ -108,9 +112,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
         setState(() {
            _currentAvatarUrl = _avatarUrlController.text.trim();
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account details saved successfully.')),
-        );
+        _showSuccessDialog('Account details saved successfully.');
       }
     } catch (error) {
       if (mounted) {
@@ -171,9 +173,11 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                                     )
                                   : null,
                             ),
-                            child: _avatarUrlController.text.isEmpty
-                                ? Icon(Icons.person, size: 50, color: colorScheme.outline)
-                                : null,
+                            child: _uploadingImage
+                                ? const Center(child: CircularProgressIndicator())
+                                : (_avatarUrlController.text.isEmpty
+                                    ? Icon(Icons.person, size: 50, color: colorScheme.outline)
+                                    : null),
                           ),
                           Positioned(
                             bottom: 0,
@@ -183,7 +187,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                                 _buildCircleButton(
                                   icon: Icons.edit,
                                   color: colorScheme.primary,
-                                  onTap: () => _showAvatarUrlDialog(),
+                                  onTap: () => _showAvatarOptions(),
                                 ),
                                 if (_avatarUrlController.text.isNotEmpty) ...[
                                   const SizedBox(width: 4),
@@ -262,6 +266,181 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showAvatarOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Upload from Device'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndUploadImage();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Enter Image URL'),
+              onTap: () {
+                Navigator.pop(context);
+                _showAvatarUrlDialog();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    setState(() {
+      _uploadingImage = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        setState(() => _uploadingImage = false);
+        return;
+      }
+
+      final file = result.files.first;
+      if (file.bytes == null) {
+        throw Exception('Failed to read file data.');
+      }
+
+      // Check size limit: 2MB
+      if (file.size > 2 * 1024 * 1024) {
+        throw Exception('Image size must be less than 2MB. Selected image is ${(file.size / (1024 * 1024)).toStringAsFixed(2)}MB.');
+      }
+
+      final extension = file.extension ?? 'jpg';
+      final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.$extension';
+
+      final supabase = Supabase.instance.client;
+      await supabase.storage.from('avatars').uploadBinary(
+        fileName,
+        file.bytes!,
+        fileOptions: const FileOptions(
+          cacheControl: '3600',
+          upsert: true,
+        ),
+      );
+
+      final publicUrl = supabase.storage.from('avatars').getPublicUrl(fileName);
+
+      if (mounted) {
+        setState(() {
+          _avatarUrlController.text = publicUrl;
+        });
+        _showSuccessDialog('Image uploaded successfully.');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploadingImage = false;
+        });
+      }
+    }
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.4),
+      builder: (context) {
+        final theme = Theme.of(context);
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            backgroundColor: theme.colorScheme.surface,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 32,
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Success!',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  style: theme.textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Okay',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -25,6 +25,7 @@ import 'screens/account_details_screen.dart';
 import 'screens/payment_methods_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/kitchen_settings_screen.dart';
+import 'screens/main_navigation_shell.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 String mockUserRole = 'customer'; // updated at startup from stored profile when available
@@ -91,26 +92,26 @@ class PlokitchApp extends StatelessWidget {
             '/onboarding': (context) => const OnboardingScreen(),
             '/sign-in': (context) => const SignInScreen(),
             '/profile-setup': (context) => const ProfileSetupFlow(),
-            // Role-based home: always resolves to the correct dashboard
-            '/home': (context) => _roleHome(),
+            // Role-based home: always resolves to the correct dashboard via the shell wrapper
+            '/home': (context) => const MainNavigationShell(initialIndex: 0),
             '/cart': (context) => const CartScreen(),
             '/payment': (context) {
               final args = ModalRoute.of(context)?.settings.arguments;
               return PaymentScreen(orderPayload: args is Map<String, dynamic> ? args : null);
             },
             '/tracking': (context) => const OrderTrackingScreen(),
-            '/order-history': (context) => const OrderHistoryScreen(),
+            '/order-history': (context) => const MainNavigationShell(initialIndex: 2),
             '/notifications': (context) => const NotificationsScreen(),
-            '/settings': (context) => const SettingsScreen(),
-            '/chef-dashboard': (context) => const ChefDashboardScreen(),
-            '/chef-orders': (context) => const ChefOrdersScreen(),
-            '/kitchen': (context) => const KitchenManagementScreen(),
-            '/market': (context) => const MarketScreen(),
+            '/settings': (context) => const MainNavigationShell(initialIndex: 3),
+            '/chef-dashboard': (context) => const MainNavigationShell(initialIndex: 0),
+            '/chef-orders': (context) => const MainNavigationShell(initialIndex: 2),
+            '/kitchen': (context) => const MainNavigationShell(initialIndex: 1),
+            '/market': (context) => const MainNavigationShell(initialIndex: 1),
             '/food-detail': (context) => const FoodDetailScreen(),
             '/kitchen-profile': (context) => const KitchenProfileScreen(),
             '/account-details': (context) => const AccountDetailsScreen(),
             '/payment-methods': (context) => const PaymentMethodsScreen(),
-            '/rider-dashboard': (context) => const RiderDashboardScreen(),
+            '/rider-dashboard': (context) => const MainNavigationShell(initialIndex: 0),
             '/kitchen-settings': (context) => const KitchenSettingsScreen(),
           },
         );

@@ -32,7 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _profileName = profile?['name'] as String? ?? _profileName;
         _profileEmail = profile?['email'] as String? ?? _profileEmail;
         _profileRole = profile?['role'] as String? ?? storedRole ?? _profileRole;
-        _avatarUrl = profile?['avatarUrl'] as String? ?? profile?['avatar_url'] as String?;
+        _avatarUrl = profile?['image'] as String? ?? profile?['avatarUrl'] as String? ?? profile?['avatar_url'] as String?;
       });
     } catch (_) {
       final storedRole = await AuthService.storedRole();
@@ -102,7 +102,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.white),
-                  onPressed: () => Navigator.pushNamed(context, '/account-details'),
+                  onPressed: () async {
+                    await Navigator.pushNamed(context, '/account-details');
+                    _loadProfile();
+                  },
                 ),
               ],
             ),
@@ -121,7 +124,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
           
           _buildSettingsItem(Icons.person_outline, 'Account Details', colorScheme, textTheme,
-              onTap: () => Navigator.pushNamed(context, '/account-details')),
+              onTap: () async {
+                await Navigator.pushNamed(context, '/account-details');
+                _loadProfile();
+              }),
           _buildSettingsItem(Icons.notifications_none, 'Notifications', colorScheme, textTheme,
               onTap: () => Navigator.pushNamed(context, '/notifications')),
           _buildSettingsItem(Icons.payment, 'Payment Methods', colorScheme, textTheme,
@@ -136,11 +142,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ValueListenableBuilder<ThemeMode>(
             valueListenable: themeNotifier,
             builder: (context, currentTheme, child) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHigh,
+              return Material(
+                color: colorScheme.surfaceContainerHigh,
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: colorScheme.outlineVariant),
+                  side: BorderSide(color: colorScheme.outlineVariant),
                 ),
                 child: Column(
                   children: [
@@ -191,25 +198,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 24),
         ],
-      ),
-      bottomNavigationBar: PlokitchBottomNav(
-        role: _profileRole,
-        currentIndex: 3, // Profile
-        onTap: (index) {
-          if (_profileRole == 'chef') {
-            if (index == 0) Navigator.pushReplacementNamed(context, '/chef-dashboard');
-            if (index == 1) Navigator.pushReplacementNamed(context, '/kitchen');
-            if (index == 2) Navigator.pushReplacementNamed(context, '/chef-orders');
-          } else if (_profileRole == 'rider') {
-            if (index == 0) Navigator.pushReplacementNamed(context, '/rider-dashboard');
-            if (index == 1) Navigator.pushReplacementNamed(context, '/market', arguments: {'role': 'rider'});
-            if (index == 2) Navigator.pushReplacementNamed(context, '/order-history', arguments: {'role': 'rider'});
-          } else {
-            if (index == 0) Navigator.pushReplacementNamed(context, '/home');
-            if (index == 1) Navigator.pushReplacementNamed(context, '/market', arguments: {'role': 'customer'});
-            if (index == 2) Navigator.pushReplacementNamed(context, '/order-history', arguments: {'role': 'customer'});
-          }
-        },
       ),
     );
   }

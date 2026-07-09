@@ -26,7 +26,11 @@ class OrderModel {
   static String? _extractString(dynamic value) {
     if (value == null) return null;
     if (value is String) return value;
-    if (value is Map && value.containsKey('name')) return value['name'] as String?;
+    if (value is Map) {
+      if (value.containsKey('businessName')) return value['businessName'] as String?;
+      if (value.containsKey('business_name')) return value['business_name'] as String?;
+      if (value.containsKey('name')) return value['name'] as String?;
+    }
     return value.toString();
   }
 

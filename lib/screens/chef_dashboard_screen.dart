@@ -34,7 +34,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
     });
     try {
       final profile = await AuthService.getProfile();
-      _avatarUrl = profile?['avatarUrl'] as String? ?? profile?['avatar_url'] as String?;
+      _avatarUrl = profile?['image'] as String? ?? profile?['avatarUrl'] as String? ?? profile?['avatar_url'] as String?;
       final rawVendorId = profile?['vendorId'] ?? profile?['vendor_id'] ?? profile?['id'];
       _vendorId = rawVendorId != null ? rawVendorId.toString() : null;
       final rawVendorName = profile?['name'] ?? profile?['businessName'] ?? profile?['vendorName'];
@@ -351,16 +351,6 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
               return _buildOrderCard(index, order, colorScheme, textTheme);
             }),
         ],
-      ),
-      bottomNavigationBar: PlokitchBottomNav(
-        role: 'chef',
-        currentIndex: 0, // Home/Dashboard
-        onTap: (index) {
-          if (index == 0) _loadOrders();
-          if (index == 1) Navigator.pushReplacementNamed(context, '/kitchen');
-          if (index == 2) Navigator.pushReplacementNamed(context, '/chef-orders');
-          if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
-        },
       ),
     );
   }
