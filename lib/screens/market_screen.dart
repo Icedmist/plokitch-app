@@ -207,21 +207,6 @@ class _MarketScreenState extends State<MarketScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
             ),
-      bottomNavigationBar: PlokitchBottomNav(
-        role: currentRole,
-        currentIndex: 1,
-        onTap: (index) {
-          if (index == 0) {
-            if (currentRole == 'rider') {
-              Navigator.pushReplacementNamed(context, '/rider-dashboard');
-            } else {
-              Navigator.pushReplacementNamed(context, '/home');
-            }
-          }
-          if (index == 2) Navigator.pushReplacementNamed(context, '/order-history', arguments: {'role': currentRole});
-          if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
-        },
-      ),
     );
   }
 

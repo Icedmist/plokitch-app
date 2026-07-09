@@ -4,6 +4,7 @@ import '../widgets/plokitch_bottom_nav.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../models/menu_item_model.dart';
+import '../models/order_model.dart';
 
 class KitchenManagementScreen extends StatefulWidget {
   const KitchenManagementScreen({super.key});
@@ -231,13 +232,6 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
           ),
         ],
       ),
-      bottomNavigationBar: PlokitchBottomNav(
-        currentIndex: 1, // Menu active
-        onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/chef-dashboard'); // Map/Home equivalent
-          if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
-        },
-      ),
     );
   }
 
@@ -286,49 +280,5 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
         ],
       ),
     );
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller, {int maxLines = 1}) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
-  }
-
-  Future<void> _saveVendorDetails() async {
-    if (_vendorId == null || _vendorId!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen identifier is missing.')));
-      return;
-    }
-
-    setState(() => _saving = true);
-    try {
-      final payload = {
-        'businessName': _businessNameController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'imageUrl': _imageUrlController.text.trim(),
-        'location': {
-          'street': _streetController.text.trim(),
-          'city': _cityController.text.trim(),
-          'state': _stateController.text.trim(),
-        },
-      };
-
-      final updatedVendor = await ApiService.updateVendor(_vendorId!, payload);
-      if (!mounted) return;
-      setState(() {
-        _vendorData = updatedVendor;
-        _saving = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen details updated successfully.')));
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update failed: $e')));
-    }
   }
 }

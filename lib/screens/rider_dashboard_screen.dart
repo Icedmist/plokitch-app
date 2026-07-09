@@ -325,16 +325,6 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
           ],
         ],
       ),
-      bottomNavigationBar: PlokitchBottomNav(
-        role: 'rider',
-        currentIndex: 0,
-        onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/rider-dashboard');
-          if (index == 1) Navigator.pushReplacementNamed(context, '/market', arguments: {'role': 'rider'});
-          if (index == 2) Navigator.pushReplacementNamed(context, '/order-history', arguments: {'role': 'rider'});
-          if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
-        },
-      ),
     );
   }
 

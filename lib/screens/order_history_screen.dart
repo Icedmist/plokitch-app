@@ -112,7 +112,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                 children: [
                                   Icon(Icons.storefront, size: 16, color: colorScheme.onSurfaceVariant),
                                   const SizedBox(width: 6),
-                                  Text(order.vendorName ?? 'Local Kitchen', style: textTheme.titleSmall?.copyWith(color: colorScheme.onSurface)),
+                                  Expanded(
+                                    child: Text(
+                                      order.vendorName ?? 'Local Kitchen',
+                                      style: textTheme.titleSmall?.copyWith(color: colorScheme.onSurface),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 4),
@@ -144,14 +150,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                         );
                       },
                     ),
-      bottomNavigationBar: PlokitchBottomNav(
-        currentIndex: 2,
-        onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/home');
-          if (index == 1) Navigator.pushReplacementNamed(context, '/market');
-          if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
-        },
-      ),
     );
   }
 }

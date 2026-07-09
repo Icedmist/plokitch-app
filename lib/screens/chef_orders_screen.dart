@@ -145,16 +145,6 @@ class _ChefOrdersScreenState extends State<ChefOrdersScreen> {
           );
         },
       ),
-      bottomNavigationBar: PlokitchBottomNav(
-        role: 'chef',
-        currentIndex: 2,
-        onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/chef-dashboard');
-          if (index == 1) Navigator.pushReplacementNamed(context, '/kitchen');
-          if (index == 2) return;
-          if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
-        },
-      ),
     );
   }
 }

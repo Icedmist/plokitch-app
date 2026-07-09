@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class PlokitchBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -22,34 +23,40 @@ class PlokitchBottomNav extends StatelessWidget {
     // Tabs differ per role
     final List<_NavItem> items = _itemsForRole(role);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: colorScheme.outlineVariant, width: 1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: items.asMap().entries.map((e) {
-              return _buildNavItem(
-                context: context,
-                index: e.key,
-                item: e.value,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              );
-            }).toList(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: items.asMap().entries.map((e) {
+                return _buildNavItem(
+                  context: context,
+                  index: e.key,
+                  item: e.value,
+                  colorScheme: colorScheme,
+                  textTheme: textTheme,
+                );
+              }).toList(),
+            ),
           ),
         ),
       ),
@@ -60,24 +67,24 @@ class PlokitchBottomNav extends StatelessWidget {
     switch (role) {
       case 'chef':
         return const [
-          _NavItem(Icons.home, 'Home'),
-          _NavItem(Icons.restaurant, 'Kitchen'),
-          _NavItem(Icons.receipt_long, 'Orders'),
-          _NavItem(Icons.person, 'Profile'),
+          _NavItem(Icons.home_outlined, Icons.home, 'Home'),
+          _NavItem(Icons.restaurant_outlined, Icons.restaurant, 'Kitchen'),
+          _NavItem(Icons.receipt_long_outlined, Icons.receipt_long, 'Orders'),
+          _NavItem(Icons.person_outline, Icons.person, 'Profile'),
         ];
       case 'rider':
         return const [
-          _NavItem(Icons.home, 'Home'),
-          _NavItem(Icons.storefront, 'Market'),
-          _NavItem(Icons.receipt_long, 'Orders'),
-          _NavItem(Icons.person, 'Profile'),
+          _NavItem(Icons.home_outlined, Icons.home, 'Home'),
+          _NavItem(Icons.storefront_outlined, Icons.storefront, 'Market'),
+          _NavItem(Icons.receipt_long_outlined, Icons.receipt_long, 'Orders'),
+          _NavItem(Icons.person_outline, Icons.person, 'Profile'),
         ];
       default: // foodie
         return const [
-          _NavItem(Icons.home, 'Home'),
-          _NavItem(Icons.storefront, 'Market'),
-          _NavItem(Icons.receipt_long, 'Orders'),
-          _NavItem(Icons.person, 'Profile'),
+          _NavItem(Icons.home_outlined, Icons.home, 'Home'),
+          _NavItem(Icons.storefront_outlined, Icons.storefront, 'Market'),
+          _NavItem(Icons.receipt_long_outlined, Icons.receipt_long, 'Orders'),
+          _NavItem(Icons.person_outline, Icons.person, 'Profile'),
         ];
     }
   }
@@ -92,24 +99,26 @@ class PlokitchBottomNav extends StatelessWidget {
     final isSelected = currentIndex == index;
 
     return GestureDetector(
-      onTap: () => onTap(index),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap(index);
+      },
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: const BoxDecoration(
+          color: Colors.transparent,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              item.icon,
+              isSelected ? item.activeIcon : item.icon,
               size: 20,
               color: isSelected
-                  ? colorScheme.onPrimaryContainer
+                  ? colorScheme.primary
                   : colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 4),
@@ -117,8 +126,9 @@ class PlokitchBottomNav extends StatelessWidget {
               item.label,
               style: textTheme.labelLarge?.copyWith(
                 color: isSelected
-                    ? colorScheme.onPrimaryContainer
+                    ? colorScheme.primary
                     : colorScheme.onSurfaceVariant,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ],
@@ -130,6 +140,7 @@ class PlokitchBottomNav extends StatelessWidget {
 
 class _NavItem {
   final IconData icon;
+  final IconData activeIcon;
   final String label;
-  const _NavItem(this.icon, this.label);
+  const _NavItem(this.icon, this.activeIcon, this.label);
 }
