@@ -34,7 +34,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
     });
     try {
       final profile = await AuthService.getProfile();
-      _avatarUrl = profile?['avatarUrl'] as String? ?? profile?['avatar_url'] as String?;
+      _avatarUrl = profile?['image'] as String? ?? profile?['avatarUrl'] as String? ?? profile?['avatar_url'] as String?;
       final rawVendorId = profile?['vendorId'] ?? profile?['vendor_id'] ?? profile?['id'];
       _vendorId = rawVendorId != null ? rawVendorId.toString() : null;
       final rawVendorName = profile?['name'] ?? profile?['businessName'] ?? profile?['vendorName'];

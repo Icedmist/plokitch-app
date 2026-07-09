@@ -63,6 +63,13 @@ graph TD
   * **Background Blur Popups**: Replaced standard black `SnackBar` success alerts with a custom, branded dialog widget (`_showSuccessDialog`).
   * **Brand Aesthetics**: The popup dialog utilizes `BackdropFilter` (blur sigma: 5.0) to blur the background screen elements, displays a styled primary-color check icon, renders headings in `Lilita One`, bodies in `Plus Jakarta Sans`, and includes a custom primary action button matching the app's brand theme.
 
+### 7. Profile Avatar Database Sync & Instant UI Updates
+* **Action**: Resolved database field mismatch bugs and improved settings navigation to enable live profile avatar changes.
+* **Details**:
+  * **Database Column Alignment**: Fixed a field mismatch where the app was updating the user profile with the key `'avatarUrl'` but the backend expected the key `'image'`. The payload was updated to write to `'image'`, which successfully updates the Supabase database.
+  * **API Response Mapping**: Enhanced `AccountDetailsScreen`, `SettingsScreen`, and `ChefDashboardScreen` to look for the `'image'` key in the user profile payload first, before falling back to `'avatarUrl'` or `'avatar_url'`.
+  * **Reactive Settings Refresh**: Changed the navigation transitions from `SettingsScreen` to `AccountDetailsScreen` to `await` the navigation pop. When returning from the edit profile page, the settings page automatically calls `_loadProfile()` to instantly reflect the new profile name, email, and avatar picture on the UI without requiring an app reload.
+
 ---
 
 ## 📂 Modified Files

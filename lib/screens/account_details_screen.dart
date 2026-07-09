@@ -59,7 +59,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
             _nameController.text = profile['name'] as String? ?? '';
             _emailController.text = profile['email'] as String? ?? '';
             _phoneController.text = profile['phone'] as String? ?? '';
-            _currentAvatarUrl = profile['avatarUrl'] as String? ?? profile['avatar_url'] as String?;
+            _currentAvatarUrl = profile['image'] as String? ?? profile['avatarUrl'] as String? ?? profile['avatar_url'] as String?;
             _avatarUrlController.text = _currentAvatarUrl ?? '';
             final address = profile['address'];
             if (address is String) {
@@ -101,7 +101,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'avatarUrl': _avatarUrlController.text.trim(),
+        'image': _avatarUrlController.text.trim(),
         'address': _addressController.text.trim(),
       };
       await ApiService.updateUserProfile(profilePayload);
