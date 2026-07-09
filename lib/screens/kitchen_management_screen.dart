@@ -107,24 +107,26 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       ),
       body: ListView(
         children: [
-          // Banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Colors.black,
-            child: Row(
-              children: [
-                Icon(Icons.campaign, color: colorScheme.primaryContainer),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'RAMADAN SPECIAL: UPDATE YOUR EVENING MENU BY 4PM DAILY!',
-                    style: textTheme.bodySmall?.copyWith(color: Colors.white, letterSpacing: 1.5, fontWeight: FontWeight.bold),
+          // Broadcast Message Section
+          if (_vendorData?['broadcastMessage'] != null && (_vendorData?['broadcastMessage'] as String).isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: Colors.black87,
+              child: Row(
+                children: [
+                  Icon(Icons.campaign, color: colorScheme.primaryContainer),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _vendorData?['broadcastMessage'] as String? ?? '',
+                      style: textTheme.bodySmall?.copyWith(color: Colors.white, letterSpacing: 0.5),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                const Icon(Icons.close, color: Colors.white, size: 16),
-              ],
+                ],
+              ),
             ),
-          ),
           
           Padding(
             padding: const EdgeInsets.all(16.0),

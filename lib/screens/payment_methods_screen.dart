@@ -57,6 +57,29 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     );
   }
 
+  void _showAddPaymentDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Payment Method'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Payment method addition feature will be available in the next update.'),
+            SizedBox(height: 16),
+            Text('For now, you can add payment methods during checkout.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -111,7 +134,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: _methods.isEmpty ? null : () {},
+                    onPressed: () => _showAddPaymentDialog(),
                     icon: const Icon(Icons.add),
                     label: const Text('Add Payment Method'),
                     style: ElevatedButton.styleFrom(

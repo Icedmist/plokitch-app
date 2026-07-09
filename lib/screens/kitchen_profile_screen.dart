@@ -76,7 +76,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
     if (mounted) setState(() => _loading = true);
     try {
       final vendorData = await ApiService.fetchVendor(vendorId);
-      if (vendorData == null || (vendorData is Map && vendorData.isEmpty)) {
+      if (vendorData.isEmpty) {
         throw Exception('Invalid vendor data received');
       }
       final menuData = await ApiService.fetchVendorMenu(vendorId);

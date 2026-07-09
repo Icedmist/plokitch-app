@@ -16,6 +16,7 @@ class _CartScreenState extends State<CartScreen> {
   final List<Map<String, dynamic>> _cartItems = [];
   bool _loading = false;
   String? _vendorImageUrl;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -25,13 +26,12 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _handleCheckout() async {
     if (_cartItems.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cart is empty')));
+      setState(() => _errorMessage = 'Your cart is empty. Please add items before checking out.');
       return;
     }
     
     String? vendorId = _cartItems.first['vendorId'] as String? ?? _cartItems.first['vendor']?['id'] as String?;
     if (vendorId == null || vendorId.isEmpty) {
-      // Attempt to repair cart by looking for vendorId in items
       for (final it in _cartItems) {
         final found = it['vendorId'] as String? ?? (it['vendor'] is Map ? (it['vendor']['id'] as String?) : null);
         if (found != null && found.isNotEmpty) {
@@ -44,37 +44,77 @@ class _CartScreenState extends State<CartScreen> {
         }
       }
       if (vendorId == null || vendorId.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen information is missing. Please add items again.')));
+        setState(() => _errorMessage = 'Kitchen information is missing. Please add items again to continue.');
         return;
       }
     }
     
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+    
     try {
+      final items = _cartItems
+          .map((i) {
+            final itemId = i['id']?.toString().trim() ?? '';
+            final quantity = i['quantity'] is int
+                ? i['quantity'] as int
+                : int.tryParse(i['quantity']?.toString() ?? '') ?? 0;
+            if (itemId.isEmpty || quantity <= 0) return null;
+            return {
+              'menuItemId': itemId,
+              'quantity': quantity,
+              'name': i['name']?.toString() ?? 'Menu item',
+              'price': double.tryParse(i['price']?.toString() ?? '') ?? 0.0,
+            };
+          })
+          .whereType<Map<String, dynamic>>()
+          .toList();
+
+      if (items.isEmpty) {
+        setState(() {
+          _errorMessage = 'Your cart contains no valid items. Please review and add items again.';
+          _loading = false;
+        });
+        return;
+      }
+
       final payload = {
-        'vendorId': vendorId,
-        'items': _cartItems.map((i) => {
-              'menuItemId': i['id'] as String?,
-              'name': i['name'],
-              'price': double.tryParse(i['price'].toString()) ?? 0.0,
-              'quantity': i['quantity'] as int?,
-            }).toList(),
+        'vendorId': vendorId.trim(),
+        'items': items,
         'deliveryAddress': {
-          'street': 'User address placeholder',
-          'city': 'Unknown',
-          'state': 'Unknown'
-        }
+          'street': 'Delivery Address',
+          'city': 'Lagos',
+          'state': 'Lagos',
+          'country': 'Nigeria',
+        },
+        'totalAmount': _subtotal + _deliveryFee,
+        'deliveryFee': _deliveryFee,
       };
 
       final order = await ApiService.placeOrder(payload);
+      if (!mounted) return;
+      
       await CartService.clearCart();
       if (!mounted) return;
-      setState(() => _cartItems.clear());
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order placed: ${order['id']}')));
+      
+      setState(() {
+        _cartItems.clear();
+        _errorMessage = null;
+      });
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Order placed successfully! Order ID: ${order['id']}')),
+      );
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/order-history');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to place order: ${e.toString()}')));
+      setState(() {
+        _errorMessage = _friendlyOrderError(e);
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -118,6 +158,60 @@ class _CartScreenState extends State<CartScreen> {
     });
   }
 
+  String _friendlyOrderError(Object error) {
+    final message = error.toString().toLowerCase();
+    
+    if (message.contains('internal server error') || message.contains('server_error') || message.contains('500')) {
+      return 'Our kitchen team is experiencing technical difficulties. Please try again in a moment.';
+    }
+    if (message.contains('authentication') || message.contains('unauthorized') || message.contains('401')) {
+      return 'Your session expired. Please sign in again to place your order.';
+    }
+    if (message.contains('not found') || message.contains('404')) {
+      return 'One of your items is no longer available. Please review your cart and try again.';
+    }
+    if (message.contains('invalid') || message.contains('validation')) {
+      return 'Some order details are incomplete. Please review and try again.';
+    }
+    if (message.contains('network') || message.contains('socket') || message.contains('connection')) {
+      return 'Network connection lost. Please check your internet and try again.';
+    }
+    if (message.contains('timeout')) {
+      return 'The request took too long. Please check your connection and try again.';
+    }
+    return 'Unable to place your order at this time. Please try again in a few moments.';
+  }
+
+  Widget _buildErrorCard(ColorScheme colorScheme, TextTheme textTheme, String message) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.25)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_outline, color: colorScheme.error, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: textTheme.bodyMedium?.copyWith(color: colorScheme.onErrorContainer),
+            ),
+          ),
+          if (_errorMessage != null)
+            GestureDetector(
+              onTap: () => setState(() => _errorMessage = null),
+              child: Icon(Icons.close, color: colorScheme.onErrorContainer, size: 20),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -134,73 +228,87 @@ class _CartScreenState extends State<CartScreen> {
           ? Center(
               child: Text('Your cart is empty', style: textTheme.headlineMedium),
             )
-          : Stack(
+          : Column(
               children: [
-                ListView(
-                  padding: const EdgeInsets.only(bottom: 220), // Space for checkout sheet
-                  children: [
-                    const SizedBox(height: 16),
-                    ..._cartItems.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      return _buildCartItem(context, index, item, colorScheme, textTheme);
-                    }),
-                    
-                    const SizedBox(height: 32),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Text(
-                        'Add More?',
-                        style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildRecommendations(colorScheme, textTheme),
-                  ],
-                ),
+                // Fixed Error Card at Top
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: _buildErrorCard(colorScheme, textTheme, _errorMessage!),
+                  ),
                 
-                // Checkout Bottom Sheet
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF35301D), // inverseSurface
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(24),
-                        topRight: Radius.circular(24),
-                      ),
-                    ),
-                    child: SafeArea(
-                      top: false,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                // Scrollable Cart Content
+                Expanded(
+                  child: Stack(
+                    children: [
+                      ListView(
+                        padding: const EdgeInsets.only(bottom: 220),
                         children: [
-                          _buildReceiptRow('Subtotal', '₦$_subtotal', textTheme),
-                          const SizedBox(height: 8),
-                          _buildReceiptRow('Delivery', '₦$_deliveryFee', textTheme),
                           const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Total', style: textTheme.headlineMedium?.copyWith(color: Colors.white)),
-                              Text('₦${_subtotal + _deliveryFee}', style: textTheme.headlineMedium?.copyWith(color: colorScheme.primaryContainer)),
-                            ],
+                          ..._cartItems.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final item = entry.value;
+                            return _buildCartItem(context, index, item, colorScheme, textTheme);
+                          }),
+                          
+                          const SizedBox(height: 32),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Text(
+                              'Add More?',
+                              style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary),
+                            ),
                           ),
-                          const SizedBox(height: 24),
-                          PlokitchButton(
-                            text: _loading ? 'Processing...' : 'Proceed to Payment',
-                            onPressed: _loading
-                                ? null
-                                : () {
-                                    _handleCheckout();
-                                  },
-                          ),
+                          const SizedBox(height: 16),
+                          _buildRecommendations(colorScheme, textTheme),
                         ],
                       ),
-                    ),
+                      
+                      // Checkout Bottom Sheet
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF35301D),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(24),
+                              topRight: Radius.circular(24),
+                            ),
+                          ),
+                          child: SafeArea(
+                            top: false,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildReceiptRow('Subtotal', '₦$_subtotal', textTheme),
+                                const SizedBox(height: 8),
+                                _buildReceiptRow('Delivery', '₦$_deliveryFee', textTheme),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Total', style: textTheme.headlineMedium?.copyWith(color: Colors.white)),
+                                    Text('₦${_subtotal + _deliveryFee}', style: textTheme.headlineMedium?.copyWith(color: colorScheme.primaryContainer)),
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
+                                PlokitchButton(
+                                  text: _loading ? 'Processing...' : 'Proceed to Payment',
+                                  onPressed: _loading
+                                      ? null
+                                      : () {
+                                          _handleCheckout();
+                                        },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

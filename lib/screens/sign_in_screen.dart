@@ -29,23 +29,55 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       await AuthService.signIn(email, password);
       if (!mounted) return;
+      
       final profile = await AuthService.getProfile();
       if (!mounted) return;
-      final role = profile?['role'] as String? ?? 'customer';
-      mockUserRole = role;
-      if (role == 'chef') {
-        Navigator.pushReplacementNamed(context, '/chef-dashboard');
-      } else if (role == 'rider') {
-        Navigator.pushReplacementNamed(context, '/rider-dashboard');
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
+      
+      if (profile == null || profile.isEmpty) {
+        throw Exception('Failed to load profile. Please try signing in again.');
       }
+      
+      final role = (profile['role'] as String?)?.toLowerCase() ?? 'customer';
+      mockUserRole = role;
+      
+      // Navigate to appropriate role-based dashboard
+      final route = role == 'chef'
+          ? '/chef-dashboard'
+          : role == 'rider'
+              ? '/rider-dashboard'
+              : '/home';
+      
+      Navigator.pushReplacementNamed(context, route);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      final message = _friendlyAuthError(e);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String _friendlyAuthError(Object error) {
+    final message = error.toString().toLowerCase();
+    if (message.contains('invalid')) {
+      return 'Email or password is incorrect. Please try again.';
+    }
+    if (message.contains('not found')) {
+      return 'This account doesn\'t exist. Please check your email or sign up.';
+    }
+    if (message.contains('network') || message.contains('socket') || message.contains('connection')) {
+      return 'Network connection lost. Please check your internet and try again.';
+    }
+    if (message.contains('timeout')) {
+      return 'The request took too long. Please try again.';
+    }
+    if (message.contains('server') || message.contains('500')) {
+      return 'Server is experiencing issues. Please try again in a moment.';
+    }
+    if (message.contains('profile')) {
+      return 'Unable to load your profile. Please try signing in again.';
+    }
+    return 'Something went wrong. Please try again.';
   }
 
   @override
