@@ -157,32 +157,45 @@ class ApiService {
     String type = 'system',
   }) async {
     try {
-      final profile = await AuthService.getProfile();
-      if (profile == null) return;
-
-      final existingNotifications = List<dynamic>.from(
-        profile['notifications'] as List<dynamic>? ?? 
-        profile['notifications_list'] as List<dynamic>? ?? []
+      final uri = _uri('/api/notifications');
+      final res = await http.post(
+        uri,
+        headers: await _headers(),
+        body: json.encode({
+          'title': title,
+          'message': body,
+          'type': type,
+        }),
       );
-
-      final newNotification = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'title': title,
-        'body': body,
-        'time': 'Just now',
-        'type': type,
-        'isRead': false,
-      };
-
-      existingNotifications.insert(0, newNotification);
-
-      final payload = {
-        'notifications': existingNotifications,
-        'notifications_list': existingNotifications,
-      };
-
-      await updateUserProfile(payload);
+      if (res.statusCode >= 400) {
+        throw Exception('Failed to add notification: ${res.body}');
+      }
     } catch (_) {}
+  }
+
+  static Future<Map<String, dynamic>> fetchNotifications({int limit = 50, bool unreadOnly = false}) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      if (unreadOnly) 'unread': 'true',
+    };
+    final queryString = Uri(queryParameters: queryParams).query;
+    final uri = _uri('/api/notifications?$queryString');
+    
+    final res = await http.get(uri, headers: await _headers());
+    if (res.statusCode != 200) throw Exception('Failed to fetch notifications');
+    return json.decode(res.body) as Map<String, dynamic>;
+  }
+
+  static Future<void> markNotificationAsRead(String id) async {
+    final uri = _uri('/api/notifications/$id/read');
+    final res = await http.patch(uri, headers: await _headers());
+    if (res.statusCode >= 400) throw Exception('Failed to mark notification read');
+  }
+
+  static Future<void> markAllNotificationsAsRead() async {
+    final uri = _uri('/api/notifications/read-all');
+    final res = await http.post(uri, headers: await _headers());
+    if (res.statusCode >= 400) throw Exception('Failed to mark all notifications read');
   }
 
   static Future<List<OrderModel>> fetchOrders({int limit = 50, int offset = 0, String? customerId, String? vendorId, bool forceRefresh = false}) async {

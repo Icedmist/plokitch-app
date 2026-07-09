@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
 import '../widgets/plokitch_app_bar.dart';
 
 class _Notification {
@@ -48,17 +49,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       final profile = await AuthService.getProfile();
       _profileName = profile?['name'] as String? ?? profile?['email'] as String?;
-      final data = profile?['notifications'] as List<dynamic>? ?? profile?['notifications_list'] as List<dynamic>?;
+      
+      final res = await ApiService.fetchNotifications();
+      final data = res['data'] as List<dynamic>?;
       if (data != null) {
         _notifications = data.map((entry) {
           final map = Map<String, dynamic>.from(entry as Map);
+          final readAt = map['readAt'] ?? map['read_at'];
           return _Notification(
             id: map['id']?.toString() ?? UniqueKey().toString(),
             title: map['title']?.toString() ?? 'Notification',
             body: map['body']?.toString() ?? map['message']?.toString() ?? 'You have a new notification.',
-            time: map['time']?.toString() ?? map['createdAt']?.toString() ?? 'Just now',
+            time: _formatTime(map['createdAt'] ?? map['created_at']),
             icon: _iconForType(map['type']?.toString() ?? 'system'),
-            isRead: map['isRead'] as bool? ?? map['read'] as bool? ?? false,
+            isRead: readAt != null || map['isRead'] == true || map['read'] == true,
             type: map['type']?.toString() ?? 'system',
           );
         }).toList();
@@ -74,7 +78,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  void _markAllRead() {
+  String _formatTime(dynamic value) {
+    if (value == null) return 'Just now';
+    try {
+      final dt = DateTime.parse(value.toString()).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      return '${dt.day}/${dt.month}/${dt.year}';
+    } catch (_) {
+      return value.toString();
+    }
+  }
+
+  void _markAllRead() async {
+    try {
+      await ApiService.markAllNotificationsAsRead();
+      await AuthService.getProfile(forceRefresh: true);
+    } catch (_) {}
     setState(() {
       _notifications = _notifications.map((n) => _Notification(
             id: n.id,
@@ -100,7 +123,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  void _markRead(String id) {
+  void _markRead(String id) async {
+    try {
+      await ApiService.markNotificationAsRead(id);
+      await AuthService.getProfile(forceRefresh: true);
+    } catch (_) {}
     setState(() {
       _notifications = _notifications.map((n) {
         if (n.id == id) {

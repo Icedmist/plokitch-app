@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import '../services/api_service.dart';
+
 
 class PlokitchAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String? title;
@@ -57,25 +58,12 @@ class _PlokitchAppBarState extends State<PlokitchAppBar> {
 
   Future<void> _loadUnreadCount() async {
     try {
-      final profile = await AuthService.getProfile();
-      if (profile != null) {
-        final data = profile['notifications'] as List<dynamic>? ?? 
-            profile['notifications_list'] as List<dynamic>?;
-        if (data != null) {
-          int count = 0;
-          for (final entry in data) {
-            final map = Map<String, dynamic>.from(entry as Map);
-            final isRead = map['isRead'] as bool? ?? map['read'] as bool? ?? false;
-            if (!isRead) {
-              count++;
-            }
-          }
-          if (mounted) {
-            setState(() {
-              _unreadCount = count;
-            });
-          }
-        }
+      final res = await ApiService.fetchNotifications(limit: 1);
+      final count = res['unreadCount'] as int? ?? 0;
+      if (mounted) {
+        setState(() {
+          _unreadCount = count;
+        });
       }
     } catch (_) {}
   }
