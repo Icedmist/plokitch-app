@@ -55,11 +55,17 @@ Future<void> main() async {
     url: dotenv.env['VITE_SUPABASE_URL'] ?? '',
     anonKey: dotenv.env['VITE_SUPABASE_ANON_KEY'] ?? '',
   );
-  // Load stored role from AuthService and update global role used by routing
+  // Try to restore session from stored token and determine initial route
   try {
     final role = await AuthService.storedRole();
     if (role != null && role.isNotEmpty) {
       mockUserRole = role;
+      // Validate that the stored token is still valid by attempting refresh
+      final isValid = await AuthService.tryRefreshSession();
+      if (!isValid) {
+        // Token expired, clear it for login
+        await AuthService.signOut();
+      }
     }
   } catch (_) {}
   runApp(const PlokitchApp());

@@ -65,32 +65,30 @@ class AuthService {
       throw Exception(message);
     }
 
-    // Try to extract session token from Set-Cookie
-    String? setCookie = res.headers['set-cookie'] ?? res.headers['Set-Cookie'];
-    String? token;
-    if (setCookie != null) {
-      final match = RegExp(r'plokitch\.session_token=([^;]+)').firstMatch(setCookie);
-      if (match != null) token = match.group(1);
-    }
+    // Try to extract session token from Set-Cookie and response body.
+    String? token = _extractSessionToken(res.headers['set-cookie'] ?? res.headers['Set-Cookie']);
 
-    // Also check response body for session token fallback
     if (token == null) {
       try {
-        final body = json.decode(res.body) as Map<String, dynamic>;
-        token = body['session']?['token'] ?? body['token'] as String?;
+        final body = json.decode(res.body);
+        if (body is Map<String, dynamic>) {
+          token = _extractSessionTokenFromBody(body);
+        }
       } catch (_) {}
     }
 
-    if (token != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_sessionKey, token);
-      // attempt to fetch and persist profile role immediately
-      try {
-        final profile = await getProfile();
-        final role = profile?['role'] as String?;
-        if (role != null) await prefs.setString(_roleKey, role);
-      } catch (_) {}
+    if (token == null || token.isEmpty) {
+      throw Exception('Sign in succeeded but no session token was returned.');
     }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_sessionKey, token);
+    // attempt to fetch and persist profile role immediately
+    try {
+      final profile = await getProfile();
+      final role = profile?['role'] as String?;
+      if (role != null) await prefs.setString(_roleKey, role);
+    } catch (_) {}
   }
 
   static Future<void> signOut() async {
@@ -142,19 +140,16 @@ class AuthService {
         return false;
       }
       // parse new token from Set-Cookie or body
-      String? setCookie = res.headers['set-cookie'] ?? res.headers['Set-Cookie'];
-      String? newToken;
-      if (setCookie != null) {
-        final match = RegExp(r'plokitch\.session_token=([^;]+)').firstMatch(setCookie);
-        if (match != null) newToken = match.group(1);
-      }
+      String? newToken = _extractSessionToken(res.headers['set-cookie'] ?? res.headers['Set-Cookie']);
       if (newToken == null) {
         try {
-          final body = json.decode(res.body) as Map<String, dynamic>;
-          newToken = body['session']?['token'] ?? body['token'] as String?;
+          final body = json.decode(res.body);
+          if (body is Map<String, dynamic>) {
+            newToken = _extractSessionTokenFromBody(body);
+          }
         } catch (_) {}
       }
-      if (newToken != null) {
+      if (newToken != null && newToken.isNotEmpty) {
         await prefs.setString(_sessionKey, newToken);
         return true;
       }
@@ -175,6 +170,33 @@ class AuthService {
       headers['Cookie'] = 'plokitch.session_token=$token';
     }
     return headers;
+  }
+
+  static String? _extractSessionToken(String? cookieHeader) {
+    if (cookieHeader == null || cookieHeader.isEmpty) return null;
+    final match = RegExp(r'plokitch\.session_token=([^;\s]+)').firstMatch(cookieHeader);
+    return match?.group(1);
+  }
+
+  static String? _extractSessionTokenFromBody(Map<String, dynamic> body) {
+    String? token;
+
+    token = body['token'] as String?;
+    token ??= body['accessToken'] as String?;
+    token ??= body['access_token'] as String?;
+    token ??= body['sessionToken'] as String?;
+    token ??= body['session'] is Map<String, dynamic> ? (body['session']['token'] as String?) : null;
+
+    if (token == null && body['data'] is Map<String, dynamic>) {
+      final data = body['data'] as Map<String, dynamic>;
+      token = data['token'] as String?;
+      token ??= data['accessToken'] as String?;
+      token ??= data['access_token'] as String?;
+      token ??= data['sessionToken'] as String?;
+      token ??= data['session'] is Map<String, dynamic> ? (data['session']['token'] as String?) : null;
+    }
+
+    return token;
   }
 
   static Future<Map<String, String>> authHeaders() async {

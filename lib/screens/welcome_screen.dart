@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -67,6 +68,19 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 
   void _startSequence() async {
+    // Check if user is already signed in
+    try {
+      final storedRole = await AuthService.storedRole();
+      if (storedRole != null && storedRole.isNotEmpty) {
+        // User is already logged in, skip welcome animation
+        if (mounted) {
+          _navigateToRoleHome(storedRole);
+        }
+        return;
+      }
+    } catch (_) {}
+
+    // User is not signed in, show welcome animation
     // Step 1: animate brackets in
     await _bracketController.forward();
     await Future.delayed(const Duration(milliseconds: 200));
@@ -84,6 +98,16 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         _onTypewriterDone();
       }
     });
+  }
+
+  void _navigateToRoleHome(String role) {
+    if (!mounted) return;
+    final route = role.toLowerCase() == 'chef'
+        ? '/chef-dashboard'
+        : role.toLowerCase() == 'rider'
+            ? '/rider-dashboard'
+            : '/home';
+    Navigator.pushReplacementNamed(context, route);
   }
 
   void _onTypewriterDone() async {
@@ -240,7 +264,7 @@ class _PulsingDotsState extends State<_PulsingDots>
       children: List.generate(3, (i) {
         return AnimatedBuilder(
           animation: _c,
-          builder: (_, __) {
+          builder: (_, _) {
             final delay = i * 0.3;
             final t = ((_c.value - delay).clamp(0.0, 1.0));
             final opacity = Curves.easeInOut.transform(t);

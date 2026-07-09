@@ -16,12 +16,27 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
   late AnimationController _pingController;
   List<MenuItemModel> _menuItems = [];
   bool _loading = true;
+  bool _saving = false;
   String? _error;
   String? _vendorId;
+  Map<String, dynamic>? _vendorData;
+
+  late TextEditingController _businessNameController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _imageUrlController;
+  late TextEditingController _streetController;
+  late TextEditingController _cityController;
+  late TextEditingController _stateController;
 
   @override
   void initState() {
     super.initState();
+    _businessNameController = TextEditingController();
+    _descriptionController = TextEditingController();
+    _imageUrlController = TextEditingController();
+    _streetController = TextEditingController();
+    _cityController = TextEditingController();
+    _stateController = TextEditingController();
     _pingController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -39,10 +54,19 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       _vendorId = profile?['vendorId'] ?? profile?['vendor_id'] ?? profile?['id'];
       
       if (_vendorId != null) {
+        final fetchedVendor = await ApiService.fetchVendor(_vendorId!);
         final menu = await ApiService.fetchVendorMenu(_vendorId!);
         if (mounted) {
           setState(() {
+            _vendorData = fetchedVendor;
             _menuItems = menu.cast<MenuItemModel>();
+            _businessNameController.text = _vendorData?['businessName'] as String? ?? _vendorData?['business_name'] as String? ?? '';
+            _descriptionController.text = _vendorData?['description'] as String? ?? '';
+            _imageUrlController.text = _vendorData?['imageUrl'] as String? ?? _vendorData?['image_url'] as String? ?? '';
+            final location = _vendorData?['location'] as Map<String, dynamic>?;
+            _streetController.text = location?['street'] as String? ?? '';
+            _cityController.text = location?['city'] as String? ?? '';
+            _stateController.text = location?['state'] as String? ?? '';
           });
         }
       }
@@ -60,6 +84,12 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
   @override
   void dispose() {
     _pingController.dispose();
+    _businessNameController.dispose();
+    _descriptionController.dispose();
+    _imageUrlController.dispose();
+    _streetController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
     super.dispose();
   }
 
@@ -73,28 +103,30 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
         title: 'Kitchen Mgmt',
         showMenu: true,
         showAvatar: true,
-        avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuASvReuM8euOL57t6mWmPxr3h6y4r3a3b5b4xMw5h2z0pInZB-HUyzdsRtJEb8A3SEBcw8fhBdOREPoBD2SSqAXnODQM67EKQDmLvYi71hcF5ztS39bivwtYWRapwmesl0kUMmzRjGqSKu_ohCMiAx5pb2pMn-mCbIra-KcTCNkTlCKVgXLf4riBkPkwkuUTR9IQ_JO1LQTv9wZWoZci9x05jS2nximauJF5qYcgyZt9s7jZe2UEUWI3ouguSbNcEO-7yCXSHgil2ud',
+        avatarUrl: _vendorData?['imageUrl'] as String? ?? _vendorData?['image_url'] as String?,
       ),
       body: ListView(
         children: [
-          // Banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Colors.black,
-            child: Row(
-              children: [
-                Icon(Icons.campaign, color: colorScheme.primaryContainer),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'RAMADAN SPECIAL: UPDATE YOUR EVENING MENU BY 4PM DAILY!',
-                    style: textTheme.bodySmall?.copyWith(color: Colors.white, letterSpacing: 1.5, fontWeight: FontWeight.bold),
+          // Broadcast Message Section
+          if (_vendorData?['broadcastMessage'] != null && (_vendorData?['broadcastMessage'] as String).isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: Colors.black87,
+              child: Row(
+                children: [
+                  Icon(Icons.campaign, color: colorScheme.primaryContainer),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _vendorData?['broadcastMessage'] as String? ?? '',
+                      style: textTheme.bodySmall?.copyWith(color: Colors.white, letterSpacing: 0.5),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                const Icon(Icons.close, color: Colors.white, size: 16),
-              ],
+                ],
+              ),
             ),
-          ),
           
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -243,6 +275,31 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                 ),
                 const SizedBox(height: 24),
                 
+                // Kitchen Details Section
+                Text('Kitchen Details', style: textTheme.headlineMedium?.copyWith(color: colorScheme.secondary)),
+                const SizedBox(height: 12),
+                _buildTextField('Business Name', _businessNameController),
+                const SizedBox(height: 12),
+                _buildTextField('Description', _descriptionController, maxLines: 4),
+                const SizedBox(height: 12),
+                _buildTextField('Image URL', _imageUrlController),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _buildTextField('Street', _streetController)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildTextField('City', _cityController)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildTextField('State', _stateController),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _saving ? null : _saveVendorDetails,
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                  child: Text(_saving ? 'Saving...' : 'Save Kitchen Details'),
+                ),
+                const SizedBox(height: 24),
                 // Current Menu Section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -320,7 +377,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF642714).withValues(alpha: isAvailable ? 1.0 : 0.7),
+        color: const Color(0xFF642714),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -353,13 +410,53 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
             onChanged: (value) {
               // Status update not implemented yet
             },
-            activeColor: colorScheme.primaryContainer,
-            activeTrackColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: colorScheme.outlineVariant,
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller, {int maxLines = 1}) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Future<void> _saveVendorDetails() async {
+    if (_vendorId == null || _vendorId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen identifier is missing.')));
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final payload = {
+        'businessName': _businessNameController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'imageUrl': _imageUrlController.text.trim(),
+        'location': {
+          'street': _streetController.text.trim(),
+          'city': _cityController.text.trim(),
+          'state': _stateController.text.trim(),
+        },
+      };
+
+      final updatedVendor = await ApiService.updateVendor(_vendorId!, payload);
+      if (!mounted) return;
+      setState(() {
+        _vendorData = updatedVendor;
+        _saving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen details updated successfully.')));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update failed: $e')));
+    }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
 
@@ -17,18 +18,50 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
   String? _error;
   VendorModel? _vendor;
   List<MenuItemModel> _menu = [];
+  Map<String, dynamic>? _profile;
+  String? _userRole;
   int _retryCount = 0;
+  bool _hasLoadedData = false;
   static const int _maxRetries = 2;
 
   @override
-  void initState() {
-    super.initState();
-    _loadData();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoadedData) {
+      _hasLoadedData = true;
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final vendorId = widget.id ?? args?['id'] as String? ?? args?['vendorId'] as String?;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    Map<String, dynamic>? argMap;
+    if (args is Map<String, dynamic>) {
+      argMap = args;
+    } else if (args is Map) {
+      argMap = Map<String, dynamic>.from(args);
+    }
+
+    final profile = await AuthService.getProfile();
+    _profile = profile;
+    _userRole = profile?['role'] as String? ?? await AuthService.storedRole();
+
+    String? vendorId = widget.id?.trim();
+    if (vendorId == null || vendorId.isEmpty) {
+      vendorId = argMap?['id']?.toString().trim();
+      if (vendorId == null || vendorId.isEmpty) {
+        vendorId = argMap?['vendorId']?.toString().trim();
+      }
+    }
+    if (vendorId == null || vendorId.isEmpty) {
+      vendorId = profile?['vendorId']?.toString().trim() ?? profile?['vendor_id']?.toString().trim();
+      if (vendorId == null || vendorId.isEmpty) {
+        final vendorMap = profile?['vendor'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(profile!['vendor'] as Map)
+            : null;
+        vendorId = vendorMap?['id']?.toString().trim();
+      }
+    }
 
     if (vendorId == null || vendorId.isEmpty) {
       if (mounted) {
@@ -43,11 +76,11 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
     if (mounted) setState(() => _loading = true);
     try {
       final vendorData = await ApiService.fetchVendor(vendorId);
-      if (vendorData == null || (vendorData is Map && vendorData.isEmpty)) {
+      if (vendorData.isEmpty) {
         throw Exception('Invalid vendor data received');
       }
       final menuData = await ApiService.fetchVendorMenu(vendorId);
-      
+
       if (mounted) {
         setState(() {
           _vendor = VendorModel.fromJson(vendorData);
@@ -152,6 +185,21 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  if ((_userRole ?? '').toLowerCase() == 'chef' &&
+                      (_profile?['vendorId']?.toString() == _vendor?.id ||
+                       _profile?['vendor_id']?.toString() == _vendor?.id ||
+                       (_profile?['vendor'] is Map<String, dynamic> && (_profile?['vendor']['id'] as String?) == _vendor?.id)))
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => Navigator.pushReplacementNamed(context, '/kitchen'),
+                          icon: const Icon(Icons.edit),
+                          label: const Text('Edit Kitchen'),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   Text(_vendor!.description ?? 'Local Kitchen specialized in authentic flavors.', style: textTheme.bodyLarge),
                   const Divider(height: 40),
                   Text('Menu', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
