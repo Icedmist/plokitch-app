@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -20,6 +22,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
   final _avatarUrlController = TextEditingController();
   bool _loading = true;
   bool _saving = false;
+  bool _uploadingImage = false;
   String? _errorMessage;
   String? _currentAvatarUrl;
 
@@ -171,9 +174,11 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                                     )
                                   : null,
                             ),
-                            child: _avatarUrlController.text.isEmpty
-                                ? Icon(Icons.person, size: 50, color: colorScheme.outline)
-                                : null,
+                            child: _uploadingImage
+                                ? const Center(child: CircularProgressIndicator())
+                                : (_avatarUrlController.text.isEmpty
+                                    ? Icon(Icons.person, size: 50, color: colorScheme.outline)
+                                    : null),
                           ),
                           Positioned(
                             bottom: 0,
@@ -183,7 +188,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                                 _buildCircleButton(
                                   icon: Icons.edit,
                                   color: colorScheme.primary,
-                                  onTap: () => _showAvatarUrlDialog(),
+                                  onTap: () => _showAvatarOptions(),
                                 ),
                                 if (_avatarUrlController.text.isNotEmpty) ...[
                                   const SizedBox(width: 4),
@@ -263,6 +268,106 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
         ],
       ),
     );
+  }
+
+  void _showAvatarOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Upload from Device'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndUploadImage();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Enter Image URL'),
+              onTap: () {
+                Navigator.pop(context);
+                _showAvatarUrlDialog();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    setState(() {
+      _uploadingImage = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        setState(() => _uploadingImage = false);
+        return;
+      }
+
+      final file = result.files.first;
+      if (file.bytes == null) {
+        throw Exception('Failed to read file data.');
+      }
+
+      // Check size limit: 2MB
+      if (file.size > 2 * 1024 * 1024) {
+        throw Exception('Image size must be less than 2MB. Selected image is ${(file.size / (1024 * 1024)).toStringAsFixed(2)}MB.');
+      }
+
+      final extension = file.extension ?? 'jpg';
+      final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.$extension';
+
+      final supabase = Supabase.instance.client;
+      await supabase.storage.from('avatars').uploadBinary(
+        fileName,
+        file.bytes!,
+        fileOptions: const FileOptions(
+          cacheControl: '3600',
+          upsert: true,
+        ),
+      );
+
+      final publicUrl = supabase.storage.from('avatars').getPublicUrl(fileName);
+
+      if (mounted) {
+        setState(() {
+          _avatarUrlController.text = publicUrl;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image uploaded successfully.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploadingImage = false;
+        });
+      }
+    }
   }
 
   Widget _buildTextField(String label, TextEditingController controller, TextInputType keyboardType, {int maxLines = 1}) {

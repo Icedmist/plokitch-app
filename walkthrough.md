@@ -40,7 +40,16 @@ graph TD
     3. Dynamic icon swapping (outlined icons swap to filled icons, e.g., `Icons.home_outlined` ➔ `Icons.home` when active).
   * **Haptic Feedback**: Added native haptic feedback (`HapticFeedback.selectionClick()`) when tapping any tab to provide a responsive and tactile feel on mobile/tablet devices.
 
-### 4. Responsiveness & Bug Fixes
+### 4. Direct Profile Picture Device Uploads
+* **Action**: Enabled uploading avatar images directly from devices in [account_details_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/account_details_screen.dart).
+* **Details**:
+  * **File Picker Integration**: Added the `file_picker` dependency to allow selecting images directly from the local device storage on both mobile/tablet and web platforms.
+  * **Size Cap Limit (2MB)**: Integrated an size validation check that rejects any chosen image file larger than 2MB with a user-friendly error message.
+  * **Supabase Storage upload**: Automatically uploads selected files to the public `avatars` bucket in Supabase Storage and fetches the public image URL, displaying it immediately as a preview on the profile.
+  * **Loading Indicator**: Renders a loading spinner inside the avatar placeholder while the upload is in progress.
+  * **Preserved URL Input**: Kept the existing "Enter Image URL" option as a secondary choice in a new bottom sheet options menu.
+
+### 5. Responsiveness & Bug Fixes
 * **Action**: Fixed runtime assertion failures and layout overflows.
 * **Details**:
   * **Settings Screen Crash**: Fixed the `!(shape != null && borderRadius != null)` assertion error on the Appearance section in [settings_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart). Removed the duplicate `borderRadius` parameter from the `Material` wrapper to allow the circular `shape` configuration to govern the border clipping.
@@ -52,6 +61,7 @@ graph TD
 ## 📂 Modified Files
 
 * [**.env**](file:///home/adam/Projects/plokitch-app/.env)
+* [**pubspec.yaml**](file:///home/adam/Projects/plokitch-app/pubspec.yaml)
 * [**walkthrough.md**](file:///home/adam/Projects/plokitch-app/walkthrough.md)
 * [**lib/main.dart**](file:///home/adam/Projects/plokitch-app/lib/main.dart)
 * [**lib/screens/main_navigation_shell.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/main_navigation_shell.dart)
@@ -59,6 +69,7 @@ graph TD
 * [**lib/models/order_model.dart**](file:///home/adam/Projects/plokitch-app/lib/models/order_model.dart)
 * [**lib/screens/order_history_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/order_history_screen.dart)
 * [**lib/screens/settings_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart)
+* [**lib/screens/account_details_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/account_details_screen.dart)
 * [**lib/screens/kitchen_management_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/kitchen_management_screen.dart)
 * [**lib/screens/chef_dashboard_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/chef_dashboard_screen.dart)
 * [**lib/screens/chef_orders_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/chef_orders_screen.dart)
