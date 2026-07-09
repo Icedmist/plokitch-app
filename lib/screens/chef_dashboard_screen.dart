@@ -220,6 +220,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
         title: 'Chef Dashboard',
         showMenu: true,
         showAvatar: true,
+        showNotificationIcon: true,
         avatarUrl: _avatarUrl,
       ),
       body: ListView(

@@ -97,6 +97,8 @@ graph TD
   * **Reactive Marketplace Cart Badge**: Integrated a badge counter overlay on the inline Marketplace cart icon. It reads item quantities using `CartService.loadCart()` and automatically updates whenever the user returns from the Cart or Food Detail screens.
   * **Centered Cart Icon & Badge**: Fixed alignment issues where the default padding of `IconButton` pushed the cart icon off-center and clipped the badge. Replaced the `IconButton` with a centered `GestureDetector` wrapping a direct `Badge` + `Icon` layout for pixel-perfect centering inside the circular button.
   * **Hidden Bottom Navigation in Notifications**: Removed the `bottomNavigationBar` component entirely from [notifications_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/notifications_screen.dart#L209) so that it is properly hidden when viewing notifications.
+  * **Interactive Live Notification Badge**: Converted [plokitch_app_bar.dart](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_app_bar.dart) to a `StatefulWidget` which automatically loads and displays the unread notification count as a beautiful overlay `Badge`. Added/synchronized the notification icon across settings, orders, chef dashboard, and rider dashboard app bars.
+  * **Login Notification Hook**: Created the `addNotification` method in [api_service.dart](file:///home/adam/Projects/plokitch-app/lib/services/api_service.dart#L154) and integrated it inside [sign_in_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/sign_in_screen.dart#L30) to generate a "Login Alert" notification whenever a user successfully logs in.
 
 ---
 
@@ -107,9 +109,11 @@ graph TD
 * [**walkthrough.md**](file:///home/adam/Projects/plokitch-app/walkthrough.md)
 * [**lib/main.dart**](file:///home/adam/Projects/plokitch-app/lib/main.dart)
 * [**lib/theme/plokitch_theme.dart**](file:///home/adam/Projects/plokitch-app/lib/theme/plokitch_theme.dart)
+* [**lib/services/api_service.dart**](file:///home/adam/Projects/plokitch-app/lib/services/api_service.dart)
 * [**lib/screens/main_navigation_shell.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/main_navigation_shell.dart)
 * [**lib/widgets/plokitch_bottom_nav.dart**](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_bottom_nav.dart)
 * [**lib/models/order_model.dart**](file:///home/adam/Projects/plokitch-app/lib/models/order_model.dart)
+* [**lib/screens/sign_in_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/sign_in_screen.dart)
 * [**lib/screens/order_history_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/order_history_screen.dart)
 * [**lib/screens/settings_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart)
 * [**lib/screens/account_details_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/account_details_screen.dart)

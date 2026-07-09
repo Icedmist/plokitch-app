@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
-class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
+class PlokitchAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String? title;
   final bool showMenu;
   final bool showCart;
@@ -29,18 +30,69 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
+  State<PlokitchAppBar> createState() => _PlokitchAppBarState();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}
+
+class _PlokitchAppBarState extends State<PlokitchAppBar> {
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.showNotificationIcon) {
+      _loadUnreadCount();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant PlokitchAppBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.showNotificationIcon) {
+      _loadUnreadCount();
+    }
+  }
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final profile = await AuthService.getProfile();
+      if (profile != null) {
+        final data = profile['notifications'] as List<dynamic>? ?? 
+            profile['notifications_list'] as List<dynamic>?;
+        if (data != null) {
+          int count = 0;
+          for (final entry in data) {
+            final map = Map<String, dynamic>.from(entry as Map);
+            final isRead = map['isRead'] as bool? ?? map['read'] as bool? ?? false;
+            if (!isRead) {
+              count++;
+            }
+          }
+          if (mounted) {
+            setState(() {
+              _unreadCount = count;
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
     return AppBar(
-      automaticallyImplyLeading: automaticallyImplyLeading,
-      leading: showMenu
+      automaticallyImplyLeading: widget.automaticallyImplyLeading,
+      leading: widget.showMenu
           ? IconButton(
               icon: Icon(Icons.menu, color: colorScheme.primary),
-              onPressed: onMenuPressed ?? () => Scaffold.of(context).openDrawer(),
+              onPressed: widget.onMenuPressed ?? () => Scaffold.of(context).openDrawer(),
             )
-          : (Navigator.of(context).canPop() && automaticallyImplyLeading)
+          : (Navigator.of(context).canPop() && widget.automaticallyImplyLeading)
               ? Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Container(
@@ -73,7 +125,7 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              title ?? 'Plokitch',
+              widget.title ?? 'Plokitch',
               style: textTheme.titleLarge?.copyWith(
                 color: colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
@@ -92,21 +144,39 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       actions: [
-        if (showNotificationIcon)
-          IconButton(
-            icon: Icon(Icons.notifications_none, color: colorScheme.primary),
-            onPressed: onNotificationPressed,
+        if (widget.showNotificationIcon)
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: Center(
+              child: Badge(
+                label: Text('$_unreadCount'),
+                isLabelVisible: _unreadCount > 0,
+                backgroundColor: colorScheme.primaryContainer,
+                textColor: colorScheme.onPrimaryContainer,
+                child: IconButton(
+                  icon: Icon(Icons.notifications_none, color: colorScheme.primary),
+                  onPressed: () async {
+                    if (widget.onNotificationPressed != null) {
+                      widget.onNotificationPressed!();
+                    } else {
+                      await Navigator.pushNamed(context, '/notifications');
+                    }
+                    _loadUnreadCount();
+                  },
+                ),
+              ),
+            ),
           ),
-        if (showCart)
+        if (widget.showCart)
           IconButton(
             icon: Icon(Icons.shopping_cart, color: colorScheme.primary),
-            onPressed: onCartPressed,
+            onPressed: widget.onCartPressed,
           ),
-        if (showAvatar)
+        if (widget.showAvatar)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: GestureDetector(
-              onTap: onAvatarPressed,
+              onTap: widget.onAvatarPressed,
               child: Container(
                 width: 32,
                 height: 32,
@@ -117,14 +187,14 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
                     color: colorScheme.primaryContainer,
                     width: 2,
                   ),
-                  image: avatarUrl != null
+                  image: widget.avatarUrl != null
                       ? DecorationImage(
-                          image: NetworkImage(avatarUrl!),
+                          image: NetworkImage(widget.avatarUrl!),
                           fit: BoxFit.cover,
                         )
                       : null,
                 ),
-                child: avatarUrl == null
+                child: widget.avatarUrl == null
                     ? Icon(Icons.person, size: 20, color: colorScheme.onSecondaryContainer)
                     : null,
               ),
@@ -133,7 +203,4 @@ class PlokitchAppBar extends StatelessWidget implements PreferredSizeWidget {
       ],
     );
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }

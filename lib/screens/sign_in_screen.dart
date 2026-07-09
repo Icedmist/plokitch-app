@@ -3,6 +3,7 @@ import '../widgets/plokitch_button.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -30,7 +31,14 @@ class _SignInScreenState extends State<SignInScreen> {
       await AuthService.signIn(email, password);
       if (!mounted) return;
       
-      final profile = await AuthService.getProfile();
+      // Save a login notification
+      await ApiService.addNotification(
+        title: 'Login Alert',
+        body: 'You successfully logged into your account.',
+        type: 'system',
+      );
+      
+      final profile = await AuthService.getProfile(forceRefresh: true);
       if (!mounted) return;
       
       if (profile == null || profile.isEmpty) {

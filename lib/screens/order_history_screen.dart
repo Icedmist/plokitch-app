@@ -57,6 +57,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       appBar: const PlokitchAppBar(
         title: 'Order History',
         showMenu: false,
+        showNotificationIcon: true,
         automaticallyImplyLeading: false,
       ),
       body: _loading

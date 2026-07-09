@@ -151,6 +151,40 @@ class ApiService {
     DataCacheService.invalidate('user_profile');
   }
 
+  static Future<void> addNotification({
+    required String title,
+    required String body,
+    String type = 'system',
+  }) async {
+    try {
+      final profile = await AuthService.getProfile();
+      if (profile == null) return;
+
+      final existingNotifications = List<dynamic>.from(
+        profile['notifications'] as List<dynamic>? ?? 
+        profile['notifications_list'] as List<dynamic>? ?? []
+      );
+
+      final newNotification = {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'title': title,
+        'body': body,
+        'time': 'Just now',
+        'type': type,
+        'isRead': false,
+      };
+
+      existingNotifications.insert(0, newNotification);
+
+      final payload = {
+        'notifications': existingNotifications,
+        'notifications_list': existingNotifications,
+      };
+
+      await updateUserProfile(payload);
+    } catch (_) {}
+  }
+
   static Future<List<OrderModel>> fetchOrders({int limit = 50, int offset = 0, String? customerId, String? vendorId, bool forceRefresh = false}) async {
     final cacheKey = 'orders_list_${customerId ?? ""}_${vendorId ?? ""}';
     if (!forceRefresh) {
