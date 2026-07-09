@@ -77,11 +77,13 @@ graph TD
   * **Redundant Order History Removed**: Removed the 'Order History' settings item from the Preferences list to keep the profile page clean, as orders are already managed by the dedicated bottom navigation tab.
   * **Glassmorphic Header Blur**: Styled the profile details anchor card with frosted glass aesthetics utilizing `ClipRRect` and `BackdropFilter` (blur sigma: 10). Replaced the solid thick background with a semitransparent primary theme overlay (`primary.withValues(alpha: 0.12)`) and a delicate primary border.
 
-### 9. Top-Level Back Buttons Removed & Marketplace Search Bar Cart Alignment
-* **Action**: Hidden redundant back buttons on main tab views and redesigned the Marketplace search area to place the cart inline.
+### 9. Marketplace Header Removed, Rounded Capsule Shapes & Theme Color Sync
+* **Action**: Hidden redundant back buttons, removed the giant Marketplace header, applied capsule border radii, and synchronized color theme.
 * **Details**:
-  * **Removed Implied Back Buttons**: Added an `automaticallyImplyLeading` parameter to [plokitch_app_bar.dart](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_app_bar.dart) and set it to `false` for [settings_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart) and [order_history_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/order_history_screen.dart). Also disabled `automaticallyImplyLeading` in [market_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/market_screen.dart)'s `SliverAppBar`.
-  * **Aligned Marketplace Search & Cart**: Moved the marketplace shopping cart icon out of the app bar and placed it in a side-by-side `Row` next to the search `TextField`. The cart button resides in a matching 56x56 rounded container, while the search bar expands to fill the remaining horizontal space.
+  * **Removed Implied Back Buttons**: Added an `automaticallyImplyLeading` parameter to [plokitch_app_bar.dart](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_app_bar.dart) and set it to `false` for [settings_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart) and [order_history_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/order_history_screen.dart).
+  * **Removed Marketplace Text**: Removed the `SliverAppBar` from [market_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/market_screen.dart) to hide the giant "Marketplace" (or "Kitchen") text header, wrapping the `CustomScrollView` in a `SafeArea` for layout stability.
+  * **Capsule Rounded Search & Cart**: Redesigned the search and cart area. The search bar is placed in an inline `Row` with the cart button (which sits in a 56x56 container). Both have been styled with fully circular capsule rounded corners (`BorderRadius.circular(28)`).
+  * **Theme Color Sync**: Added `surfaceContainer` and `surfaceContainerHigh` keys to the `lightTheme` configuration inside [plokitch_theme.dart](file:///home/adam/Projects/plokitch-app/lib/theme/plokitch_theme.dart). This ensures that the search bar and cart button backgrounds correctly use the warm cream container color rather than rendering transparently.
 
 ---
 
@@ -91,6 +93,7 @@ graph TD
 * [**pubspec.yaml**](file:///home/adam/Projects/plokitch-app/pubspec.yaml)
 * [**walkthrough.md**](file:///home/adam/Projects/plokitch-app/walkthrough.md)
 * [**lib/main.dart**](file:///home/adam/Projects/plokitch-app/lib/main.dart)
+* [**lib/theme/plokitch_theme.dart**](file:///home/adam/Projects/plokitch-app/lib/theme/plokitch_theme.dart)
 * [**lib/screens/main_navigation_shell.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/main_navigation_shell.dart)
 * [**lib/widgets/plokitch_bottom_nav.dart**](file:///home/adam/Projects/plokitch-app/lib/widgets/plokitch_bottom_nav.dart)
 * [**lib/models/order_model.dart**](file:///home/adam/Projects/plokitch-app/lib/models/order_model.dart)

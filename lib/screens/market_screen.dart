@@ -113,81 +113,75 @@ class _MarketScreenState extends State<MarketScreen> {
       backgroundColor: colorScheme.surface,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  automaticallyImplyLeading: false,
-                  expandedHeight: 120,
-                  floating: true,
-                  pinned: true,
-                  flexibleSpace: FlexibleSpaceBar(
-                    title: Text(isChef ? 'Kitchen' : 'Marketplace', style: TextStyle(color: colorScheme.onSurface)),
-                    centerTitle: false,
-                    titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Search Bar
-                        if (isChef)
-                          TextField(
-                            controller: _searchController,
-                            onChanged: (v) => setState(() => _searchQuery = v),
-                            decoration: InputDecoration(
-                              hintText: 'Search your kitchen items...',
-                              prefixIcon: const Icon(Icons.search),
-                              suffixIcon: _searchQuery.isNotEmpty 
-                                  ? IconButton(icon: const Icon(Icons.close), onPressed: () {
-                                      _searchController.clear();
-                                      setState(() => _searchQuery = '');
-                                    })
-                                  : null,
-                              filled: true,
-                              fillColor: colorScheme.surfaceContainerHigh,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                            ),
-                          )
-                        else
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _searchController,
-                                  onChanged: (v) => setState(() => _searchQuery = v),
-                                  decoration: InputDecoration(
-                                    hintText: 'Search for food or kitchens...',
-                                    prefixIcon: const Icon(Icons.search),
-                                    suffixIcon: _searchQuery.isNotEmpty 
-                                        ? IconButton(icon: const Icon(Icons.close), onPressed: () {
-                                            _searchController.clear();
-                                            setState(() => _searchQuery = '');
-                                          })
-                                        : null,
-                                    filled: true,
-                                    fillColor: colorScheme.surfaceContainerHigh,
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+          : SafeArea(
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Search Bar
+                          if (isChef)
+                            TextField(
+                              controller: _searchController,
+                              onChanged: (v) => setState(() => _searchQuery = v),
+                              decoration: InputDecoration(
+                                hintText: 'Search your kitchen items...',
+                                prefixIcon: const Icon(Icons.search),
+                                suffixIcon: _searchQuery.isNotEmpty 
+                                    ? IconButton(icon: const Icon(Icons.close), onPressed: () {
+                                        _searchController.clear();
+                                        setState(() => _searchQuery = '');
+                                      })
+                                    : null,
+                                filled: true,
+                                fillColor: colorScheme.surfaceContainerHigh,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
+                              ),
+                            )
+                          else
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _searchController,
+                                    onChanged: (v) => setState(() => _searchQuery = v),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search for food or kitchens...',
+                                      prefixIcon: const Icon(Icons.search),
+                                      suffixIcon: _searchQuery.isNotEmpty 
+                                          ? IconButton(icon: const Icon(Icons.close), onPressed: () {
+                                              _searchController.clear();
+                                              setState(() => _searchQuery = '');
+                                            })
+                                          : null,
+                                      filled: true,
+                                      fillColor: colorScheme.surfaceContainerHigh,
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
+                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.surfaceContainerHigh,
-                                  borderRadius: BorderRadius.circular(16),
+                                const SizedBox(width: 12),
+                                Container(
+                                  width: 56,
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surfaceContainerHigh,
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(Icons.shopping_cart_outlined, color: colorScheme.primary),
+                                    onPressed: () => Navigator.pushNamed(context, '/cart'),
+                                  ),
                                 ),
-                                child: IconButton(
-                                  icon: Icon(Icons.shopping_cart_outlined, color: colorScheme.primary),
-                                  onPressed: () => Navigator.pushNamed(context, '/cart'),
-                                ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
                         const SizedBox(height: 20),
                         Text(isChef ? 'Manage your posted dishes' : 'Explore local flavors', style: textTheme.bodyLarge?.copyWith(color: colorScheme.outline)),
                         const SizedBox(height: 20),
@@ -238,9 +232,10 @@ class _MarketScreenState extends State<MarketScreen> {
                       ),
                     ),
                   ),
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                 const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
             ),
+          ),
     );
   }
 
