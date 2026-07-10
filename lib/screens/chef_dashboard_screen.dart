@@ -47,16 +47,10 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
         } catch (_) {}
       }
 
-      final fetched = await ApiService.fetchOrders();
-      final filtered = (_vendorId != null || _vendorName != null)
-          ? fetched.where((order) {
-              if (_vendorId != null && order.vendorId == _vendorId) return true;
-              return _vendorName != null && order.vendorName?.toLowerCase() == _vendorName?.toLowerCase();
-            }).toList()
-          : fetched;
+      final fetched = await ApiService.fetchOrders(vendorId: _vendorId);
       if (mounted) {
         setState(() {
-          _orders = filtered;
+          _orders = fetched;
         });
       }
     } catch (e) {
