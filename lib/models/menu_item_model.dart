@@ -23,8 +23,10 @@ class MenuItemModel {
 
   factory MenuItemModel.fromJson(Map<String, dynamic> json) {
     final List<String> images = [];
-    if (json['images'] != null) {
-      images.addAll(List<String>.from(json['images']));
+    if (json['imageUrls'] != null) {
+      images.addAll(List<String>.from(json['imageUrls']));
+    } else if (json['image_urls'] != null) {
+      images.addAll(List<String>.from(json['image_urls']));
     }
 
     final bool available = json['isAvailable'] == true || json['available'] == true || json['is_available'] == true;

@@ -403,8 +403,8 @@ class _MarketScreenState extends State<MarketScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                    child: food.imageUrl != null 
-                      ? Image.network(food.imageUrl!, width: double.infinity, height: double.infinity, fit: BoxFit.cover,
+                    child: _getFoodImage(food) != null 
+                      ? Image.network(_getFoodImage(food)!, width: double.infinity, height: double.infinity, fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade300, child: const Icon(Icons.fastfood, size: 40, color: Colors.white)))
                       : Container(color: Colors.grey.shade300, child: const Icon(Icons.fastfood, size: 40, color: Colors.white)),
                   ),
@@ -491,5 +491,10 @@ class _MarketScreenState extends State<MarketScreen> {
         child: Icon(icon, color: Colors.white, size: 14),
       ),
     );
+  }
+
+  String? _getFoodImage(MenuItemModel food) {
+    if (food.images.isNotEmpty) return food.images.first;
+    return food.imageUrl;
   }
 }

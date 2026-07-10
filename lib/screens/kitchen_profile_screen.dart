@@ -276,10 +276,10 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                 ),
               ),
               const SizedBox(width: 16),
-              if (item.imageUrl != null)
+              if ((item.images.isNotEmpty ? item.images.first : item.imageUrl) != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(item.imageUrl!, width: 80, height: 80, fit: BoxFit.cover,
+                  child: Image.network(item.images.isNotEmpty ? item.images.first : item.imageUrl!, width: 80, height: 80, fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(width: 80, height: 80, color: Colors.grey.shade300, child: const Icon(Icons.fastfood, color: Colors.white))),
                 ),
             ],

@@ -279,6 +279,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                         'isAddOn': _isDishAddOn,
                         'isAvailable': _isDishAvailable,
                         'imageUrl': _selectedImageUrls.isNotEmpty ? _selectedImageUrls.first : null,
+                        'imageUrls': _selectedImageUrls,
                       };
 
                       if (existingItem == null) {
@@ -463,6 +464,11 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
     );
   }
 
+  String? _getItemImage(MenuItemModel item) {
+    if (item.images.isNotEmpty) return item.images.first;
+    return item.imageUrl;
+  }
+
   Widget _buildNoKitchenState(ColorScheme colorScheme, TextTheme textTheme) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
@@ -615,8 +621,8 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: item.imageUrl != null 
-              ? Image.network(item.imageUrl!, width: 64, height: 64, fit: BoxFit.cover,
+            child: _getItemImage(item) != null
+              ? Image.network(_getItemImage(item)!, width: 64, height: 64, fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(width: 64, height: 64, color: Colors.grey.shade300, child: const Icon(Icons.fastfood, color: Colors.white)))
               : Container(width: 64, height: 64, color: Colors.grey.shade300, child: const Icon(Icons.fastfood, color: Colors.white)),
           ),

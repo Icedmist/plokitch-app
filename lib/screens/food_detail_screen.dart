@@ -15,6 +15,7 @@ class FoodDetailScreen extends StatefulWidget {
 
 class _FoodDetailScreenState extends State<FoodDetailScreen> {
   bool _addingToCart = false;
+  int _currentImageIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +41,16 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
     final category = itemRaw['category'] as String? ?? 'Food';
     final location = itemRaw['location'] as String? ?? 'Gombe';
 
+    final allImages = <String>[];
+    if (itemRaw['imageUrls'] is List) {
+      allImages.addAll(List<String>.from(itemRaw['imageUrls']));
+    } else if (itemRaw['image_urls'] is List) {
+      allImages.addAll(List<String>.from(itemRaw['image_urls']));
+    }
+    if (allImages.isEmpty && imageUrl.isNotEmpty) {
+      allImages.add(imageUrl);
+    }
+
     return Scaffold(
       appBar: PlokitchAppBar(
         title: name,
@@ -48,22 +59,62 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (imageUrl.isNotEmpty)
+          if (allImages.isNotEmpty) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.network(
-                imageUrl,
+              child: SizedBox(
                 height: 240,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  height: 240,
-                  width: double.infinity,
-                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                  child: const Icon(Icons.broken_image, size: 64),
-                ),
+                child: allImages.length == 1
+                    ? Image.network(
+                        allImages.first,
+                        width: double.infinity,
+                        height: 240,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          height: 240,
+                          width: double.infinity,
+                          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                          child: const Icon(Icons.broken_image, size: 64),
+                        ),
+                      )
+                    : PageView.builder(
+                        itemCount: allImages.length,
+                        onPageChanged: (i) => setState(() => _currentImageIndex = i),
+                        itemBuilder: (_, i) => Image.network(
+                          allImages[i],
+                          width: double.infinity,
+                          height: 240,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => Container(
+                            height: 240,
+                            width: double.infinity,
+                            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                            child: const Icon(Icons.broken_image, size: 64),
+                          ),
+                        ),
+                      ),
               ),
             ),
+            if (allImages.length > 1)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(allImages.length, (i) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: _currentImageIndex == i ? 20 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: _currentImageIndex == i
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  )),
+                ),
+              ),
+          ],
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
