@@ -231,6 +231,12 @@ class AuthService {
       final overrideRole = prefs.getString('admin_active_role');
       if (overrideRole != null && overrideRole.isNotEmpty) {
         headers['x-admin-active-role'] = overrideRole;
+        // Append to Cookie header to prevent CORS preflight blocking on production servers
+        if (token != null && token.isNotEmpty) {
+          headers['Cookie'] = 'plokitch.session_token=$token; admin_active_role=$overrideRole';
+        } else {
+          headers['Cookie'] = 'admin_active_role=$overrideRole';
+        }
       }
     }
     return headers;
