@@ -49,7 +49,14 @@ graph TD
   * **Shell View Overrides**: Defined a global `activeAdminRoleNotifier` in [main_navigation_shell.dart](file:///home/adam/Projects/plokitch-app/lib/screens/main_navigation_shell.dart). When an administrator toggles between "Customer", "Vendor", and "Rider" options on the settings page, the app instantly redirects to that role's dashboard with correct bottom navigation configurations using a cross-fade transition.
   * **Persistence**: Stored the chosen override mode inside `SharedPreferences` as `admin_active_role`, ensuring that chosen views persist across restarts and debugging sessions.
 
-### 5. Direct Profile Picture Device Uploads
+### 5. Notification System Refactoring & Bug Fixes
+* **Action**: Cleaned up duplicated icons and resolved database synchronization issues.
+* **Details**:
+  * **Removed Redundant Icons**: Removed the notification bell icon from the AppBars on the [settings_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart) and [order_history_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/order_history_screen.dart) to prevent duplicate visual indicators.
+  * **Divided Settings Items**: Split the notification controls inside settings into two items: "Notifications" (which navigates directly to the notifications feed list) and "Notification Settings" (which navigates to push and sign-in preferences).
+  * **Fixed Empty Body Sync Crash**: Addressed a `400 Bad Request` ("Body cannot be empty when content-type is set to 'application/json'") error thrown by Fastify during write requests in [api_service.dart](file:///home/adam/Projects/plokitch-app/lib/services/api_service.dart). Added an empty JSON body `body: '{}'` to `markNotificationAsRead` and `markAllNotificationsAsRead`, allowing status updates to successfully persist.
+
+### 6. Direct Profile Picture Device Uploads
 * **Action**: Enabled uploading avatar images directly from devices in [account_details_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/account_details_screen.dart).
 * **Details**:
   * **File Picker Integration**: Added the `file_picker` dependency to allow selecting images directly from the local device storage on both mobile/tablet and web platforms.
@@ -58,7 +65,7 @@ graph TD
   * **Loading Indicator**: Renders a loading spinner inside the avatar placeholder while the upload is in progress.
   * **Preserved URL Input**: Kept the existing "Enter Image URL" option as a secondary choice in a new bottom sheet options menu.
 
-### 6. Responsiveness & Bug Fixes
+### 7. Responsiveness & Bug Fixes
 * **Action**: Fixed runtime assertion failures and layout overflows.
 * **Details**:
   * **Settings Screen Crash**: Fixed the `!(shape != null && borderRadius != null)` assertion error on the Appearance section in [settings_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart). Removed the duplicate `borderRadius` parameter from the `Material` wrapper to allow the circular `shape` configuration to govern the border clipping.

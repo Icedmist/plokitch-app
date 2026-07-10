@@ -163,7 +163,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: const PlokitchAppBar(
         title: 'Settings',
         showMenu: false,
-        showNotificationIcon: true,
         automaticallyImplyLeading: false,
       ),
       body: ListView(
@@ -315,6 +314,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _loadProfile();
               }),
           _buildSettingsItem(Icons.notifications_none, 'Notifications', colorScheme, textTheme,
+              onTap: () => Navigator.pushNamed(context, '/notifications')),
+          _buildSettingsItem(Icons.settings_outlined, 'Notification Settings', colorScheme, textTheme,
               onTap: () => Navigator.pushNamed(context, '/notification-settings')),
           _buildSettingsItem(Icons.payment, 'Payment Methods', colorScheme, textTheme,
               onTap: () => Navigator.pushNamed(context, '/payment-methods')),

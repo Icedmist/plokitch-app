@@ -188,13 +188,13 @@ class ApiService {
 
   static Future<void> markNotificationAsRead(String id) async {
     final uri = _uri('/api/notifications/$id/read');
-    final res = await http.patch(uri, headers: await _headers());
+    final res = await http.patch(uri, headers: await _headers(), body: '{}');
     if (res.statusCode >= 400) throw Exception('Failed to mark notification read');
   }
 
   static Future<void> markAllNotificationsAsRead() async {
     final uri = _uri('/api/notifications/read-all');
-    final res = await http.post(uri, headers: await _headers());
+    final res = await http.post(uri, headers: await _headers(), body: '{}');
     if (res.statusCode >= 400) throw Exception('Failed to mark all notifications read');
   }
 
