@@ -246,29 +246,6 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
     );
   }
 
-  void _showAvatarUrlDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Update Profile Picture'),
-        content: TextField(
-          controller: _avatarUrlController,
-          decoration: const InputDecoration(labelText: 'Image URL', hintText: 'https://example.com/image.jpg'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              setState(() {});
-              Navigator.pop(context);
-            },
-            child: const Text('Update'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showAvatarOptions() {
     showModalBottomSheet(
       context: context,
@@ -288,14 +265,6 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
               onTap: () {
                 Navigator.pop(context);
                 _pickAndUploadImage();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.link),
-              title: const Text('Enter Image URL'),
-              onTap: () {
-                Navigator.pop(context);
-                _showAvatarUrlDialog();
               },
             ),
           ],

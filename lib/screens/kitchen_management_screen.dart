@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
@@ -29,6 +30,8 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
   final _dishDescController = TextEditingController();
   final _dishCategoryController = TextEditingController();
   List<String> _selectedImageUrls = [];
+  List<Uint8List> _pendingImageBytes = [];
+  List<String> _pendingFileNames = [];
   bool _isDishAddOn = false;
   bool _isDishAvailable = true;
   bool _isSavingDish = false;
@@ -94,11 +97,14 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
 
       for (final image in images) {
         final compressed = await ImageService.compressImage(image);
-        final url = await ImageService.uploadImage(compressed, 'dishes', _vendorId ?? 'unknown');
-        _selectedImageUrls.add(url);
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = 'dish_${timestamp}.jpg';
+        _pendingImageBytes.add(compressed);
+        _pendingFileNames.add(fileName);
+        _selectedImageUrls.add('pending:$fileName');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Image pick failed: $e')));
     } finally {
       setState(() => _isSavingDish = false);
     }
@@ -125,6 +131,8 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       _isDishAddOn = false;
       _isDishAvailable = true;
     }
+    _pendingImageBytes = [];
+    _pendingFileNames = [];
 
     final mainContext = context;
 
@@ -205,26 +213,45 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        ..._selectedImageUrls.map((url) => Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(url, width: 80, height: 80, fit: BoxFit.cover),
-                            ),
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onTap: () => setModalState(() => _selectedImageUrls.remove(url)),
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                                  child: const Icon(Icons.close, color: Colors.white, size: 12),
+                        ..._selectedImageUrls.asMap().entries.map((entry) {
+                          final url = entry.value;
+                          final pendingIdx = entry.key - _selectedImageUrls.where((u) => !u.startsWith('pending:')).length;
+                          final isPending = url.startsWith('pending:');
+                          final bytes = isPending && pendingIdx >= 0 && pendingIdx < _pendingImageBytes.length
+                              ? _pendingImageBytes[pendingIdx]
+                              : null;
+                          return Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: isPending && bytes != null
+                                    ? Image.memory(bytes, width: 80, height: 80, fit: BoxFit.cover)
+                                    : Image.network(url, width: 80, height: 80, fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(width: 80, height: 80, color: Colors.grey.shade300, child: const Icon(Icons.broken_image)),
+                                      ),
+                              ),
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: () => setModalState(() {
+                                    final idx = entry.key;
+                                    _selectedImageUrls.removeAt(idx);
+                                    if (isPending) {
+                                      _pendingImageBytes.removeAt(pendingIdx >= 0 ? pendingIdx : 0);
+                                      _pendingFileNames.removeAt(pendingIdx >= 0 ? pendingIdx : 0);
+                                    }
+                                  }),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                    child: const Icon(Icons.close, color: Colors.white, size: 12),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        )),
+                            ],
+                          );
+                        }),
                         if (_selectedImageUrls.length < 4)
                           GestureDetector(
                             onTap: () async {
@@ -271,6 +298,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
 
                     setModalState(() => _isSavingDish = true);
                     try {
+                      final existingImageUrls = _selectedImageUrls.where((u) => !u.startsWith('pending:')).toList();
                       final payload = <String, dynamic>{
                         'name': name,
                         'price': price.toString(),
@@ -278,14 +306,22 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                         'category': category,
                         'isAddOn': _isDishAddOn,
                         'isAvailable': _isDishAvailable,
-                        'imageUrl': _selectedImageUrls.isNotEmpty ? _selectedImageUrls.first : null,
-                        'imageUrls': _selectedImageUrls,
+                        'imageUrl': existingImageUrls.isNotEmpty ? existingImageUrls.first : null,
+                        'imageUrls': existingImageUrls,
                       };
 
+                      Map<String, dynamic> savedItem;
                       if (existingItem == null) {
-                        await ApiService.addMenuItem(_vendorId!, payload);
+                        savedItem = await ApiService.addMenuItem(_vendorId!, payload);
                       } else {
-                        await ApiService.updateMenuItem(_vendorId!, existingItem.id, payload);
+                        savedItem = await ApiService.updateMenuItem(_vendorId!, existingItem.id, payload);
+                      }
+
+                      if (_pendingImageBytes.isNotEmpty && _vendorId != null) {
+                        final itemId = savedItem['id'] as String;
+                        await ApiService.uploadMenuItemImages(_vendorId!, itemId, _pendingImageBytes, _pendingFileNames);
+                        _pendingImageBytes.clear();
+                        _pendingFileNames.clear();
                       }
 
                       if (mounted) {

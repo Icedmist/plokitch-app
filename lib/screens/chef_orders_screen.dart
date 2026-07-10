@@ -133,14 +133,14 @@ class _ChefOrdersScreenState extends State<ChefOrdersScreen> {
                               const SizedBox(height: 14),
                               Row(
                                 children: [
-                                  if (order.status.toLowerCase() != 'delivered' && order.status.toLowerCase() != 'cancelled')
+                                  if (order.status.toLowerCase() != 'completed' && order.status.toLowerCase() != 'cancelled')
                                     OutlinedButton(
-                                      onPressed: () => _updateStatus(index, 'Cooking'),
+                                      onPressed: () => _updateStatus(index, 'preparing'),
                                       child: const Text('Mark Cooking'),
                                     ),
                                   const SizedBox(width: 10),
                                   OutlinedButton(
-                                    onPressed: () => _updateStatus(index, order.status.toLowerCase() == 'cancelled' ? 'Delivered' : 'Cancelled'),
+                                    onPressed: () => _updateStatus(index, order.status.toLowerCase() == 'cancelled' ? 'completed' : 'cancelled'),
                                     child: Text(order.status.toLowerCase() == 'cancelled' ? 'Restore' : 'Cancel'),
                                   ),
                                 ],

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/image_service.dart';
 import '../widgets/plokitch_error_banner.dart';
 import '../widgets/plokitch_button.dart';
 
@@ -15,6 +16,7 @@ class KitchenSettingsScreen extends StatefulWidget {
 class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
   bool _loading = true;
   bool _saving = false;
+  bool _uploadingImage = false;
   String? _error;
   String? _vendorId;
 
@@ -130,6 +132,27 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
     }
   }
 
+  Future<void> _pickAndUploadKitchenImage() async {
+    try {
+      final images = await ImageService.pickImages(maxImages: 1);
+      if (images.isEmpty) return;
+
+      setState(() => _uploadingImage = true);
+      final compressed = await ImageService.compressImage(images.first);
+      final result = await ApiService.uploadVendorImage(_vendorId ?? '', compressed, '${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final url = result['imageUrl'] as String? ?? '';
+      setState(() {
+        _imageUrlController.text = url;
+        _uploadingImage = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _uploadingImage = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      }
+    }
+  }
+
   Future<void> _selectTime(BuildContext context, TextEditingController controller) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -238,7 +261,50 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
                 const SizedBox(height: 12),
                 _buildTextField('Description', _descriptionController, maxLines: 4),
                 const SizedBox(height: 12),
-                _buildTextField('Image URL', _imageUrlController),
+                Text('Kitchen Image', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _uploadingImage ? null : _pickAndUploadKitchenImage,
+                  child: Container(
+                    width: double.infinity,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                    ),
+                    child: _uploadingImage
+                        ? const Center(child: CircularProgressIndicator())
+                        : _imageUrlController.text.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.network(_imageUrlController.text, fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.fastfood, size: 40))),
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
+                                        child: const Icon(Icons.edit, color: Colors.white, size: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo, color: Theme.of(context).colorScheme.outline, size: 32),
+                                  const SizedBox(height: 8),
+                                  Text('Tap to upload image', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline)),
+                                ],
+                              ),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [

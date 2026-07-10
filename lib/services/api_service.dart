@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -158,6 +159,53 @@ class ApiService {
       throw Exception('Failed to delete menu item: ${res.body}');
     }
     DataCacheService.invalidate('menu_$vendorId');
+  }
+
+  static Future<Map<String, dynamic>> uploadMenuItemImages(String vendorId, String itemId, List<Uint8List> imageBytes, List<String> fileNames) async {
+    final uri = _uri('/api/vendors/$vendorId/menu/$itemId/images');
+    final request = http.MultipartRequest('POST', uri);
+    final authHeaders = await AuthService.authHeaders();
+    request.headers.addAll(authHeaders);
+
+    for (var i = 0; i < imageBytes.length; i++) {
+      final multipartFile = http.MultipartFile.fromBytes(
+        'files',
+        imageBytes[i],
+        filename: fileNames[i],
+      );
+      request.files.add(multipartFile);
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    if (response.statusCode >= 400) {
+      throw Exception('Failed to upload images: ${response.body}');
+    }
+    final body = json.decode(response.body) as Map<String, dynamic>;
+    DataCacheService.invalidate('menu_$vendorId');
+    return body['data'] as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> uploadVendorImage(String vendorId, Uint8List imageBytes, String fileName) async {
+    final uri = _uri('/api/vendors/$vendorId/image');
+    final request = http.MultipartRequest('POST', uri);
+    final authHeaders = await AuthService.authHeaders();
+    request.headers.addAll(authHeaders);
+
+    final multipartFile = http.MultipartFile.fromBytes(
+      'files',
+      imageBytes,
+      filename: fileName,
+    );
+    request.files.add(multipartFile);
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    if (response.statusCode >= 400) {
+      throw Exception('Failed to upload image: ${response.body}');
+    }
+    final body = json.decode(response.body) as Map<String, dynamic>;
+    return body['data'] as Map<String, dynamic>;
   }
 
   static Future<void> saveUserLocation(Map<String, dynamic> payload) async {

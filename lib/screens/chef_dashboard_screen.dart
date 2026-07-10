@@ -84,32 +84,32 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
 
   String _orderNextStatus(String status) {
     final lower = status.toLowerCase();
-    if (lower.contains('pending') || lower.contains('received') || lower.contains('confirmed') || lower.contains('urgent')) {
-      return 'Cooking';
+    if (lower == 'pending' || lower == 'received' || lower == 'confirmed' || lower == 'urgent') {
+      return 'preparing';
     }
-    if (lower.contains('cook') || lower.contains('processing')) {
-      return 'Ready';
+    if (lower == 'preparing' || lower == 'cook' || lower == 'processing') {
+      return 'ready';
     }
-    if (lower.contains('ready') || lower.contains('prepared')) {
-      return 'Completed';
+    if (lower == 'ready' || lower == 'prepared') {
+      return 'completed';
     }
     return status;
   }
 
   bool _canAdvanceOrder(String status) {
     final lower = status.toLowerCase();
-    return !(lower.contains('completed') || lower.contains('delivered') || lower.contains('cancelled'));
+    return !(lower == 'completed' || lower == 'delivered' || lower == 'cancelled');
   }
 
   String _orderActionLabel(String status) {
     final lower = status.toLowerCase();
-    if (lower.contains('pending') || lower.contains('received') || lower.contains('confirmed') || lower.contains('urgent')) {
+    if (lower == 'pending' || lower == 'received' || lower == 'confirmed' || lower == 'urgent') {
       return 'Start Cooking';
     }
-    if (lower.contains('cook') || lower.contains('processing')) {
+    if (lower == 'preparing' || lower == 'cook' || lower == 'processing') {
       return 'Mark Ready';
     }
-    if (lower.contains('ready') || lower.contains('prepared')) {
+    if (lower == 'ready' || lower == 'prepared') {
       return 'Complete Order';
     }
     return 'Update Status';
@@ -117,11 +117,11 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
 
   int _orderProgressIndex(String status) {
     final lower = status.toLowerCase();
-    if (lower.contains('cancel')) return 0;
-    if (lower.contains('pending') || lower.contains('received') || lower.contains('confirmed') || lower.contains('urgent')) return 0;
-    if (lower.contains('cook') || lower.contains('processing')) return 1;
-    if (lower.contains('ready') || lower.contains('prepared')) return 2;
-    if (lower.contains('completed') || lower.contains('delivered')) return 3;
+    if (lower == 'cancelled') return 0;
+    if (lower == 'pending' || lower == 'received' || lower == 'confirmed' || lower == 'urgent') return 0;
+    if (lower == 'preparing' || lower == 'cook' || lower == 'processing') return 1;
+    if (lower == 'ready' || lower == 'prepared') return 2;
+    if (lower == 'completed' || lower == 'delivered') return 3;
     return 0;
   }
 
@@ -214,7 +214,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
         }
       }
     }
-    if (_orders.any((o) => o.status.toLowerCase() == 'cooking' || o.status.toLowerCase() == 'urgent')) {
+    if (_orders.any((o) => o.status.toLowerCase() == 'preparing' || o.status.toLowerCase() == 'cooking' || o.status.toLowerCase() == 'urgent')) {
       return 'BUSY';
     }
     return 'OPEN';
