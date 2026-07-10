@@ -278,6 +278,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
         'quantity': 1,
         'vendorId': vendorId,
         'vendorName': kitchenName,
+        'isAddOn': itemRaw['isAddOn'] == true || itemRaw['is_add_on'] == true,
       });
     }
 

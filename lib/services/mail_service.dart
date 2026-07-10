@@ -139,11 +139,13 @@ class MailService {
     );
   }
 
-  /// Order cancelled → notify vendor + rider.
+  /// Order cancelled → notify customer + vendor + rider.
   static Future<void> notifyOrderCancelled({
     required Map<String, dynamic> order,
     required String vendorName,
     required String vendorEmail,
+    String? customerName,
+    String? customerEmail,
     String? riderName,
     String? riderEmail,
   }) async {
@@ -153,6 +155,8 @@ class MailService {
         'order': order,
         'vendorName': vendorName,
         'vendorEmail': vendorEmail,
+        if (customerName != null) 'customerName': customerName,
+        if (customerEmail != null) 'customerEmail': customerEmail,
         if (riderName != null) 'riderName': riderName,
         if (riderEmail != null) 'riderEmail': riderEmail,
       },

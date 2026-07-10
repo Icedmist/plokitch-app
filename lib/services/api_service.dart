@@ -261,4 +261,12 @@ class ApiService {
     final body = json.decode(res.body) as Map<String, dynamic>;
     return OrderModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
   }
+
+  static Future<OrderModel> updateOrderStatus(String orderId, String status) async {
+    final uri = _uri('/api/orders/$orderId/status');
+    final res = await http.patch(uri, headers: await _headers(), body: json.encode({'status': status}));
+    if (res.statusCode != 200) throw Exception('Failed to update order status');
+    final body = json.decode(res.body) as Map<String, dynamic>;
+    return OrderModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+  }
 }

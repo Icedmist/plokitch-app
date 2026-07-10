@@ -485,7 +485,26 @@ class _CartScreenState extends State<CartScreen> {
                           Text('₦${rec.price.toStringAsFixed(0)}', style: textTheme.bodySmall?.copyWith(color: colorScheme.primary)),
                           GestureDetector(
                             onTap: () {
-                              // logic to add to cart
+                              final addOnItem = {
+                                'id': rec.id,
+                                'name': rec.name,
+                                'description': rec.description ?? '',
+                                'image': rec.imageUrl ?? '',
+                                'price': rec.price,
+                                'quantity': 1,
+                                'vendorId': _cartItems.isNotEmpty ? _cartItems.first['vendorId'] : null,
+                                'vendorName': _cartItems.isNotEmpty ? _cartItems.first['vendorName'] : null,
+                                'isAddOn': true,
+                              };
+                              setState(() {
+                                final existingIndex = _cartItems.indexWhere((item) => item['id'] == rec.id);
+                                if (existingIndex >= 0) {
+                                  _cartItems[existingIndex]['quantity'] = (_cartItems[existingIndex]['quantity'] as int) + 1;
+                                } else {
+                                  _cartItems.add(addOnItem);
+                                }
+                              });
+                              CartService.saveCart(_cartItems);
                             },
                             child: Icon(Icons.add_circle, color: colorScheme.primaryContainer, size: 20),
                           ),

@@ -50,11 +50,19 @@ class _ChefOrdersScreenState extends State<ChefOrdersScreen> {
   }
 
   Future<void> _updateStatus(int index, String nextStatus) async {
-    // In a real app, update via API
-    // await ApiService.updateOrderStatus(_orders[index].id, nextStatus);
-    setState(() {
-      _orders[index] = _orders[index].copyWith(status: nextStatus);
-    });
+    try {
+      final updated = await ApiService.updateOrderStatus(_orders[index].id, nextStatus);
+      setState(() {
+        _orders[index] = updated;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order updated to $nextStatus')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+      }
+    }
   }
 
   @override
