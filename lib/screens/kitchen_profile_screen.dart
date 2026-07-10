@@ -164,7 +164,8 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: _vendor!.imageUrl != null
-                  ? Image.network(_vendor!.imageUrl!, fit: BoxFit.cover)
+                  ? Image.network(_vendor!.imageUrl!, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: colorScheme.surfaceContainerHigh, child: const Icon(Icons.storefront, size: 64)))
                   : Container(color: colorScheme.surfaceContainerHigh, child: const Icon(Icons.storefront, size: 64)),
             ),
           ),
@@ -278,7 +279,8 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
               if (item.imageUrl != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(item.imageUrl!, width: 80, height: 80, fit: BoxFit.cover),
+                  child: Image.network(item.imageUrl!, width: 80, height: 80, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(width: 80, height: 80, color: Colors.grey.shade300, child: const Icon(Icons.fastfood, color: Colors.white))),
                 ),
             ],
           ),

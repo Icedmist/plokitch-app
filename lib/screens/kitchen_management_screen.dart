@@ -616,7 +616,8 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: item.imageUrl != null 
-              ? Image.network(item.imageUrl!, width: 64, height: 64, fit: BoxFit.cover)
+              ? Image.network(item.imageUrl!, width: 64, height: 64, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(width: 64, height: 64, color: Colors.grey.shade300, child: const Icon(Icons.fastfood, color: Colors.white)))
               : Container(width: 64, height: 64, color: Colors.grey.shade300, child: const Icon(Icons.fastfood, color: Colors.white)),
           ),
           const SizedBox(width: 16),

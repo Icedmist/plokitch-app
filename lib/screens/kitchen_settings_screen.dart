@@ -98,6 +98,7 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
         'businessName': _businessNameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'imageUrl': _imageUrlController.text.trim(),
+        'isActive': true,
         'location': {
           'address': _streetController.text.trim(),
           'street': _streetController.text.trim(),

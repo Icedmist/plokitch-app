@@ -310,42 +310,52 @@ class _MarketScreenState extends State<MarketScreen> {
             onTap: () => Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': vendor.id}),
             child: Container(
               width: 240,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                image: vendor.imageUrl != null ? DecorationImage(image: NetworkImage(vendor.imageUrl!), fit: BoxFit.cover) : null,
                 color: Colors.grey.shade200,
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)]),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(vendor.businessName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: vendor.isOpenNow ? Colors.green : Colors.red,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            vendor.isOpenNow ? 'Open' : 'Closed',
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
+              child: Stack(
+                children: [
+                  if (vendor.imageUrl != null)
+                    Positioned.fill(
+                      child: Image.network(vendor.imageUrl!, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink()),
                     ),
-                    Text(vendor.description ?? 'Local Kitchen', style: const TextStyle(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)]),
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(vendor.businessName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: vendor.isOpenNow ? Colors.green : Colors.red,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  vendor.isOpenNow ? 'Open' : 'Closed',
+                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(vendor.description ?? 'Local Kitchen', style: const TextStyle(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -394,7 +404,8 @@ class _MarketScreenState extends State<MarketScreen> {
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                     child: food.imageUrl != null 
-                      ? Image.network(food.imageUrl!, width: double.infinity, height: double.infinity, fit: BoxFit.cover)
+                      ? Image.network(food.imageUrl!, width: double.infinity, height: double.infinity, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade300, child: const Icon(Icons.fastfood, size: 40, color: Colors.white)))
                       : Container(color: Colors.grey.shade300, child: const Icon(Icons.fastfood, size: 40, color: Colors.white)),
                   ),
                   if (isChef)

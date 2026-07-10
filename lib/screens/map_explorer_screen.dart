@@ -323,7 +323,8 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: vendor.imageUrl != null 
-            ? Image.network(vendor.imageUrl!, width: 60, height: 60, fit: BoxFit.cover)
+            ? Image.network(vendor.imageUrl!, width: 60, height: 60, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(width: 60, height: 60, color: colorScheme.surfaceContainerHigh, child: const Icon(Icons.storefront)))
             : Container(width: 60, height: 60, color: colorScheme.surfaceContainerHigh, child: const Icon(Icons.storefront)),
         ),
         title: Row(
