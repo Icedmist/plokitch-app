@@ -217,7 +217,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ElevatedButton.icon(
-                          onPressed: () => Navigator.pushReplacementNamed(context, '/kitchen'),
+                          onPressed: () => Navigator.pushNamed(context, '/kitchen-settings'),
                           icon: const Icon(Icons.edit),
                           label: const Text('Edit Kitchen'),
                         ),

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -117,8 +118,7 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
       AuthService.invalidateProfile();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen details saved successfully.')));
-      Navigator.pop(context, true); // Return true to trigger reload in parent
+      _showSuccessDialog(context, 'Kitchen details saved successfully.');
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -141,6 +141,63 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
         controller.text = '$hour:$minute';
       });
     }
+  }
+
+  void _showSuccessDialog(BuildContext dialogContext, String message) {
+    showDialog(
+      context: dialogContext,
+      barrierColor: Colors.black.withValues(alpha: 0.4),
+      builder: (context) {
+        final theme = Theme.of(context);
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: theme.colorScheme.surface,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text('Success!', style: theme.textTheme.headlineMedium?.copyWith(color: theme.colorScheme.primary)),
+                const SizedBox(height: 12),
+                Text(message, style: theme.textTheme.bodyMedium),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pop(dialogContext, true);
+                    },
+                    child: const Text('Okay', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override

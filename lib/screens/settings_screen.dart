@@ -297,13 +297,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 24),
           ],
           
-          if (_profileRole == 'chef') ...[
-            Text('Kitchen Management', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
-            const SizedBox(height: 16),
-            _buildSettingsItem(Icons.storefront, 'Kitchen Profile', colorScheme, textTheme,
-                onTap: () => Navigator.pushNamed(context, '/kitchen-settings')),
-            const SizedBox(height: 32),
-          ],
+          ValueListenableBuilder<String>(
+            valueListenable: activeAdminRoleNotifier,
+            builder: (context, activeMode, child) {
+              if (_profileRole != 'chef' && !(_profileRole == 'admin' && activeMode == 'chef')) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Kitchen Management', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
+                  const SizedBox(height: 16),
+                  _buildSettingsItem(Icons.storefront, 'Kitchen Profile', colorScheme, textTheme,
+                      onTap: () => Navigator.pushNamed(context, '/kitchen-settings')),
+                  const SizedBox(height: 32),
+                ],
+              );
+            },
+          ),
 
           Text('Preferences', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
           const SizedBox(height: 16),
