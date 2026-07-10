@@ -140,6 +140,10 @@ class AuthService {
     return data;
   }
 
+  static void invalidateProfile() {
+    DataCacheService.invalidate('user_profile');
+  }
+
   /// Returns stored role if available.
   static Future<String?> storedRole() async {
     final prefs = await SharedPreferences.getInstance();

@@ -63,6 +63,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   void _onAdminRoleChanged() async {
     if (mounted && _role == 'admin') {
+      AuthService.invalidateProfile();
       setState(() {
         _currentIndex = 0; // Reset index when switching UI modes
       });

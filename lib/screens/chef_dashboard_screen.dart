@@ -230,18 +230,18 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(16),
-              border: Border(bottom: BorderSide(color: _onlineStatus() == 'BUSY' ? Colors.redAccent : const Color(0xFFFF9B04), width: 4)),
+              color: colorScheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildQuickStat('Online Status', _onlineStatus(), textTheme),
-                Container(width: 1, height: 32, color: Colors.white24),
-                _buildQuickStat('Avg Prep', _avgPrepTime(), textTheme),
-                Container(width: 1, height: 32, color: Colors.white24),
-                _buildQuickStat('Top Seller', _topSeller(), textTheme),
+                _buildQuickStat('Online Status', _onlineStatus(), colorScheme, textTheme),
+                Container(width: 1.5, height: 28, color: colorScheme.outlineVariant),
+                _buildQuickStat('Avg Prep', _avgPrepTime(), colorScheme, textTheme),
+                Container(width: 1.5, height: 28, color: colorScheme.outlineVariant),
+                _buildQuickStat('Top Seller', _topSeller(), colorScheme, textTheme),
               ],
             ),
           ),
@@ -304,6 +304,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
             ],
           ),
           const SizedBox(height: 24),
+          _buildAnalyticsChart(colorScheme, textTheme),
           
           if (_vendorName != null)
             Column(
@@ -356,14 +357,211 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
     );
   }
 
-  Widget _buildQuickStat(String label, String value, TextTheme textTheme) {
+  Widget _buildQuickStat(String label, String value, ColorScheme colorScheme, TextTheme textTheme) {
+    final isBusy = value == 'BUSY';
+    final isNone = value == 'NONE';
+    final isStatus = label.contains('Status');
+    
     return Column(
       children: [
-        Text(label.toUpperCase(), style: textTheme.labelLarge?.copyWith(color: Colors.white60, fontSize: 10)),
-        const SizedBox(height: 4),
-        Text(value, style: textTheme.headlineMedium?.copyWith(color: const Color(0xFFFF9B04))),
+        Text(
+          label.toUpperCase(), 
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant, 
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.8,
+          )
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value, 
+          style: textTheme.titleMedium?.copyWith(
+            color: isStatus 
+                ? (isBusy ? colorScheme.error : Colors.green) 
+                : (isNone ? colorScheme.onSurfaceVariant : colorScheme.primary),
+            fontWeight: FontWeight.bold,
+          )
+        ),
       ],
     );
+  }
+
+  Widget _buildAnalyticsChart(ColorScheme colorScheme, TextTheme textTheme) {
+    final Map<String, double> salesByDay = {
+      'Mon': 0.0,
+      'Tue': 0.0,
+      'Wed': 0.0,
+      'Thu': 0.0,
+      'Fri': 0.0,
+      'Sat': 0.0,
+      'Sun': 0.0,
+    };
+
+    double totalRevenue = 0.0;
+    int ordersCount = 0;
+
+    for (final order in _orders) {
+      if (order.status.toLowerCase() != 'cancelled') {
+        totalRevenue += order.totalAmount;
+        ordersCount++;
+        if (order.createdAt != null) {
+          try {
+            final dt = DateTime.parse(order.createdAt!);
+            final dayName = _getDayName(dt.weekday);
+            salesByDay[dayName] = (salesByDay[dayName] ?? 0.0) + order.totalAmount;
+          } catch (_) {}
+        }
+      }
+    }
+
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final weeklySales = days.map((day) {
+      return {'day': day, 'amount': salesByDay[day] ?? 0.0};
+    }).toList();
+
+    double maxVal = 1000.0;
+    for (final amount in salesByDay.values) {
+      if (amount > maxVal) maxVal = amount;
+    }
+
+    final todayName = _getDayName(DateTime.now().weekday);
+
+    final totalRevenueText = totalRevenue >= 1000 
+        ? '₦${(totalRevenue / 1000).toStringAsFixed(1)}k' 
+        : '₦${totalRevenue.toStringAsFixed(0)}';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'WEEKLY ANALYTICS', 
+                    style: textTheme.labelLarge?.copyWith(
+                      color: colorScheme.primary, 
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    )
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$totalRevenueText total revenue', 
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    )
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$ordersCount order${ordersCount == 1 ? "" : "s"}', 
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  )
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 140,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: weeklySales.map((data) {
+                final amount = data['amount'] as double;
+                final day = data['day'] as String;
+                final ratio = amount / maxVal;
+                final isToday = day == todayName;
+                
+                return Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final barHeight = constraints.maxHeight * ratio;
+                            return Container(
+                              width: 22,
+                              height: barHeight > 4 ? barHeight : 4.0,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: isToday 
+                                      ? [colorScheme.primary, colorScheme.primary.withValues(alpha: 0.6)]
+                                      : [colorScheme.secondary, colorScheme.secondary.withValues(alpha: 0.5)],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                                boxShadow: (isToday && barHeight > 4) ? [
+                                  BoxShadow(
+                                    color: colorScheme.primary.withValues(alpha: 0.3),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, -2),
+                                  )
+                                ] : null,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        day,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: isToday ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                          fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDayName(int weekday) {
+    switch (weekday) {
+      case DateTime.monday: return 'Mon';
+      case DateTime.tuesday: return 'Tue';
+      case DateTime.wednesday: return 'Wed';
+      case DateTime.thursday: return 'Thu';
+      case DateTime.friday: return 'Fri';
+      case DateTime.saturday: return 'Sat';
+      case DateTime.sunday: return 'Sun';
+      default: return 'Mon';
+    }
   }
 
   Widget _buildOrderCard(int index, OrderModel order, ColorScheme colorScheme, TextTheme textTheme) {

@@ -372,22 +372,80 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
   }
 
   Widget _buildSimpleStat(String label, String value, IconData icon, ColorScheme colorScheme, TextTheme textTheme) {
+    final isPrimary = label.contains('Dishes');
+    
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF642714),
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: isPrimary 
+              ? [colorScheme.primaryContainer.withValues(alpha: 0.15), colorScheme.primary.withValues(alpha: 0.08)]
+              : [colorScheme.tertiaryContainer.withValues(alpha: 0.15), colorScheme.tertiary.withValues(alpha: 0.08)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: (isPrimary ? colorScheme.primary : colorScheme.tertiary).withValues(alpha: 0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: colorScheme.primaryContainer, size: 24),
-          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (isPrimary ? colorScheme.primary : colorScheme.tertiary).withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon, 
+                  color: isPrimary ? colorScheme.primary : colorScheme.tertiary, 
+                  size: 20
+                ),
+              ),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: isPrimary ? colorScheme.primary : colorScheme.tertiary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(value, style: textTheme.headlineLarge?.copyWith(color: Colors.white)),
+            child: Text(
+              value, 
+              style: textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              )
+            ),
           ),
-          Text(label, style: textTheme.labelSmall?.copyWith(color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          Text(
+            label, 
+            style: textTheme.labelMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ), 
+            maxLines: 1, 
+            overflow: TextOverflow.ellipsis
+          ),
         ],
       ),
     );
