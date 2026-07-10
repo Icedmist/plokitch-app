@@ -4,7 +4,6 @@ import '../widgets/plokitch_bottom_nav.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../models/order_model.dart';
-import '../services/mail_service.dart';
 
 class ChefDashboardScreen extends StatefulWidget {
   const ChefDashboardScreen({super.key});
@@ -73,25 +72,11 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
     }
 
     try {
-      // Send email notification for status change
-      if (nextStatus.toLowerCase() == 'ready' || nextStatus.toLowerCase() == 'completed') {
-        final emailType = nextStatus.toLowerCase() == 'ready' ? 'order_ready' : 'order_delivered';
-        await MailService.sendAction(
-          action: emailType,
-          payload: {
-            'order': order.toJson(),
-            'customerName': order.customerName ?? 'Customer',
-            'customerEmail': 'customer@plokitch.com',
-            'vendorName': 'Kitchen',
-            'vendorEmail': 'kitchen@plokitch.com',
-          },
-        );
-      }
-
+      final updated = await ApiService.updateOrderStatus(order.id, nextStatus);
       setState(() {
-        _orders[index] = order.copyWith(status: nextStatus);
+        _orders[index] = updated;
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order ${order.id} updated to $nextStatus.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order updated to $nextStatus.')));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
     }
