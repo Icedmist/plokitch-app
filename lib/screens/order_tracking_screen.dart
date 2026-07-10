@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
@@ -17,11 +18,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   OrderModel? _order;
   bool _loading = true;
   String? _error;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _fetchOrder();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted && !_loading) _fetchOrder();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchOrder() async {
@@ -57,13 +68,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     switch (status.toLowerCase()) {
       case 'pending':
       case 'confirmed':
-      case 'preparing':
         return 0;
-      case 'ready':
-      case 'assigned':
-      case 'picked_up':
-      case 'picking':
+      case 'preparing':
         return 1;
+      case 'ready':
+      case 'picking':
+      case 'picked_up':
+      case 'assigned':
+        return 2;
       case 'in_transit':
       case 'delivering':
         return 2;

@@ -46,6 +46,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
       allImages.addAll(List<String>.from(itemRaw['imageUrls']));
     } else if (itemRaw['image_urls'] is List) {
       allImages.addAll(List<String>.from(itemRaw['image_urls']));
+    } else if (itemRaw['images'] is List) {
+      allImages.addAll(List<String>.from(itemRaw['images']));
     }
     if (allImages.isEmpty && imageUrl.isNotEmpty) {
       allImages.add(imageUrl);
