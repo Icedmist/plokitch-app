@@ -20,6 +20,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
   String? _vendorId;
   String? _vendorName;
   String? _avatarUrl;
+  Map<String, dynamic>? _vendorData;
 
   @override
   void initState() {
@@ -39,6 +40,12 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
       _vendorId = rawVendorId != null ? rawVendorId.toString() : null;
       final rawVendorName = profile?['name'] ?? profile?['businessName'] ?? profile?['vendorName'];
       _vendorName = rawVendorName is String ? rawVendorName : rawVendorName?.toString();
+
+      if (_vendorId != null) {
+        try {
+          _vendorData = await ApiService.fetchVendor(_vendorId!, forceRefresh: true);
+        } catch (_) {}
+      }
 
       final fetched = await ApiService.fetchOrders();
       final filtered = (_vendorId != null || _vendorName != null)
@@ -200,6 +207,30 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
   }
 
   String _onlineStatus() {
+    if (_vendorData != null) {
+      final location = _vendorData!['location'] as Map<String, dynamic>?;
+      if (location != null) {
+        final openTime = location['openTime'] as String?;
+        final closeTime = location['closeTime'] as String?;
+        if (openTime != null && closeTime != null) {
+          final now = DateTime.now();
+          final nowMinutes = now.hour * 60 + now.minute;
+          final openParts = openTime.split(':');
+          final closeParts = closeTime.split(':');
+          if (openParts.length == 2 && closeParts.length == 2) {
+            final openMinutes = int.parse(openParts[0]) * 60 + int.parse(openParts[1]);
+            final closeMinutes = int.parse(closeParts[0]) * 60 + int.parse(closeParts[1]);
+            bool withinHours;
+            if (closeMinutes < openMinutes) {
+              withinHours = nowMinutes >= openMinutes || nowMinutes <= closeMinutes;
+            } else {
+              withinHours = nowMinutes >= openMinutes && nowMinutes <= closeMinutes;
+            }
+            if (!withinHours) return 'CLOSED';
+          }
+        }
+      }
+    }
     if (_orders.any((o) => o.status.toLowerCase() == 'cooking' || o.status.toLowerCase() == 'urgent')) {
       return 'BUSY';
     }
@@ -359,9 +390,14 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
 
   Widget _buildQuickStat(String label, String value, ColorScheme colorScheme, TextTheme textTheme) {
     final isBusy = value == 'BUSY';
+    final isClosed = value == 'CLOSED';
     final isNone = value == 'NONE';
     final isStatus = label.contains('Status');
     
+    Color statusColor = Colors.green;
+    if (isBusy) statusColor = colorScheme.error;
+    if (isClosed) statusColor = Colors.red;
+
     return Column(
       children: [
         Text(
@@ -378,7 +414,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
           value, 
           style: textTheme.titleMedium?.copyWith(
             color: isStatus 
-                ? (isBusy ? colorScheme.error : Colors.green) 
+                ? statusColor
                 : (isNone ? colorScheme.onSurfaceVariant : colorScheme.primary),
             fontWeight: FontWeight.bold,
           )

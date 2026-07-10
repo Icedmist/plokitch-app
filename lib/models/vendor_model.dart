@@ -24,4 +24,28 @@ class VendorModel {
         'location': location,
         'imageUrl': imageUrl,
       };
+
+  String? get openTime => location?['openTime'] as String?;
+  String? get closeTime => location?['closeTime'] as String?;
+
+  bool get isOpenNow {
+    final open = openTime;
+    final close = closeTime;
+    if (open == null || close == null) return false;
+
+    final now = DateTime.now();
+    final nowMinutes = now.hour * 60 + now.minute;
+
+    final openParts = open.split(':');
+    final closeParts = close.split(':');
+    if (openParts.length != 2 || closeParts.length != 2) return false;
+
+    final openMinutes = int.tryParse(openParts[0])! * 60 + int.tryParse(openParts[1])!;
+    final closeMinutes = int.tryParse(closeParts[0])! * 60 + int.tryParse(closeParts[1])!;
+
+    if (closeMinutes < openMinutes) {
+      return nowMinutes >= openMinutes || nowMinutes <= closeMinutes;
+    }
+    return nowMinutes >= openMinutes && nowMinutes <= closeMinutes;
+  }
 }

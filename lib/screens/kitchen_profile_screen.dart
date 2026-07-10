@@ -180,8 +180,32 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                     children: [
                       Icon(Icons.star, size: 18, color: Colors.amber.shade700),
                       const SizedBox(width: 4),
-                      Text('4.8 · 1.2km away · ', style: textTheme.bodyMedium),
-                      Text('Open Now', style: textTheme.bodyMedium?.copyWith(color: Colors.green, fontWeight: FontWeight.bold)),
+                      Text('4.8 · 1.2km away', style: textTheme.bodyMedium),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (_vendor!.openTime != null && _vendor!.closeTime != null) ...[
+                        Icon(Icons.access_time, size: 14, color: colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 4),
+                        Text('${_vendor!.openTime} - ${_vendor!.closeTime}', style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+                        const SizedBox(width: 8),
+                      ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _vendor!.isOpenNow ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _vendor!.isOpenNow ? 'Open Now' : 'Closed',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: _vendor!.isOpenNow ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),

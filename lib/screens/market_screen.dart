@@ -325,7 +325,24 @@ class _MarketScreenState extends State<MarketScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(vendor.businessName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(vendor.businessName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: vendor.isOpenNow ? Colors.green : Colors.red,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            vendor.isOpenNow ? 'Open' : 'Closed',
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
                     Text(vendor.description ?? 'Local Kitchen', style: const TextStyle(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),

@@ -326,7 +326,22 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
             ? Image.network(vendor.imageUrl!, width: 60, height: 60, fit: BoxFit.cover)
             : Container(width: 60, height: 60, color: colorScheme.surfaceContainerHigh, child: const Icon(Icons.storefront)),
         ),
-        title: Text(vendor.businessName, style: textTheme.titleMedium),
+        title: Row(
+          children: [
+            Expanded(child: Text(vendor.businessName, style: textTheme.titleMedium)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: vendor.isOpenNow ? Colors.green : Colors.red,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                vendor.isOpenNow ? 'Open' : 'Closed',
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
