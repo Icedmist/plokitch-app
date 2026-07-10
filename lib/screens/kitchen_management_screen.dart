@@ -256,7 +256,9 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                     final name = _dishNameController.text.trim();
                     final price = double.tryParse(_dishPriceController.text) ?? 0.0;
                     final desc = _dishDescController.text.trim();
-                    final category = _dishCategoryController.text.trim();
+                    final rawCategory = _dishCategoryController.text.trim().toLowerCase();
+                    const validCategories = {'mains', 'sides', 'desserts', 'drinks', 'starters', 'specials'};
+                    final category = validCategories.contains(rawCategory) ? rawCategory : 'mains';
 
                     if (name.isEmpty || price <= 0) {
                       ScaffoldMessenger.of(modalContext).showSnackBar(SnackBar(
@@ -269,15 +271,14 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
 
                     setModalState(() => _isSavingDish = true);
                     try {
-                      final payload = {
+                      final payload = <String, dynamic>{
                         'name': name,
-                        'price': price,
+                        'price': price.toString(),
                         'description': desc,
-                        'category': category.isNotEmpty ? category : null,
+                        'category': category,
                         'isAddOn': _isDishAddOn,
                         'isAvailable': _isDishAvailable,
                         'imageUrl': _selectedImageUrls.isNotEmpty ? _selectedImageUrls.first : null,
-                        'images': _selectedImageUrls,
                       };
 
                       if (existingItem == null) {
