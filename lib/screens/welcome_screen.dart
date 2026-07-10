@@ -208,12 +208,26 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               // ── Subtitle ──────────────────────────────────────────────────
               FadeTransition(
                 opacity: _subFade,
-                child: Text(
-                  'Your culinary ecosystem',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.6),
-                    letterSpacing: 0.5,
-                  ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Where Flavour Finds You',
+                      style: const TextStyle(
+                        fontFamily: 'LilitaOne',
+                        fontSize: 22,
+                        color: Color(0xFFFF8C00),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Discover. Order. Enjoy.',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.6),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
 

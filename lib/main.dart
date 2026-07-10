@@ -54,8 +54,8 @@ Future<void> main() async {
     print('dotenv.load failed: $e');
   }
   await Supabase.initialize(
-    url: dotenv.env['VITE_SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['VITE_SUPABASE_ANON_KEY'] ?? '',
+    url: dotenv.env['SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
   // Try to restore session from stored token and determine initial route
   try {

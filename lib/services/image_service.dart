@@ -42,11 +42,15 @@ class ImageService {
     final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
     final filePath = '$folder/$fileName';
 
-    await _supabase.storage.from(bucket).uploadBinary(
-          filePath,
-          bytes,
-          fileOptions: const FileOptions(contentType: 'image/jpeg'),
-        );
+    try {
+      await _supabase.storage.from(bucket).uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: const FileOptions(contentType: 'image/jpeg'),
+          );
+    } catch (e) {
+      throw Exception('Image upload failed: $e');
+    }
 
     final String publicUrl = _supabase.storage.from(bucket).getPublicUrl(filePath);
     return publicUrl;
