@@ -351,11 +351,13 @@ class _CartScreenState extends State<CartScreen> {
             height: 80,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              image: DecorationImage(
-                image: NetworkImage(item['image']),
-                fit: BoxFit.cover,
-              ),
+              color: colorScheme.surfaceContainerHigh,
             ),
+            clipBehavior: Clip.antiAlias,
+            child: item['image'] != null && (item['image'] as String).isNotEmpty
+                ? Image.network(item['image'], fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.fastfood, color: Colors.grey))
+                : const Icon(Icons.fastfood, color: Colors.grey),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -489,7 +491,7 @@ class _CartScreenState extends State<CartScreen> {
                                 'id': rec.id,
                                 'name': rec.name,
                                 'description': rec.description ?? '',
-                                'image': rec.imageUrl ?? '',
+                                'image': rec.images.isNotEmpty ? rec.images.first : (rec.imageUrl ?? ''),
                                 'price': rec.price,
                                 'quantity': 1,
                                 'vendorId': _cartItems.isNotEmpty ? _cartItems.first['vendorId'] : null,
