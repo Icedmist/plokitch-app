@@ -12,6 +12,8 @@ class ApiService {
   ApiService._();
 
   static final String _baseUrl = dotenv.env['VITE_API_URL'] ?? dotenv.env['PLOKITCH_API_URL'] ?? 'http://localhost:4000';
+  
+  static String get baseUrl => _baseUrl;
 
   static Uri _uri(String path) => Uri.parse('$_baseUrl$path');
 

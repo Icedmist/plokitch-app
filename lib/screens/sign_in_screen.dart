@@ -73,14 +73,16 @@ class _SignInScreenState extends State<SignInScreen> {
 
   String _friendlyAuthError(Object error) {
     final message = error.toString().toLowerCase();
+    print('Auth error: $error'); // Log the actual error for debugging
+    
     if (message.contains('invalid')) {
       return 'Email or password is incorrect. Please try again.';
     }
     if (message.contains('not found')) {
       return 'This account doesn\'t exist. Please check your email or sign up.';
     }
-    if (message.contains('network') || message.contains('socket') || message.contains('connection')) {
-      return 'Network connection lost. Please check your internet and try again.';
+    if (message.contains('network') || message.contains('socket') || message.contains('connection') || message.contains('errno 111')) {
+      return 'Unable to connect to server. Ensure your backend is running at ${ApiService.baseUrl} and your internet is stable.';
     }
     if (message.contains('timeout')) {
       return 'The request took too long. Please try again.';
