@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../main.dart';
+import 'main_navigation_shell.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -225,7 +226,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
+          if (_profileRole == 'admin') ...[
+            ValueListenableBuilder<String>(
+              valueListenable: activeAdminRoleNotifier,
+              builder: (context, activeMode, child) {
+                return Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.3), width: 1.5),
+                  ),
+                  color: colorScheme.primary.withValues(alpha: 0.05),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.admin_panel_settings, color: colorScheme.primary, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'ADMIN VIEW CONTROL',
+                              style: textTheme.labelLarge?.copyWith(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            _buildAdminModeOption(
+                              label: 'Customer',
+                              icon: Icons.shopping_bag_outlined,
+                              isActive: activeMode == 'customer',
+                              onTap: () => activeAdminRoleNotifier.value = 'customer',
+                              colorScheme: colorScheme,
+                              textTheme: textTheme,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildAdminModeOption(
+                              label: 'Vendor',
+                              icon: Icons.restaurant_outlined,
+                              isActive: activeMode == 'chef',
+                              onTap: () => activeAdminRoleNotifier.value = 'chef',
+                              colorScheme: colorScheme,
+                              textTheme: textTheme,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildAdminModeOption(
+                              label: 'Rider',
+                              icon: Icons.pedal_bike_outlined,
+                              isActive: activeMode == 'rider',
+                              onTap: () => activeAdminRoleNotifier.value = 'rider',
+                              colorScheme: colorScheme,
+                              textTheme: textTheme,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
           
           if (_profileRole == 'chef') ...[
             Text('Kitchen Management', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
@@ -342,6 +413,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: () {
         themeNotifier.value = mode;
       },
+    );
+  }
+
+  Widget _buildAdminModeOption({
+    required String label,
+    required IconData icon,
+    required bool isActive,
+    required VoidCallback onTap,
+    required ColorScheme colorScheme,
+    required TextTheme textTheme,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? colorScheme.primary : colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isActive ? colorScheme.primary : colorScheme.outlineVariant,
+              width: 1.5,
+            ),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: colorScheme.primary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    )
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isActive ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: textTheme.labelMedium?.copyWith(
+                  color: isActive ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

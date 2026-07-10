@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 import '../widgets/plokitch_toast.dart';
 import '../services/auth_service.dart';
@@ -13,6 +14,9 @@ import 'rider_dashboard_screen.dart';
 import 'market_screen.dart';
 import 'order_history_screen.dart';
 import 'map_explorer_screen.dart';
+
+// Global notifier for the active role used by administrators to preview screens.
+final ValueNotifier<String> activeAdminRoleNotifier = ValueNotifier<String>('customer');
 
 class MainNavigationShell extends StatefulWidget {
   final int initialIndex;
@@ -36,6 +40,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _loadRole();
+    activeAdminRoleNotifier.addListener(_onAdminRoleChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -51,10 +56,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   @override
-  void didUpdateWidget(MainNavigationShell oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialIndex != widget.initialIndex) {
-      _currentIndex = widget.initialIndex;
+  void dispose() {
+    activeAdminRoleNotifier.removeListener(_onAdminRoleChanged);
+    super.dispose();
+  }
+
+  void _onAdminRoleChanged() async {
+    if (mounted && _role == 'admin') {
+      setState(() {
+        _currentIndex = 0; // Reset index when switching UI modes
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('admin_active_role', activeAdminRoleNotifier.value);
     }
   }
 
@@ -62,6 +75,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     try {
       final stored = await AuthService.storedRole();
       if (stored != null && stored.isNotEmpty) {
+        if (stored == 'admin') {
+          final prefs = await SharedPreferences.getInstance();
+          final override = prefs.getString('admin_active_role');
+          if (override != null && (override == 'customer' || override == 'chef' || override == 'rider')) {
+            activeAdminRoleNotifier.value = override;
+          }
+        }
         if (mounted) {
           setState(() {
             _role = stored;
@@ -120,7 +140,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       );
     }
 
-    final screens = _getScreensForRole(_role);
+    final activeRole = _role == 'admin' ? activeAdminRoleNotifier.value : _role;
+    final screens = _getScreensForRole(activeRole);
     final index = _currentIndex.clamp(0, screens.length - 1);
 
     return Scaffold(
@@ -130,7 +151,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         children: screens,
       ),
       bottomNavigationBar: PlokitchBottomNav(
-        role: _role,
+        role: activeRole,
         currentIndex: index,
         onTap: (newIndex) {
           setState(() {
