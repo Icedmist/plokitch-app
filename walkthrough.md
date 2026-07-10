@@ -49,14 +49,21 @@ graph TD
   * **Shell View Overrides**: Defined a global `activeAdminRoleNotifier` in [main_navigation_shell.dart](file:///home/adam/Projects/plokitch-app/lib/screens/main_navigation_shell.dart). When an administrator toggles between "Customer", "Vendor", and "Rider" options on the settings page, the app instantly redirects to that role's dashboard with correct bottom navigation configurations using a cross-fade transition.
   * **Persistence**: Stored the chosen override mode inside `SharedPreferences` as `admin_active_role`, ensuring that chosen views persist across restarts and debugging sessions.
 
-### 5. Notification System Refactoring & Bug Fixes
+### 5. Vendor Mode Double Bottom Nav and Icon Cleanup
+* **Action**: Removed duplicate navigation bars and cleaned up redundant icons in the AppBar.
+* **Details**:
+  * **Removed Double Bottom Navigation Bars**: Cleaned up the individual `bottomNavigationBar` configurations inside [kitchen_management_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/kitchen_management_screen.dart) and [chef_orders_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/chef_orders_screen.dart). Both now correctly defer bottom navigation rendering to the parent navigation shell.
+  * **Removed Hamburger Drawer Trigger**: Removed the redundant hamburger icon (`showMenu: false`) from all dashboard app bars (Chef Dashboard, Rider Dashboard, Kitchen Management Screen) since the side drawer is no longer utilized in the app.
+  * **Removed Profile Icon from Kitchen Screen**: Removed the profile avatar icon (`showAvatar: false`) from the top right of the kitchen management app bar as requested.
+
+### 6. Notification System Refactoring & Bug Fixes
 * **Action**: Cleaned up duplicated icons and resolved database synchronization issues.
 * **Details**:
   * **Removed Redundant Icons**: Removed the notification bell icon from the AppBars on the [settings_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart) and [order_history_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/order_history_screen.dart) to prevent duplicate visual indicators.
   * **Divided Settings Items**: Split the notification controls inside settings into two items: "Notifications" (which navigates directly to the notifications feed list) and "Notification Settings" (which navigates to push and sign-in preferences).
   * **Fixed Empty Body Sync Crash**: Addressed a `400 Bad Request` ("Body cannot be empty when content-type is set to 'application/json'") error thrown by Fastify during write requests in [api_service.dart](file:///home/adam/Projects/plokitch-app/lib/services/api_service.dart). Added an empty JSON body `body: '{}'` to `markNotificationAsRead` and `markAllNotificationsAsRead`, allowing status updates to successfully persist.
 
-### 6. Direct Profile Picture Device Uploads
+### 7. Direct Profile Picture Device Uploads
 * **Action**: Enabled uploading avatar images directly from devices in [account_details_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/account_details_screen.dart).
 * **Details**:
   * **File Picker Integration**: Added the `file_picker` dependency to allow selecting images directly from the local device storage on both mobile/tablet and web platforms.
@@ -65,7 +72,7 @@ graph TD
   * **Loading Indicator**: Renders a loading spinner inside the avatar placeholder while the upload is in progress.
   * **Preserved URL Input**: Kept the existing "Enter Image URL" option as a secondary choice in a new bottom sheet options menu.
 
-### 7. Responsiveness & Bug Fixes
+### 8. Responsiveness & Bug Fixes
 * **Action**: Fixed runtime assertion failures and layout overflows.
 * **Details**:
   * **Settings Screen Crash**: Fixed the `!(shape != null && borderRadius != null)` assertion error on the Appearance section in [settings_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart). Removed the duplicate `borderRadius` parameter from the `Material` wrapper to allow the circular `shape` configuration to govern the border clipping.
@@ -87,8 +94,8 @@ graph TD
 * [**lib/screens/settings_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/settings_screen.dart)
 * [**lib/screens/account_details_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/account_details_screen.dart)
 * [**lib/screens/kitchen_management_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/kitchen_management_screen.dart)
-* [**lib/screens/chef_dashboard_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/chef_dashboard_screen.dart)
 * [**lib/screens/chef_orders_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/chef_orders_screen.dart)
+* [**lib/screens/chef_dashboard_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/chef_dashboard_screen.dart)
 * [**lib/screens/rider_dashboard_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/rider_dashboard_screen.dart)
 * [**lib/screens/market_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/market_screen.dart)
 * [**lib/screens/map_explorer_screen.dart**](file:///home/adam/Projects/plokitch-app/lib/screens/map_explorer_screen.dart)

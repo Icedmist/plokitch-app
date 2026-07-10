@@ -100,7 +100,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     return Scaffold(
       appBar: PlokitchAppBar(
         title: 'Rider Hub',
-        showMenu: true,
+        showMenu: false,
         showAvatar: true,
         showNotificationIcon: true,
         onNotificationPressed: () => Navigator.pushNamed(context, '/notifications'),

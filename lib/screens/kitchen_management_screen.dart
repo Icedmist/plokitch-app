@@ -314,11 +314,9 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
     }
 
     return Scaffold(
-      appBar: PlokitchAppBar(
+      appBar: const PlokitchAppBar(
         title: 'Manage Kitchen',
-        showMenu: true,
-        showAvatar: true,
-        avatarUrl: _vendorData?['imageUrl'] as String? ?? _vendorData?['image_url'] as String?,
+        showMenu: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -369,15 +367,6 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
           
           const SizedBox(height: 100),
         ],
-      ),
-      bottomNavigationBar: PlokitchBottomNav(
-        role: 'chef',
-        currentIndex: 1, 
-        onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/chef-dashboard');
-          if (index == 2) Navigator.pushReplacementNamed(context, '/chef-orders');
-          if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
-        },
       ),
     );
   }

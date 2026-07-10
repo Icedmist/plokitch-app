@@ -218,7 +218,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
     return Scaffold(
       appBar: PlokitchAppBar(
         title: 'Chef Dashboard',
-        showMenu: true,
+        showMenu: false,
         showAvatar: true,
         showNotificationIcon: true,
         avatarUrl: _avatarUrl,
