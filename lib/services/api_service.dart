@@ -57,6 +57,31 @@ class ApiService {
     return result;
   }
 
+  
+  static Future<Map<String, dynamic>> fetchMyVendor() async {
+    final uri = _uri('/api/vendors/me');
+    final res = await http.get(uri, headers: await _headers());
+    if (res.statusCode != 200) {
+      throw Exception('Failed to fetch user kitchen profile: ${res.body}');
+    }
+    final body = json.decode(res.body) as Map<String, dynamic>;
+    return body['data'] as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> createVendor(Map<String, dynamic> payload) async {
+    final uri = _uri('/api/vendors');
+    final res = await http.post(uri, headers: await _headers(), body: json.encode(payload));
+    if (res.statusCode >= 400) {
+      throw Exception('Failed to create kitchen: ${res.body}');
+    }
+    final body = json.decode(res.body) as Map<String, dynamic>;
+    
+    DataCacheService.invalidate('vendors_list');
+    DataCacheService.invalidate('user_profile');
+    
+    return body['data'] as Map<String, dynamic>;
+  }
+
   static Future<Map<String, dynamic>> updateVendor(String vendorId, Map<String, dynamic> payload) async {
     final uri = _uri('/api/vendors/$vendorId');
     final res = await http.patch(uri, headers: await _headers(), body: json.encode(payload));

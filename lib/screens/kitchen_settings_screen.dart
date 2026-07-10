@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/plokitch_error_banner.dart';
+import '../widgets/plokitch_button.dart';
 
 class KitchenSettingsScreen extends StatefulWidget {
   const KitchenSettingsScreen({super.key});
@@ -22,6 +23,8 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
   final _streetController = TextEditingController();
   final _cityController = TextEditingController();
   final _stateController = TextEditingController();
+  final _openTimeController = TextEditingController(text: '08:00');
+  final _closeTimeController = TextEditingController(text: '22:00');
 
   @override
   void initState() {
@@ -36,21 +39,37 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
     });
     try {
       final profile = await AuthService.getProfile();
-      _vendorId = profile?['vendorId'] ?? profile?['vendor_id'] ?? profile?['id'];
+      String? vId = profile?['vendorId'] ?? profile?['vendor_id'];
       
-      if (_vendorId != null) {
-        final vendorData = await ApiService.fetchVendor(_vendorId!, forceRefresh: true);
-        if (mounted) {
-          setState(() {
-            _businessNameController.text = vendorData['businessName'] as String? ?? vendorData['business_name'] as String? ?? '';
-            _descriptionController.text = vendorData['description'] as String? ?? '';
-            _imageUrlController.text = vendorData['imageUrl'] as String? ?? vendorData['image_url'] as String? ?? '';
-            final location = vendorData['location'] as Map<String, dynamic>?;
-            _streetController.text = location?['street'] as String? ?? '';
-            _cityController.text = location?['city'] as String? ?? '';
-            _stateController.text = location?['state'] as String? ?? '';
-          });
+      Map<String, dynamic>? vendorData;
+      if (vId != null) {
+        try {
+          vendorData = await ApiService.fetchVendor(vId, forceRefresh: true);
+          _vendorId = vId;
+        } catch (_) {}
+      }
+      
+      if (vendorData == null) {
+        try {
+          vendorData = await ApiService.fetchMyVendor();
+          _vendorId = vendorData['id'] as String?;
+        } catch (e) {
+          // If fetchMyVendor fails (e.g. 404), it means they don't have a kitchen yet, which is fine
         }
+      }
+
+      if (vendorData != null && mounted) {
+        setState(() {
+          _businessNameController.text = vendorData!['businessName'] as String? ?? vendorData!['business_name'] as String? ?? '';
+          _descriptionController.text = vendorData!['description'] as String? ?? '';
+          _imageUrlController.text = vendorData!['imageUrl'] as String? ?? vendorData!['image_url'] as String? ?? '';
+          final location = vendorData!['location'] as Map<String, dynamic>?;
+          _streetController.text = location?['street'] as String? ?? '';
+          _cityController.text = location?['city'] as String? ?? '';
+          _stateController.text = location?['state'] as String? ?? '';
+          _openTimeController.text = location?['openTime'] as String? ?? '08:00';
+          _closeTimeController.text = location?['closeTime'] as String? ?? '22:00';
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -64,7 +83,10 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
   }
 
   Future<void> _saveVendorDetails() async {
-    if (_vendorId == null || _vendorId!.isEmpty) return;
+    if (_businessNameController.text.trim().isEmpty) {
+      setState(() => _error = 'Business Name is required');
+      return;
+    }
 
     setState(() {
       _saving = true;
@@ -76,16 +98,27 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
         'description': _descriptionController.text.trim(),
         'imageUrl': _imageUrlController.text.trim(),
         'location': {
+          'address': _streetController.text.trim(),
           'street': _streetController.text.trim(),
           'city': _cityController.text.trim(),
           'state': _stateController.text.trim(),
+          'openTime': _openTimeController.text.trim(),
+          'closeTime': _closeTimeController.text.trim(),
         },
       };
 
-      await ApiService.updateVendor(_vendorId!, payload);
+      if (_vendorId != null && _vendorId!.isNotEmpty) {
+        await ApiService.updateVendor(_vendorId!, payload);
+      } else {
+        final newVendor = await ApiService.createVendor(payload);
+        _vendorId = newVendor['id'] as String?;
+      }
+      
+      AuthService.invalidateProfile();
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen details updated successfully.')));
-      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kitchen details saved successfully.')));
+      Navigator.pop(context, true); // Return true to trigger reload in parent
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -93,6 +126,20 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
           _saving = false;
         });
       }
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context, TextEditingController controller) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null && mounted) {
+      final hour = picked.hour.toString().padLeft(2, '0');
+      final minute = picked.minute.toString().padLeft(2, '0');
+      setState(() {
+        controller.text = '$hour:$minute';
+      });
     }
   }
 
@@ -104,6 +151,8 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
     _streetController.dispose();
     _cityController.dispose();
     _stateController.dispose();
+    _openTimeController.dispose();
+    _closeTimeController.dispose();
     super.dispose();
   }
 
@@ -113,7 +162,11 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kitchen Profile')),
+      appBar: AppBar(
+        title: const Text('Kitchen Profile'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
       body: _loading 
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -138,16 +191,20 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 _buildTextField('State', _stateController),
-                const SizedBox(height: 24),
-                ElevatedButton(
+                const SizedBox(height: 12),
+                
+                Row(
+                  children: [
+                    _buildTimeField('Open Time', _openTimeController),
+                    const SizedBox(width: 12),
+                    _buildTimeField('Close Time', _closeTimeController),
+                  ],
+                ),
+                const SizedBox(height: 28),
+                
+                PlokitchButton(
+                  text: _saving ? 'Saving...' : 'Save Kitchen Details',
                   onPressed: _saving ? null : _saveVendorDetails,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: _saving 
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
-                      : const Text('Save Kitchen Details', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -161,6 +218,21 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Widget _buildTimeField(String label, TextEditingController controller) {
+    return Expanded(
+      child: TextField(
+        controller: controller,
+        readOnly: true,
+        onTap: () => _selectTime(context, controller),
+        decoration: InputDecoration(
+          labelText: label,
+          suffixIcon: const Icon(Icons.access_time),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        ),
       ),
     );
   }
