@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
@@ -125,15 +126,17 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       _isDishAvailable = true;
     }
 
+    final mainContext = context;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          height: MediaQuery.of(context).size.height * 0.85,
+      builder: (modalContext) => StatefulBuilder(
+        builder: (_, setModalState) => Container(
+          height: MediaQuery.of(modalContext).size.height * 0.85,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
+            color: Theme.of(modalContext).colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: const EdgeInsets.all(24),
@@ -144,8 +147,8 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(existingItem == null ? 'Add New Dish' : 'Edit Dish', 
-                       style: Theme.of(context).textTheme.headlineMedium),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                       style: Theme.of(modalContext).textTheme.headlineMedium),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(modalContext)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -177,7 +180,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(child: Text('Mark as Add-on', style: Theme.of(context).textTheme.bodyLarge)),
+                        Expanded(child: Text('Mark as Add-on', style: Theme.of(modalContext).textTheme.bodyLarge)),
                         Switch(
                           value: _isDishAddOn,
                           onChanged: (v) => setModalState(() => _isDishAddOn = v),
@@ -188,7 +191,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(child: Text('Available for order', style: Theme.of(context).textTheme.bodyLarge)),
+                        Expanded(child: Text('Available for order', style: Theme.of(modalContext).textTheme.bodyLarge)),
                         Switch(
                           value: _isDishAvailable,
                           onChanged: (v) => setModalState(() => _isDishAvailable = v),
@@ -196,7 +199,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text('Images (Max 4)', style: Theme.of(context).textTheme.titleMedium),
+                    Text('Images (Max 4)', style: Theme.of(modalContext).textTheme.titleMedium),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -249,18 +252,22 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                 child: ElevatedButton(
                   onPressed: _isSavingDish ? null : () async {
                     if (_vendorId == null) return;
-                    
+
                     final name = _dishNameController.text.trim();
                     final price = double.tryParse(_dishPriceController.text) ?? 0.0;
                     final desc = _dishDescController.text.trim();
                     final category = _dishCategoryController.text.trim();
 
                     if (name.isEmpty || price <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter valid name and price.')));
+                      ScaffoldMessenger.of(modalContext).showSnackBar(SnackBar(
+                        content: const Text('Please enter valid name and price.'),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ));
                       return;
                     }
 
-                    setState(() => _isSavingDish = true);
+                    setModalState(() => _isSavingDish = true);
                     try {
                       final payload = {
                         'name': name,
@@ -278,29 +285,96 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
                       } else {
                         await ApiService.updateMenuItem(_vendorId!, existingItem.id, payload);
                       }
-                      
+
                       if (mounted) {
-                        Navigator.pop(context);
+                        Navigator.pop(modalContext);
                         _loadKitchenData();
+                        _showSuccessDialog(mainContext, existingItem == null ? 'Dish added to your menu.' : 'Dish updated successfully.');
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
-                      }
-                    } finally {
-                      if (mounted) {
-                        setState(() => _isSavingDish = false);
+                        setModalState(() => _isSavingDish = false);
+                        ScaffoldMessenger.of(modalContext).showSnackBar(SnackBar(
+                          content: Text('Failed to save: $e'),
+                          backgroundColor: Colors.red.shade800,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ));
                       }
                     }
                   },
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: Text(_isSavingDish ? 'Saving...' : 'Save Dish'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: Theme.of(modalContext).colorScheme.primary,
+                    foregroundColor: Theme.of(modalContext).colorScheme.onPrimary,
+                    disabledBackgroundColor: Theme.of(modalContext).colorScheme.onSurface.withValues(alpha: 0.12),
+                    elevation: 0,
+                  ),
+                  child: _isSavingDish
+                      ? const SizedBox(height: 20, width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Save Dish', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  void _showSuccessDialog(BuildContext dialogContext, String message) {
+    showDialog(
+      context: dialogContext,
+      barrierColor: Colors.black.withValues(alpha: 0.4),
+      builder: (context) {
+        final theme = Theme.of(context);
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: theme.colorScheme.surface,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text('Success!', style: theme.textTheme.headlineMedium?.copyWith(color: theme.colorScheme.primary)),
+                const SizedBox(height: 12),
+                Text(message, style: theme.textTheme.bodyMedium),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Okay', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
