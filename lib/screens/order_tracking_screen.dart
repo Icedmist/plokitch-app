@@ -1,17 +1,85 @@
 import 'package:flutter/material.dart';
+import '../models/order_model.dart';
+import '../services/api_service.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
-  const OrderTrackingScreen({super.key});
+  final String? orderId;
+
+  const OrderTrackingScreen({super.key, this.orderId});
 
   @override
   State<OrderTrackingScreen> createState() => _OrderTrackingScreenState();
 }
 
 class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
-  // 0: Placed, 1: Cooking, 2: Picked Up, 3: Arriving
-  final int _currentStatus = 1; 
+  OrderModel? _order;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrder();
+  }
+
+  Future<void> _fetchOrder() async {
+    if (widget.orderId == null) {
+      setState(() {
+        _loading = false;
+        _error = 'No order ID provided';
+      });
+      return;
+    }
+
+    try {
+      final order = await ApiService.fetchOrder(widget.orderId!);
+      if (mounted) {
+        setState(() {
+          _order = order;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Failed to load order';
+        });
+      }
+    }
+  }
+
+  /// Map Solvix/Plokitch status to a tracking step index (0-3).
+  int _getTrackingStep() {
+    final status = _order?.solvixStatus ?? _order?.status ?? 'pending';
+    switch (status.toLowerCase()) {
+      case 'pending':
+      case 'confirmed':
+      case 'preparing':
+        return 0;
+      case 'ready':
+      case 'assigned':
+      case 'picked_up':
+      case 'picking':
+        return 1;
+      case 'in_transit':
+      case 'delivering':
+        return 2;
+      case 'delivered':
+      case 'completed':
+        return 3;
+      case 'cancelled':
+        return -1; // cancelled
+      default:
+        return 0;
+    }
+  }
+
+  String _formatCurrency(double amount) {
+    return '₦${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,113 +91,193 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         title: 'Track Order',
         showMenu: false,
       ),
-      body: Stack(
-        children: [
-          // Map Background (Placeholder)
-          Positioned.fill(
-            child: Image.network(
-              'https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-              fit: BoxFit.cover,
-            ),
-          ),
-          
-          // Map Overlay Pin
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF35301D), // inverseSurface
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4)),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: colorScheme.error),
+                      const SizedBox(height: 16),
+                      Text(_error!, style: textTheme.bodyLarge),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _loading = true;
+                            _error = null;
+                          });
+                          _fetchOrder();
+                        },
+                        child: const Text('Retry'),
+                      ),
                     ],
                   ),
-                  child: Text(
-                    'Rider En Route — 12 mins',
-                    style: textTheme.labelLarge?.copyWith(color: colorScheme.primaryContainer),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Icon(Icons.location_on, size: 48, color: colorScheme.primaryContainer),
-              ],
-            ),
+                )
+              : _buildTrackingBody(colorScheme, textTheme),
+    );
+  }
+
+  Widget _buildTrackingBody(ColorScheme colorScheme, TextTheme textTheme) {
+    final order = _order!;
+    final step = _getTrackingStep();
+    final solvixRider = order.solvixRiderName;
+    final deliveryAddr = order.deliveryAddress;
+    final addrStr = deliveryAddr != null
+        ? [deliveryAddr['street'], deliveryAddr['city'], deliveryAddr['state']].where((e) => e != null && e.toString().isNotEmpty).join(', ')
+        : '';
+
+    return Stack(
+      children: [
+        // Map Background (Placeholder)
+        Positioned.fill(
+          child: Image.network(
+            'https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            fit: BoxFit.cover,
           ),
-          
-          // Draggable Status Bottom Sheet
-          DraggableScrollableSheet(
-            initialChildSize: 0.55,
-            minChildSize: 0.2,
-            maxChildSize: 0.8,
-            builder: (context, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFF35301D), // inverseSurface
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
-                  ),
+        ),
+
+        // Map Overlay Pin
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF35301D),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4)),
+                  ],
                 ),
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(24),
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                child: Text(
+                  step >= 2 ? 'Rider En Route' : order.solvixStatus == 'assigned' ? 'Rider Assigned' : 'Preparing Order',
+                  style: textTheme.labelLarge?.copyWith(color: colorScheme.primaryContainer),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Icon(Icons.location_on, size: 48, color: colorScheme.primaryContainer),
+            ],
+          ),
+        ),
+
+        // Draggable Status Bottom Sheet
+        DraggableScrollableSheet(
+          initialChildSize: 0.55,
+          minChildSize: 0.2,
+          maxChildSize: 0.8,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF35301D),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(24),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    
+                  ),
+                  const SizedBox(height: 24),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Order #${order.id.substring(0, 8).toUpperCase()}',
+                        style: textTheme.headlineSmall?.copyWith(color: Colors.white),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: colorScheme.primaryContainer),
+                        ),
+                        child: Text(
+                          order.solvixStatus?.toUpperCase() ?? order.status.toUpperCase(),
+                          style: textTheme.labelLarge?.copyWith(color: colorScheme.primaryContainer),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Tracking Progress
+                  _buildTrackingStep('Order Placed', step >= 0 ? 'Confirmed' : 'Pending', step >= 0, step == 0, colorScheme, textTheme),
+                  _buildTrackingStep('Preparing', step >= 1 ? (step == 1 ? 'In Progress...' : 'Done') : 'Pending', step >= 1, step == 1, colorScheme, textTheme),
+                  _buildTrackingStep('Rider Assigned', step >= 2 ? (solvixRider ?? 'Rider on the way') : 'Pending', step >= 2, step == 2, colorScheme, textTheme),
+                  _buildTrackingStep('Delivered', step >= 3 ? 'Completed' : 'Pending', step >= 3, step == 3, colorScheme, textTheme, isLast: true),
+
+                  if (step == -1) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: colorScheme.error.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.cancel_outlined, color: colorScheme.error, size: 20),
+                          const SizedBox(width: 8),
+                          Text('This order was cancelled', style: textTheme.bodyMedium?.copyWith(color: colorScheme.error)),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const Divider(color: Colors.white24, height: 48),
+
+                  // Order Summary
+                  Text('Order Details', style: textTheme.titleLarge?.copyWith(color: Colors.white)),
+                  const SizedBox(height: 16),
+                  ...order.items.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildOrderLine(
+                      '${item['name']} (x${item['quantity']})',
+                      _formatCurrency((item['price'] as num).toDouble() * (item['quantity'] as num).toInt()),
+                      textTheme,
+                    ),
+                  )),
+                  if (order.deliveryFee != null && order.deliveryFee != '0') ...[
+                    const SizedBox(height: 8),
+                    _buildOrderLine('Delivery Fee', _formatCurrency(double.tryParse(order.deliveryFee!) ?? 0), textTheme),
+                  ],
+                  const SizedBox(height: 16),
+                  _buildOrderLine('Total Paid', _formatCurrency(order.totalAmount), textTheme, isTotal: true, colorScheme: colorScheme),
+
+                  if (addrStr.isNotEmpty) ...[
+                    const SizedBox(height: 16),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Order #PK-8249', style: textTheme.headlineSmall?.copyWith(color: Colors.white)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: colorScheme.primaryContainer),
-                          ),
-                          child: Text(
-                            '12:45 PM',
-                            style: textTheme.labelLarge?.copyWith(color: colorScheme.primaryContainer),
-                          ),
+                        Icon(Icons.location_on_outlined, color: colorScheme.primaryContainer, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(addrStr, style: textTheme.bodyMedium?.copyWith(color: Colors.white70)),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
-                    
-                    // Tracking Progress
-                    _buildTrackingStep('Order Placed', '12:30 PM', true, false, colorScheme, textTheme),
-                    _buildTrackingStep('Chef Cooking', 'In Progress...', true, true, colorScheme, textTheme),
-                    _buildTrackingStep('Rider Picked Up', 'Pending', false, false, colorScheme, textTheme),
-                    _buildTrackingStep('Arriving Soon', 'Pending', false, false, colorScheme, textTheme, isLast: true),
-                    
-                    const Divider(color: Colors.white24, height: 48),
-                    
-                    // Order Summary
-                    Text('Order Details', style: textTheme.titleLarge?.copyWith(color: Colors.white)),
-                    const SizedBox(height: 16),
-                    _buildOrderLine('Jollof Rice Feast (x2)', '₦9,000', textTheme),
-                    const SizedBox(height: 8),
-                    _buildOrderLine('Suya Platter (x1)', '₦7,200', textTheme),
-                    const SizedBox(height: 8),
-                    _buildOrderLine('Delivery Fee', '₦800', textTheme),
-                    const SizedBox(height: 16),
-                    _buildOrderLine('Total Paid', '₦17,000', textTheme, isTotal: true, colorScheme: colorScheme),
-                    
-                    const Divider(color: Colors.white24, height: 48),
-                    
-                    // Rider Card
+                  ],
+
+                  const Divider(color: Colors.white24, height: 48),
+
+                  // Rider Card
+                  if (solvixRider != null)
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -141,57 +289,53 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                         children: [
                           CircleAvatar(
                             radius: 24,
-                            backgroundImage: const NetworkImage('https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'),
                             backgroundColor: colorScheme.surface,
+                            child: Icon(Icons.person, color: colorScheme.onSurface),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Musa Ibrahim', style: textTheme.titleMedium?.copyWith(color: Colors.white)),
-                                Row(
-                                  children: [
-                                    Icon(Icons.star, color: colorScheme.primaryContainer, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('4.9 Rating', style: textTheme.bodySmall?.copyWith(color: Colors.white70)),
-                                    const SizedBox(width: 8),
-                                    Text('•', style: textTheme.bodySmall?.copyWith(color: Colors.white70)),
-                                    const SizedBox(width: 8),
-                                    Text('K-JE 324', style: textTheme.labelLarge?.copyWith(color: Colors.white)),
-                                  ],
+                                Text(solvixRider, style: textTheme.titleMedium?.copyWith(color: Colors.white)),
+                                Text(
+                                  order.solvixStatus == 'in_transit' ? 'On the way' : 'Assigned',
+                                  style: textTheme.bodySmall?.copyWith(color: Colors.white70),
                                 ),
                               ],
                             ),
                           ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: colorScheme.primaryContainer,
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.call, color: Colors.white),
-                              onPressed: () {},
-                            ),
+                        ],
+                      ),
+                    )
+                  else if (step >= 1 && step < 3)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.primaryContainer),
                           ),
+                          const SizedBox(width: 12),
+                          Text('Waiting for rider assignment...', style: textTheme.bodyMedium?.copyWith(color: Colors.white70)),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 100), // Space for bottom nav
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      bottomNavigationBar: PlokitchBottomNav(
-        currentIndex: 2, // Orders
-        onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/home');
-          if (index == 3) Navigator.pushReplacementNamed(context, '/settings');
-        },
-      ),
+
+                  const SizedBox(height: 100),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -213,7 +357,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 ),
               ),
               child: isCompleted
-                  ? const Icon(Icons.check, size: 16, color: Color(0xFF663B00)) // onPrimaryContainer
+                  ? const Icon(Icons.check, size: 16, color: Color(0xFF663B00))
                   : null,
             ),
             if (!isLast)

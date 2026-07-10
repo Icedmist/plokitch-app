@@ -237,7 +237,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => Navigator.pushNamed(context, '/tracking'),
+                          onPressed: () => Navigator.pushNamed(context, '/tracking', arguments: _availableOrders[0].id),
                           icon: const Icon(Icons.map, size: 18),
                           label: const Text('Open Map'),
                           style: ElevatedButton.styleFrom(

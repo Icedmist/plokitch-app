@@ -4,7 +4,6 @@ import '../widgets/plokitch_button.dart';
 import '../services/cart_service.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../services/mail_service.dart';
 import '../models/menu_item_model.dart';
 import '../widgets/plokitch_error_banner.dart';
 

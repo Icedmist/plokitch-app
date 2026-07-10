@@ -73,16 +73,20 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
     }
 
     try {
-      // Trigger Notification
-      String notificationType = 'order_accepted';
-      if (nextStatus.toLowerCase() == 'ready') notificationType = 'order_ready';
-      if (nextStatus.toLowerCase() == 'completed') notificationType = 'order_delivered';
-
-      await MailService.sendOrderNotification(
-        orderId: order.id,
-        recipientEmail: 'customer-placeholder@plokitch.com', // In real app, fetch customer email
-        type: notificationType,
-      );
+      // Send email notification for status change
+      if (nextStatus.toLowerCase() == 'ready' || nextStatus.toLowerCase() == 'completed') {
+        final emailType = nextStatus.toLowerCase() == 'ready' ? 'order_ready' : 'order_delivered';
+        await MailService.sendAction(
+          action: emailType,
+          payload: {
+            'order': order.toJson(),
+            'customerName': order.customerName ?? 'Customer',
+            'customerEmail': 'customer@plokitch.com',
+            'vendorName': 'Kitchen',
+            'vendorEmail': 'kitchen@plokitch.com',
+          },
+        );
+      }
 
       setState(() {
         _orders[index] = order.copyWith(status: nextStatus);

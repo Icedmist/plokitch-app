@@ -30,7 +30,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     try {
       final profile = await AuthService.getProfile();
       final customerId = profile?['id'];
-      
+
       final fetched = await ApiService.fetchOrders(customerId: customerId);
       if (mounted) {
         setState(() {
@@ -75,77 +75,85 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                         final itemsSummary = order.items.map((i) => i['name'] ?? 'Item').join(', ');
                         final date = order.createdAt?.split('T').first ?? '--';
 
-                        return Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: colorScheme.outlineVariant),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('#${order.id.substring(0, order.id.length > 8 ? 8 : order.id.length)}', style: textTheme.labelLarge?.copyWith(color: colorScheme.primary)),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: isDelivered
-                                          ? Colors.green.withValues(alpha: 0.15)
-                                          : colorScheme.errorContainer.withValues(alpha: 0.3),
-                                      borderRadius: BorderRadius.circular(20),
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(context, '/tracking', arguments: order.id);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: colorScheme.outlineVariant),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      '#${order.id.substring(0, order.id.length > 8 ? 8 : order.id.length)}',
+                                      style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
                                     ),
-                                    child: Text(
-                                      order.status,
-                                      style: textTheme.labelSmall?.copyWith(
-                                        color: isDelivered ? Colors.green.shade700 : colorScheme.error,
-                                        fontWeight: FontWeight.bold,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isDelivered
+                                            ? Colors.green.withValues(alpha: 0.15)
+                                            : colorScheme.errorContainer.withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        order.status,
+                                        style: textTheme.labelSmall?.copyWith(
+                                          color: isDelivered ? Colors.green.shade700 : colorScheme.error,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Icon(Icons.storefront, size: 16, color: colorScheme.onSurfaceVariant),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      order.vendorName ?? 'Local Kitchen',
-                                      style: textTheme.titleSmall?.copyWith(color: colorScheme.onSurface),
-                                      overflow: TextOverflow.ellipsis,
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(Icons.storefront, size: 16, color: colorScheme.onSurfaceVariant),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        order.vendorName ?? 'Local Kitchen',
+                                        style: textTheme.titleSmall?.copyWith(color: colorScheme.onSurface),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                itemsSummary,
-                                style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const Divider(height: 20),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(Icons.schedule, size: 14, color: colorScheme.outline),
-                                      const SizedBox(width: 4),
-                                      Text(date, style: textTheme.bodySmall?.copyWith(color: colorScheme.outline)),
-                                    ],
-                                  ),
-                                  Text(
-                                    '₦${order.totalAmount.toStringAsFixed(2)}',
-                                    style: textTheme.titleMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  itemsSummary,
+                                  style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const Divider(height: 20),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(Icons.schedule, size: 14, color: colorScheme.outline),
+                                        const SizedBox(width: 4),
+                                        Text(date, style: textTheme.bodySmall?.copyWith(color: colorScheme.outline)),
+                                      ],
+                                    ),
+                                    Text(
+                                      '₦${order.totalAmount.toStringAsFixed(2)}',
+                                      style: textTheme.titleMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },

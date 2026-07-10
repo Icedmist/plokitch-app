@@ -16,13 +16,20 @@ class MailService {
     return base;
   }
 
-  /// Sends an email notification via the backend.
-  /// [type] can be 'order_placed', 'order_accepted', 'order_processing', 'order_ready', 'order_delivered'.
-  static Future<void> sendOrderNotification({
-    required String orderId,
-    required String recipientEmail,
-    required String type,
-    Map<String, dynamic>? metadata,
+  /// Sends an email notification via the backend compatibility endpoint.
+  ///
+  /// The backend expects: { action: string, payload: {...} }
+  ///
+  /// Supported actions:
+  ///   - 'welcome'
+  ///   - 'order_receipt'
+  ///   - 'new_order_vendor'
+  ///   - 'order_delivering'
+  ///   - 'order_completed'
+  ///   - 'order_cancelled'
+  static Future<void> sendAction({
+    required String action,
+    required Map<String, dynamic> payload,
   }) async {
     try {
       final uri = _uri('/api/notifications/email');
@@ -30,35 +37,125 @@ class MailService {
         uri,
         headers: await _headers(),
         body: json.encode({
-          'orderId': orderId,
-          'email': recipientEmail,
-          'type': type,
-          'metadata': metadata ?? {},
+          'action': action,
+          'payload': payload,
         }),
       );
 
       if (res.statusCode >= 400) {
-        // Silently log or handle error - we don't want to crash the app if mail fails
-        print('Mail notification failed: ${res.body}');
+        print('[MailService] Email failed ($action): ${res.body}');
       }
     } catch (e) {
-      print('Error sending mail notification: $e');
+      print('[MailService] Error sending email ($action): $e');
     }
   }
 
-  /// Convenience method for when an order is placed.
-  static Future<void> notifyOrderPlaced(String orderId, String userEmail, String vendorEmail) async {
-    // Notify customer
-    await sendOrderNotification(
-      orderId: orderId,
-      recipientEmail: userEmail,
-      type: 'order_placed',
+  /// Convenience: order placed → notify customer + vendor.
+  static Future<void> notifyOrderPlaced({
+    required String orderId,
+    required String customerName,
+    required String customerEmail,
+    required String vendorName,
+    required String vendorEmail,
+    required Map<String, dynamic> order,
+  }) async {
+    await Future.wait([
+      sendAction(
+        action: 'order_receipt',
+        payload: {
+          'order': order,
+          'customerName': customerName,
+          'customerEmail': customerEmail,
+          'vendorName': vendorName,
+        },
+      ),
+      sendAction(
+        action: 'new_order_vendor',
+        payload: {
+          'order': order,
+          'vendorEmail': vendorEmail,
+          'vendorName': vendorName,
+          'customerName': customerName,
+        },
+      ),
+    ]);
+  }
+
+  /// Rider assigned → notify customer.
+  static Future<void> notifyRiderAssigned({
+    required Map<String, dynamic> order,
+    required String customerName,
+    required String customerEmail,
+    required String riderName,
+  }) async {
+    await sendAction(
+      action: 'order_assigned',
+      payload: {
+        'order': order,
+        'customerName': customerName,
+        'customerEmail': customerEmail,
+        'riderName': riderName,
+      },
     );
-    // Notify vendor
-    await sendOrderNotification(
-      orderId: orderId,
-      recipientEmail: vendorEmail,
-      type: 'new_order_received',
+  }
+
+  /// Order picked up / in transit → notify customer.
+  static Future<void> notifyOrderDelivering({
+    required Map<String, dynamic> order,
+    required String customerName,
+    required String customerEmail,
+  }) async {
+    await sendAction(
+      action: 'order_delivering',
+      payload: {
+        'order': order,
+        'customerName': customerName,
+        'customerEmail': customerEmail,
+      },
+    );
+  }
+
+  /// Order delivered → notify customer + vendor + rider.
+  static Future<void> notifyOrderDelivered({
+    required Map<String, dynamic> order,
+    required String customerName,
+    required String customerEmail,
+    required String vendorName,
+    required String vendorEmail,
+    String? riderName,
+    String? riderEmail,
+  }) async {
+    await sendAction(
+      action: 'order_completed',
+      payload: {
+        'order': order,
+        'customerName': customerName,
+        'customerEmail': customerEmail,
+        'vendorName': vendorName,
+        'vendorEmail': vendorEmail,
+        if (riderName != null) 'riderName': riderName,
+        if (riderEmail != null) 'riderEmail': riderEmail,
+      },
+    );
+  }
+
+  /// Order cancelled → notify vendor + rider.
+  static Future<void> notifyOrderCancelled({
+    required Map<String, dynamic> order,
+    required String vendorName,
+    required String vendorEmail,
+    String? riderName,
+    String? riderEmail,
+  }) async {
+    await sendAction(
+      action: 'order_cancelled',
+      payload: {
+        'order': order,
+        'vendorName': vendorName,
+        'vendorEmail': vendorEmail,
+        if (riderName != null) 'riderName': riderName,
+        if (riderEmail != null) 'riderEmail': riderEmail,
+      },
     );
   }
 }

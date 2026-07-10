@@ -253,4 +253,12 @@ class ApiService {
     DataCacheService.set(cacheKey, result);
     return result;
   }
+
+  static Future<OrderModel> fetchOrder(String orderId) async {
+    final uri = _uri('/api/orders/$orderId');
+    final res = await http.get(uri, headers: await _headers());
+    if (res.statusCode != 200) throw Exception('Failed to fetch order');
+    final body = json.decode(res.body) as Map<String, dynamic>;
+    return OrderModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+  }
 }

@@ -76,10 +76,15 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
 
         final profile = await AuthService.getProfile();
         if (profile != null && profile['email'] != null) {
+          final vendorName = widget.orderPayload!['vendorName']?.toString() ?? 'Kitchen';
+          final customerName = profile['name']?.toString() ?? profile['email'].toString();
           await MailService.notifyOrderPlaced(
-            _confirmedOrderId!,
-            profile['email'].toString(),
-            widget.orderPayload!['vendorEmail']?.toString() ?? 'kitchen@plokitch.com',
+            orderId: _confirmedOrderId!,
+            customerName: customerName,
+            customerEmail: profile['email'].toString(),
+            vendorName: vendorName,
+            vendorEmail: widget.orderPayload!['vendorEmail']?.toString() ?? 'kitchen@plokitch.com',
+            order: order,
           );
         }
 
@@ -421,7 +426,7 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
           PlokitchButton(
             text: 'Track My Order',
             onPressed: () {
-              Navigator.pushReplacementNamed(context, '/tracking');
+              Navigator.pushReplacementNamed(context, '/tracking', arguments: _confirmedOrderId);
             },
           ),
           const SizedBox(height: 16),

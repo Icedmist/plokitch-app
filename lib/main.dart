@@ -100,7 +100,10 @@ class PlokitchApp extends StatelessWidget {
               final args = ModalRoute.of(context)?.settings.arguments;
               return PaymentScreen(orderPayload: args is Map<String, dynamic> ? args : null);
             },
-            '/tracking': (context) => const OrderTrackingScreen(),
+            '/tracking': (context) {
+              final args = ModalRoute.of(context)?.settings.arguments;
+              return OrderTrackingScreen(orderId: args is String ? args : null);
+            },
             '/order-history': (context) => const MainNavigationShell(initialIndex: 2),
             '/notifications': (context) => const NotificationsScreen(),
             '/settings': (context) => const MainNavigationShell(initialIndex: 3),
