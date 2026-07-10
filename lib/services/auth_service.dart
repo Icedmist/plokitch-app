@@ -224,6 +224,15 @@ class AuthService {
   static Future<Map<String, String>> authHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_sessionKey);
-    return _buildHeaders(token);
+    final headers = _buildHeaders(token);
+
+    final role = prefs.getString(_roleKey);
+    if (role == 'admin') {
+      final overrideRole = prefs.getString('admin_active_role');
+      if (overrideRole != null && overrideRole.isNotEmpty) {
+        headers['x-admin-active-role'] = overrideRole;
+      }
+    }
+    return headers;
   }
 }
