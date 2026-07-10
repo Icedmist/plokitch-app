@@ -79,6 +79,14 @@ graph TD
   * **Raw JSON Rendering on Orders Screen**: Corrected the string parser helper `_extractString` in [order_model.dart](file:///home/adam/Projects/plokitch-app/lib/models/order_model.dart) to extract the `'businessName'` and `'business_name'` keys from vendor JSON maps (instead of printing the raw serialized map object on the screen).
   * **Horizontal Overflow**: Wrapped the vendor name text inside [order_history_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/order_history_screen.dart) with an `Expanded` widget and `TextOverflow.ellipsis`, ensuring the UI behaves responsively on tablets and wider displays without breaking the layout.
 
+### 9. Chef Dashboard Analytics & Kitchen Empty States
+* **Action**: Replaced static/hardcoded dashboard metrics with 100% real dynamic data tracking and added an elegant kitchen setup empty state.
+* **Details**:
+  * **Dynamic Weekly Analytics Chart**: Configured [chef_dashboard_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/chef_dashboard_screen.dart) to compute day-by-day weekly revenue sums dynamically by parsing order creation timestamps of all active (non-cancelled) database orders.
+  * **Today Highlight**: Programmatically determines the current weekday (using `DateTime.now()`) to highlight the active bar inside the chart, rather than using a static placeholder day.
+  * **Real Stats Tracking**: Replaced all hardcoded/seeded stats values (e.g. "+12.4% vs last week") with real order calculations and counts, updating in real-time when the state changes.
+  * **Kitchen Setup Empty State**: Intercepted missing kitchen 404/not found fetch errors in [kitchen_management_screen.dart](file:///home/adam/Projects/plokitch-app/lib/screens/kitchen_management_screen.dart) and replaced the raw Exception text with a beautiful storefront empty state. It explains the setup process and features a clean direct button shortcut to create/configure a kitchen.
+
 ---
 
 ## 📂 Modified Files

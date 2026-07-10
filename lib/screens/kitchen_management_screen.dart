@@ -64,8 +64,18 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
         }
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _error = e.toString());
+      final errStr = e.toString();
+      if (errStr.contains('Failed to fetch vendor') || errStr.contains('not found') || errStr.contains('404')) {
+        if (mounted) {
+          setState(() {
+            _vendorData = null;
+            _error = null;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() => _error = errStr);
+        }
       }
     } finally {
       if (mounted) {
@@ -321,51 +331,117 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // Quick Stats
-          Row(
-            children: [
-              Expanded(
-                child: _buildSimpleStat('Posted Dishes', '${_menuItems.length}', Icons.restaurant_menu, colorScheme, textTheme),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildSimpleStat('Active Orders', '${_activeOrders.length}', Icons.shopping_bag, colorScheme, textTheme),
-              ),
-            ],
+          if (_loading)
+            const SizedBox(
+              height: 200,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            SizedBox(
+              height: 200,
+              child: Center(child: Text('Error: $_error')),
+            )
+          else if (_vendorData == null)
+            _buildNoKitchenState(colorScheme, textTheme)
+          else ...[
+            // Quick Stats
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSimpleStat('Posted Dishes', '${_menuItems.length}', Icons.restaurant_menu, colorScheme, textTheme),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildSimpleStat('Active Orders', '${_activeOrders.length}', Icons.shopping_bag, colorScheme, textTheme),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Your Menu', style: textTheme.headlineMedium?.copyWith(color: colorScheme.secondary)),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddDishModal(),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add Dish'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_menuItems.isEmpty)
+              const Center(child: Text('No menu items found'))
+            else
+              ..._menuItems.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                return _buildMenuItem(index, item, colorScheme, textTheme);
+              }),
+          ],
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoKitchenState(ColorScheme colorScheme, TextTheme textTheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.storefront, 
+              color: colorScheme.primary, 
+              size: 48
+            ),
           ),
           const SizedBox(height: 24),
-          
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Your Menu', style: textTheme.headlineMedium?.copyWith(color: colorScheme.secondary)),
-              ElevatedButton.icon(
-                onPressed: () => _showAddDishModal(),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Dish'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
+          Text(
+            'No Kitchen Setup Yet', 
+            style: textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
           ),
-          const SizedBox(height: 16),
-          
-          if (_loading)
-            const Center(child: CircularProgressIndicator())
-          else if (_error != null)
-            Center(child: Text('Error: $_error'))
-          else if (_menuItems.isEmpty)
-            const Center(child: Text('No menu items found'))
-          else
-            ..._menuItems.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              return _buildMenuItem(index, item, colorScheme, textTheme);
-            }),
-          
-          const SizedBox(height: 100),
+          const SizedBox(height: 8),
+          Text(
+            'You need to create your kitchen profile before you can add dishes and start receiving orders.',
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () async {
+              await Navigator.pushNamed(context, '/kitchen-settings');
+              _loadKitchenData();
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Set Up Kitchen'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
         ],
       ),
     );
