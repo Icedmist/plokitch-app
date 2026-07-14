@@ -15,8 +15,8 @@ class SupabaseService {
 
   Future<Map<String, dynamic>?> getProfile(String userId) async {
     try {
-      final resp = await client.from('profiles').select().eq('id', userId).single().execute();
-      return (resp as dynamic).data as Map<String, dynamic>?;
+      final resp = await client.from('profiles').select().eq('id', userId).maybeSingle();
+      return resp;
     } catch (e) {
       throw Exception('Failed to fetch profile: $e');
     }

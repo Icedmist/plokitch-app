@@ -62,7 +62,7 @@ class LocationService {
   /// Reverse geocode coordinates to a simple address map.
   static Future<Map<String, dynamic>> reverseGeocode(Position pos) async {
     try {
-      final placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+      final placemarks = await Geocoding().placemarkFromCoordinates(pos.latitude, pos.longitude);
       if (placemarks.isEmpty) return {'street': '', 'city': '', 'state': ''};
       final p = placemarks.first;
       final street = [p.street, p.subLocality].where((s) => s != null && s.isNotEmpty).join(', ');

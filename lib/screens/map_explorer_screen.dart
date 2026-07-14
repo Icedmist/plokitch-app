@@ -88,11 +88,13 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
             child: FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                center: _currentCenter,
-                zoom: 14,
+                initialCenter: _currentCenter,
+                initialZoom: 14,
                 minZoom: 10,
                 maxZoom: 18,
-                interactiveFlags: InteractiveFlag.all,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all,
+                ),
               ),
               children: [
                 TileLayer(
@@ -107,7 +109,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                       width: 40,
                       height: 40,
                       point: _currentCenter,
-                      builder: (context) => Container(
+                      child: Container(
                         decoration: BoxDecoration(
                           color: colorScheme.primary.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
@@ -133,7 +135,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                         width: 120,
                         height: 60,
                         point: LatLng(lat, lng),
-                        builder: (context) => _buildMapPin(v.businessName, colorScheme, textTheme, vendorId: v.id),
+                        child: _buildMapPin(v.businessName, colorScheme, textTheme, vendorId: v.id),
                       );
                     }).toList(),
                   ],
