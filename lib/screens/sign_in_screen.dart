@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/plokitch_button.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
@@ -101,297 +100,369 @@ class _SignInScreenState extends State<SignInScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: Navigator.of(context).canPop()
-            ? Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.08),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, size: 20),
-                    color: colorScheme.primary,
-                    padding: EdgeInsets.zero,
-                    onPressed: () => Navigator.maybePop(context),
-                  ),
+      body: Stack(
+        children: [
+          // ── Background Image ───────────────────────────────────────────────
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/signin_background.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Gradient Overlay at the top to keep status bar / icons visible
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 140,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.35),
+                    Colors.transparent,
+                  ],
                 ),
-              )
-            : null,
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // ── Logo Header ──────────────────────────────────────
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/images/Plokitch_Bracket_Left.png',
-                              width: 36,
-                              height: 36,
-                              fit: BoxFit.contain,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Plokitch',
-                              style: textTheme.headlineLarge?.copyWith(
-                                color: colorScheme.primary,
-                                fontSize: 32,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Image.asset(
-                              'assets/images/Plokitch_Bracket_Right.png',
-                              width: 36,
-                              height: 36,
-                              fit: BoxFit.contain,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
+              ),
+            ),
+          ),
 
-                        // ── Authentication Card ──────────────────────────────
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 460),
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: colorScheme.surface,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.04),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 8),
+          // ── Main Content & Scrollable Card ───────────────────────────────
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        children: [
+                          // ── Top Navigation Bar ─────────────────────────────────
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Back Button
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surface.withValues(alpha: 0.9),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.05),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(Icons.arrow_back, color: colorScheme.primary, size: 20),
+                                    onPressed: () => Navigator.maybePop(context),
+                                  ),
+                                ),
+                                // Register/Log in top action pill
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pushReplacementNamed(context, '/onboarding');
+                                  },
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: colorScheme.surface.withValues(alpha: 0.9),
+                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    shadowColor: Colors.black.withValues(alpha: 0.1),
+                                    elevation: 2,
+                                  ),
+                                  child: Text(
+                                    'Register',
+                                    style: TextStyle(
+                                      color: colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            padding: const EdgeInsets.all(24.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Align(
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    'Welcome Back',
-                                    textAlign: TextAlign.center,
-                                    style: textTheme.headlineMedium?.copyWith(
-                                      color: colorScheme.primary,
-                                      fontSize: 24,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    'Sign in to order or manage your kitchen.',
-                                    textAlign: TextAlign.center,
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 32),
-
-                              _buildTextField(
-                                controller: _emailController,
-                                label: 'Email / Phone Number',
-                                hint: 'amina@example.com',
-                                icon: Icons.person_outline,
-                                keyboardType: TextInputType.emailAddress,
-                                colorScheme: colorScheme,
-                                textTheme: textTheme,
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Password Field
-                              Text(
-                                'Password',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              TextField(
-                                controller: _passwordController,
-                                obscureText: !_isPasswordVisible,
-                                decoration: InputDecoration(
-                                  hintText: '••••••••',
-                                  hintStyle: textTheme.bodyLarge?.copyWith(
-                                    color: colorScheme.outline.withValues(alpha: 0.6),
-                                  ),
-                                  prefixIcon: Icon(Icons.lock_outline, color: colorScheme.onSurfaceVariant),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _isPasswordVisible = !_isPasswordVisible;
-                                      });
-                                    },
-                                  ),
-                                  filled: true,
-                                  fillColor: colorScheme.surfaceContainerHigh,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide(color: colorScheme.outlineVariant),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide(color: colorScheme.outlineVariant),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide(color: colorScheme.primary, width: 2),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton(
-                                  onPressed: () {
-                                    Navigator.pushNamed(context, '/forgot-password');
-                                  },
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: const Size(50, 30),
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: Text(
-                                    'Forgot Password?',
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      color: colorScheme.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 24),
-
-                              PlokitchButton(
-                                text: _loading ? 'Signing in...' : 'Sign In',
-                                onPressed: _loading
-                                    ? null
-                                    : () {
-                                        _handleSignIn();
-                                      },
-                              ),
-                            ],
                           ),
-                        ),
-                      ),
+                          
+                          const Spacer(),
 
-                        const SizedBox(height: 32),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Don\'t have an account? ',
-                              style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pushReplacementNamed(context, '/onboarding');
-                              },
-                              child: Text(
-                                'Sign Up',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.underline,
+                          // ── Floating Sign In Card ──────────────────────────────
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 460),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(32),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.15),
+                                      blurRadius: 30,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    // Title
+                                    Text(
+                                      'Welcome Back',
+                                      style: textTheme.headlineMedium?.copyWith(
+                                        color: colorScheme.primary,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Google Sign In Button
+                                    _buildSocialButton(
+                                      text: 'Sign in with Google',
+                                      iconWidget: ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: Image.network(
+                                          'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1024px-Google_%22G%22_logo.svg.png',
+                                          width: 20,
+                                          height: 20,
+                                          errorBuilder: (context, error, stackTrace) => Text(
+                                            'G',
+                                            style: TextStyle(
+                                              color: colorScheme.primary,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        // Placeholder for Google Auth flow
+                                      },
+                                      backgroundColor: colorScheme.surface,
+                                      foregroundColor: colorScheme.onSurface,
+                                      side: BorderSide(color: colorScheme.outlineVariant),
+                                    ),
+                                    const SizedBox(height: 12),
+
+                                    // Apple Sign In Button
+                                    _buildSocialButton(
+                                      text: 'Sign in with Apple',
+                                      iconWidget: Icon(Icons.apple, color: colorScheme.surface, size: 22),
+                                      onPressed: () {
+                                        // Placeholder for Apple Auth flow
+                                      },
+                                      backgroundColor: const Color(0xFF131314),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Or Divider
+                                    Row(
+                                      children: [
+                                        Expanded(child: Divider(color: colorScheme.outlineVariant, height: 1)),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                                          child: Text(
+                                            'or sign in with email',
+                                            style: textTheme.bodyMedium?.copyWith(
+                                              color: colorScheme.outline,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(child: Divider(color: colorScheme.outlineVariant, height: 1)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Email Address Text Field
+                                    _buildModernTextField(
+                                      controller: _emailController,
+                                      label: 'Email',
+                                      hint: 'amina@example.com',
+                                      keyboardType: TextInputType.emailAddress,
+                                      colorScheme: colorScheme,
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    // Password Text Field
+                                    _buildModernTextField(
+                                      controller: _passwordController,
+                                      label: 'Password',
+                                      hint: '••••••••',
+                                      obscureText: !_isPasswordVisible,
+                                      colorScheme: colorScheme,
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                                          color: colorScheme.outline,
+                                        ),
+                                        onPressed: () {
+                                          setState(() => _isPasswordVisible = !_isPasswordVisible);
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+
+                                    // Email Sign In Action Button
+                                    OutlinedButton(
+                                      onPressed: _loading ? null : _handleSignIn,
+                                      style: OutlinedButton.styleFrom(
+                                        side: BorderSide(color: colorScheme.outlineVariant, width: 1.5),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(28),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        backgroundColor: colorScheme.surface,
+                                        elevation: 0,
+                                      ),
+                                      child: Text(
+                                        _loading ? 'SIGNING IN...' : 'SIGN IN WITH EMAIL',
+                                        style: TextStyle(
+                                          color: colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.2,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    // Forgot Password Link
+                                    Center(
+                                      child: TextButton(
+                                        onPressed: () {
+                                          Navigator.pushNamed(context, '/forgot-password');
+                                        },
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: const Size(50, 30),
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        child: Text(
+                                          'I forgot my password',
+                                          style: TextStyle(
+                                            color: colorScheme.primary,
+                                            decoration: TextDecoration.underline,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-            );
-          },
-        ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTextField({
-    TextEditingController? controller,
+  Widget _buildSocialButton({
+    required String text,
+    required Widget iconWidget,
+    required VoidCallback onPressed,
+    required Color backgroundColor,
+    required Color foregroundColor,
+    BorderSide? side,
+  }) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: backgroundColor,
+        foregroundColor: foregroundColor,
+        side: side,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        elevation: 0,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          iconWidget,
+          const SizedBox(width: 12),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
     required String label,
     required String hint,
-    required IconData icon,
+    bool obscureText = false,
+    Widget? suffixIcon,
     TextInputType? keyboardType,
     required ColorScheme colorScheme,
-    required TextTheme textTheme,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: textTheme.bodyMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.bold,
-          ),
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      cursorColor: colorScheme.primary,
+      style: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: 15,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        hintStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.4),
+          fontSize: 15,
         ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: textTheme.bodyLarge?.copyWith(
-              color: colorScheme.outline.withValues(alpha: 0.6),
-            ),
-            prefixIcon: Icon(icon, color: colorScheme.onSurfaceVariant),
-            filled: true,
-            fillColor: colorScheme.surfaceContainerHigh,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: colorScheme.outlineVariant),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: colorScheme.outlineVariant),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: colorScheme.primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
+        labelStyle: TextStyle(
+          color: colorScheme.primary,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
         ),
-      ],
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        suffixIcon: suffixIcon,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHigh,
+      ),
     );
   }
 }

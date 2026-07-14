@@ -58,107 +58,113 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, size: 20),
-              color: colorScheme.primary,
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.maybePop(context),
+      body: Stack(
+        children: [
+          // ── Background Image ───────────────────────────────────────────────
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/signin_background.png',
+              fit: BoxFit.cover,
             ),
           ),
-        ),
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
+          // Gradient Overlay at the top to keep status bar / icons visible
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 140,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.35),
+                    Colors.transparent,
+                  ],
                 ),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // ── Logo Header ──────────────────────────────────────
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/images/Plokitch_Bracket_Left.png',
-                              width: 36,
-                              height: 36,
-                              fit: BoxFit.contain,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Plokitch',
-                              style: textTheme.headlineLarge?.copyWith(
-                                color: colorScheme.primary,
-                                fontSize: 32,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Image.asset(
-                              'assets/images/Plokitch_Bracket_Right.png',
-                              width: 36,
-                              height: 36,
-                              fit: BoxFit.contain,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
+              ),
+            ),
+          ),
 
-                        // ── Card Container ───────────────────────────────────
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 460),
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: colorScheme.surface,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.04),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 8),
+          // ── Main Content & Scrollable Card ───────────────────────────────
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        children: [
+                          // ── Top Navigation Bar ─────────────────────────────────
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                // Back Button
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surface.withValues(alpha: 0.9),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.05),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(Icons.arrow_back, color: colorScheme.primary, size: 20),
+                                    onPressed: () => Navigator.maybePop(context),
+                                  ),
                                 ),
                               ],
                             ),
-                            padding: const EdgeInsets.all(24.0),
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 300),
-                              child: _submitted
-                                  ? _buildSuccessState(colorScheme, textTheme)
-                                  : _buildFormState(colorScheme, textTheme),
+                          ),
+                          
+                          const Spacer(),
+
+                          // ── Floating Reset Card ─────────────────────────────────
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 460),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(32),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.15),
+                                      blurRadius: 30,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.all(24.0),
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  child: _submitted
+                                      ? _buildSuccessState(colorScheme, textTheme)
+                                      : _buildFormState(colorScheme, textTheme),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 32),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-            );
-          },
-        ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -166,35 +172,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget _buildFormState(ColorScheme colorScheme, TextTheme textTheme) {
     return Column(
       key: const ValueKey('form_state'),
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Align(
-          alignment: Alignment.center,
-          child: Text(
-            'Reset Password',
-            textAlign: TextAlign.center,
-            style: textTheme.headlineMedium?.copyWith(
-              color: colorScheme.primary,
-              fontSize: 24,
-            ),
+        Text(
+          'Reset Password',
+          style: textTheme.headlineMedium?.copyWith(
+            color: colorScheme.primary,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.center,
-          child: Text(
-            'Enter your email address below and we\'ll send you a link to reset your password.',
-            textAlign: TextAlign.center,
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+        Text(
+          'Enter your email address below and we\'ll send you a link to reset your password.',
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.outline,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
         if (_error != null) ...[
           Container(
             padding: const EdgeInsets.all(12),
-            width: double.infinity,
             decoration: BoxDecoration(
               color: colorScheme.errorContainer.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
@@ -207,44 +206,34 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           const SizedBox(height: 16),
         ],
-        Text(
-          'Email Address',
-          style: textTheme.bodyMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
+        _buildModernTextField(
           controller: _emailController,
+          label: 'Email Address',
+          hint: 'amina@example.com',
           keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(
-            hintText: 'amina@example.com',
-            hintStyle: textTheme.bodyLarge?.copyWith(
-              color: colorScheme.outline.withValues(alpha: 0.6),
-            ),
-            prefixIcon: Icon(Icons.email_outlined, color: colorScheme.onSurfaceVariant),
-            filled: true,
-            fillColor: colorScheme.surfaceContainerHigh,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: colorScheme.outlineVariant),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: colorScheme.outlineVariant),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: colorScheme.primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
+          colorScheme: colorScheme,
         ),
-        const SizedBox(height: 32),
-        PlokitchButton(
-          text: _loading ? 'Sending link...' : 'Send Reset Link',
+        const SizedBox(height: 24),
+        OutlinedButton(
           onPressed: _loading ? null : _handleSubmit,
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: colorScheme.outlineVariant, width: 1.5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            backgroundColor: colorScheme.surface,
+            elevation: 0,
+          ),
+          child: Text(
+            _loading ? 'SENDING LINK...' : 'SEND RESET LINK',
+            style: TextStyle(
+              color: colorScheme.primary,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+              fontSize: 14,
+            ),
+          ),
         ),
       ],
     );
@@ -253,17 +242,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget _buildSuccessState(ColorScheme colorScheme, TextTheme textTheme) {
     return Column(
       key: const ValueKey('success_state'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.mark_email_read_outlined,
-            size: 48,
-            color: colorScheme.primaryContainer,
+        Align(
+          alignment: Alignment.center,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF34A853).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.mark_email_read_outlined,
+              size: 48,
+              color: Color(0xFF34A853),
+            ),
           ),
         ),
         const SizedBox(height: 24),
@@ -273,24 +266,90 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           style: textTheme.headlineMedium?.copyWith(
             color: colorScheme.primary,
             fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Text(
           'We\'ve sent a password reset link to ${_emailController.text.trim()}. Please check your email inbox to complete the password reset process.',
           textAlign: TextAlign.center,
           style: textTheme.bodyMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
+            color: colorScheme.outline,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 32),
-        PlokitchButton(
-          text: 'Back to Login',
+        const SizedBox(height: 24),
+        OutlinedButton(
           onPressed: () {
             Navigator.pop(context);
           },
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: colorScheme.outlineVariant, width: 1.5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            backgroundColor: colorScheme.surface,
+            elevation: 0,
+          ),
+          child: const Text(
+            'BACK TO LOGIN',
+            style: TextStyle(
+              color: Color(0xFF3E1F1A),
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+              fontSize: 14,
+            ),
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    TextInputType? keyboardType,
+    required ColorScheme colorScheme,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      cursorColor: colorScheme.primary,
+      style: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: 15,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        hintStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.4),
+          fontSize: 15,
+        ),
+        labelStyle: TextStyle(
+          color: colorScheme.primary,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHigh,
+      ),
     );
   }
 }
