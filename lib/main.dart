@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -82,6 +83,20 @@ class PlokitchApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
       builder: (context, currentMode, child) {
+        final isDark = currentMode == ThemeMode.dark ||
+            (currentMode == ThemeMode.system &&
+                MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+        
+        SystemChrome.setSystemUIOverlayStyle(
+          SystemUiOverlayStyle(
+            systemNavigationBarColor: isDark ? const Color(0xFF14120E) : const Color(0xFFFFF9EC),
+            systemNavigationBarDividerColor: Colors.transparent,
+            systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          ),
+        );
+
         return MaterialApp(
           title: 'Plokitch',
           debugShowCheckedModeBanner: false,
