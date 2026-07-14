@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_button.dart';
-import '../main.dart';
 import '../services/auth_service.dart';
 import '../widgets/plokitch_error_banner.dart';
 
@@ -152,8 +151,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       children: [
         // Background Image
         Positioned.fill(
-          child: Image.network(
-            'https://images.unsplash.com/photo-1604328698692-f76ea9498e76?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+          child: Image.asset(
+            'assets/images/onboarding_welcome.png',
             fit: BoxFit.cover,
           ),
         ),
@@ -356,151 +355,222 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildStep3SignUp(BuildContext context, ColorScheme colorScheme, TextTheme textTheme) {
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Create Account',
-              style: textTheme.headlineLarge?.copyWith(color: colorScheme.primary),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Join Plokitch today.',
-              style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 32),
-            
-            if (_error != null) ...[
-              PlokitchErrorBanner(
-                message: _error!,
-                onDismiss: () => setState(() => _error = null),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
               ),
-              const SizedBox(height: 24),
-            ],
-            
-            _buildTextField(
-              controller: _nameController,
-              label: 'Full Name',
-              hint: 'Amina Yusuf',
-              icon: Icons.person_outline,
-              colorScheme: colorScheme,
-              textTheme: textTheme,
-            ),
-            const SizedBox(height: 16),
-            
-            // Phone Field with +234
-            Text('Phone Number', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: colorScheme.outlineVariant),
-                borderRadius: BorderRadius.circular(12),
-                color: colorScheme.surfaceContainerHigh,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    decoration: BoxDecoration(
-                      border: Border(right: BorderSide(color: colorScheme.outlineVariant)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Text('🇳🇬'),
-                        const SizedBox(width: 8),
-                        Text('+234', style: textTheme.bodyLarge),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        hintText: '801 234 5678',
-                        hintStyle: textTheme.bodyLarge?.copyWith(color: colorScheme.outline),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 460),
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Align(
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'Create Account',
+                                  textAlign: TextAlign.center,
+                                  style: textTheme.headlineMedium?.copyWith(
+                                    color: colorScheme.primary,
+                                    fontSize: 24,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'Join Plokitch today.',
+                                  textAlign: TextAlign.center,
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              if (_error != null) ...[
+                                PlokitchErrorBanner(
+                                  message: _error!,
+                                  onDismiss: () => setState(() => _error = null),
+                                ),
+                                const SizedBox(height: 24),
+                              ],
+                              
+                              _buildTextField(
+                                controller: _nameController,
+                                label: 'Full Name',
+                                hint: 'Amina Yusuf',
+                                icon: Icons.person_outline,
+                                colorScheme: colorScheme,
+                                textTheme: textTheme,
+                              ),
+                              const SizedBox(height: 16),
+                              
+                              // Phone Field with +234
+                              Text(
+                                'Phone Number',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: colorScheme.outlineVariant),
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: colorScheme.surfaceContainerHigh,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                      decoration: BoxDecoration(
+                                        border: Border(right: BorderSide(color: colorScheme.outlineVariant)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Text('🇳🇬'),
+                                          const SizedBox(width: 8),
+                                          Text('+234', style: textTheme.bodyLarge),
+                                        ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _phoneController,
+                                        keyboardType: TextInputType.phone,
+                                        decoration: InputDecoration(
+                                          hintText: '801 234 5678',
+                                          hintStyle: textTheme.bodyLarge?.copyWith(
+                                            color: colorScheme.outline.withValues(alpha: 0.6),
+                                          ),
+                                          border: InputBorder.none,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              
+                              _buildTextField(
+                                controller: _emailController,
+                                label: 'Email',
+                                hint: 'amina@example.com',
+                                icon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                                colorScheme: colorScheme,
+                                textTheme: textTheme,
+                              ),
+                              const SizedBox(height: 16),
+                              
+                              // Password Field
+                              Text(
+                                'Password',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _passwordController,
+                                obscureText: !_isPasswordVisible,
+                                decoration: InputDecoration(
+                                  hintText: '••••••••',
+                                  hintStyle: textTheme.bodyLarge?.copyWith(
+                                    color: colorScheme.outline.withValues(alpha: 0.6),
+                                  ),
+                                  prefixIcon: Icon(Icons.lock_outline, color: colorScheme.onSurfaceVariant),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _isPasswordVisible = !_isPasswordVisible;
+                                      });
+                                    },
+                                  ),
+                                  filled: true,
+                                  fillColor: colorScheme.surfaceContainerHigh,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(color: colorScheme.outlineVariant),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(color: colorScheme.outlineVariant),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              
+                              PlokitchButton(
+                                text: _loading ? 'Creating Account...' : 'Create Account',
+                                onPressed: _loading ? null : _nextPage,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            _buildTextField(
-              controller: _emailController,
-              label: 'Email',
-              hint: 'amina@example.com',
-              icon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              colorScheme: colorScheme,
-              textTheme: textTheme,
-            ),
-            const SizedBox(height: 16),
-            
-            // Password Field
-            Text('Password', style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _passwordController,
-              obscureText: !_isPasswordVisible,
-              decoration: InputDecoration(
-                hintText: '••••••••',
-                prefixIcon: Icon(Icons.lock_outline, color: colorScheme.onSurfaceVariant),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isPasswordVisible = !_isPasswordVisible;
-                    });
-                  },
-                ),
-                filled: true,
-                fillColor: colorScheme.surfaceContainerHigh,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colorScheme.outlineVariant),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colorScheme.outlineVariant),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colorScheme.primary, width: 2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-            
-            PlokitchButton(
-              text: _loading ? 'Creating Account...' : 'Create Account',
-              onPressed: _loading ? null : _nextPage,
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/sign-in');
-                },
-                child: Text(
-                  'Already have an account? Sign In',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.bold,
+                      const SizedBox(height: 32),
+                      Center(
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/sign-in');
+                          },
+                          child: Text(
+                            'Already have an account? Sign In',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -517,29 +587,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
+        Text(
+          label,
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: textTheme.bodyLarge?.copyWith(color: colorScheme.outline),
+            hintStyle: textTheme.bodyLarge?.copyWith(
+              color: colorScheme.outline.withValues(alpha: 0.6),
+            ),
             prefixIcon: Icon(icon, color: colorScheme.onSurfaceVariant),
             filled: true,
             fillColor: colorScheme.surfaceContainerHigh,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: colorScheme.primary, width: 2),
             ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
         ),
       ],

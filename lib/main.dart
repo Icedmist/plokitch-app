@@ -7,6 +7,7 @@ import 'services/auth_service.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/sign_in_screen.dart';
+import 'screens/forgot_password_screen.dart';
 import 'screens/profile_setup/profile_setup_flow.dart';
 import 'screens/map_explorer_screen.dart';
 import 'screens/cart_screen.dart';
@@ -92,6 +93,7 @@ class PlokitchApp extends StatelessWidget {
             '/': (context) => const WelcomeScreen(),
             '/onboarding': (context) => const OnboardingScreen(),
             '/sign-in': (context) => const SignInScreen(),
+            '/forgot-password': (context) => const ForgotPasswordScreen(),
             '/profile-setup': (context) => const ProfileSetupFlow(),
             // Role-based home: always resolves to the correct dashboard via the shell wrapper
             '/home': (context) => const MainNavigationShell(initialIndex: 0),

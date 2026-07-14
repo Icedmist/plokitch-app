@@ -245,4 +245,26 @@ class AuthService {
     }
     return headers;
   }
+
+  /// Send reset password email.
+  static Future<void> forgotPassword(String email) async {
+    final uri = _uri('/api/auth/forget-password');
+    final res = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'email': email.trim(),
+        'redirectTo': '/reset-password',
+      }),
+    );
+
+    if (res.statusCode >= 400) {
+      String message = 'Failed to send reset link';
+      try {
+        final body = json.decode(res.body);
+        message = body['error'] ?? body['message'] ?? message;
+      } catch (_) {}
+      throw Exception(message);
+    }
+  }
 }
