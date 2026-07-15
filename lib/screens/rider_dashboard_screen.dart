@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../models/order_model.dart';
 
 enum RiderStatus { offline, online, delivering }
@@ -22,6 +23,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
   List<OrderModel> _availableOrders = [];
   bool _loading = true;
   String? _error;
+  String? _avatarUrl;
 
   // Stats
   final Map<String, String> _todayStats = {
@@ -47,6 +49,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
       _error = null;
     });
     try {
+      final profile = await AuthService.getProfile();
+      _avatarUrl = profile?['image'] as String? ?? profile?['avatarUrl'] as String? ?? profile?['avatar_url'] as String?;
+
       final fetched = await ApiService.fetchOrders();
       // In a real app, filter for orders that are "ready" or "looking for rider"
       if (mounted) {
@@ -102,8 +107,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
         title: 'Rider Hub',
         showMenu: false,
         showAvatar: true,
+        avatarUrl: _avatarUrl,
         showNotificationIcon: true,
         onNotificationPressed: () => Navigator.pushNamed(context, '/notifications'),
+        automaticallyImplyLeading: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

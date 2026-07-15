@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../models/vendor_model.dart';
@@ -252,40 +253,85 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
   }
 
   Widget _buildMenuItemCard(MenuItemModel item, ColorScheme colorScheme, TextTheme textTheme) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: {
-          'foodItem': item.toJson(),
-          'kitchen': _vendor?.businessName ?? 'Unknown Kitchen',
-          'vendorId': _vendor?.id,
-        }),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.name, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(item.description ?? '', style: textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 8),
-                    Text('₦${item.price.toStringAsFixed(2)}', style: textTheme.titleMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold)),
-                  ],
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => Navigator.pushNamed(context, '/food-detail', arguments: {
+            'foodItem': item.toJson(),
+            'kitchen': _vendor?.businessName ?? 'Unknown Kitchen',
+            'vendorId': _vendor?.id,
+          }),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      if (item.description != null && item.description!.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          item.description!,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      Text(
+                        '₦${item.price.toStringAsFixed(2)}',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              if ((item.images.isNotEmpty ? item.images.first : item.imageUrl) != null)
+                const SizedBox(width: 16),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(item.images.isNotEmpty ? item.images.first : item.imageUrl!, width: 80, height: 80, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(width: 80, height: 80, color: Colors.grey.shade300, child: const Icon(Icons.fastfood, color: Colors.white))),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    (item.images.isNotEmpty ? item.images.first : item.imageUrl) ?? '',
+                    width: 84,
+                    height: 84,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 84,
+                      height: 84,
+                      color: colorScheme.surfaceContainerHigh,
+                      child: Icon(Icons.fastfood_rounded, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                    ),
+                  ),
                 ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
