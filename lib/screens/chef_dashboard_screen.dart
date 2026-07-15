@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/plokitch_app_bar.dart';
-import '../widgets/plokitch_bottom_nav.dart';
 import '../widgets/plokitch_toast.dart';
 import '../services/api_service.dart';
+import 'assign_rider_screen.dart';
 import '../services/auth_service.dart';
 import '../models/order_model.dart';
 
@@ -84,7 +84,10 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
       final updated = await ApiService.updateOrderStatus(order.id, nextStatus);
       if (mounted) {
         setState(() {
-          _orders[index] = updated;
+          _orders[index] = updated.copyWith(
+            customerName: updated.customerName ?? order.customerName,
+            vendorName: updated.vendorName ?? order.vendorName,
+          );
         });
         PlokitchToast.show(context, 'Order updated to $nextStatus.');
       }
@@ -98,6 +101,20 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
           _updatingOrderIds.remove(order.id);
         });
       }
+    }
+  }
+
+  Future<void> _navigateToAssignRiderScreen(BuildContext context, int index, OrderModel order) async {
+    final updated = await Navigator.push<OrderModel>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AssignRiderScreen(order: order),
+      ),
+    );
+    if (updated != null && mounted) {
+      setState(() {
+        _orders[index] = updated;
+      });
     }
   }
 
@@ -756,16 +773,16 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (isUrgent ? colorScheme.error : (isCooking ? colorScheme.secondary : colorScheme.primary)).withValues(alpha: 0.08),
+                  color: statusColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: (isUrgent ? colorScheme.error : (isCooking ? colorScheme.secondary : colorScheme.primary)).withValues(alpha: 0.2),
+                    color: statusColor.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Text(
                   isUrgent ? 'URGENT · #${order.id.substring(0, min(6, order.id.length))}' : '#${order.id.substring(0, min(6, order.id.length))}',
                   style: textTheme.labelSmall?.copyWith(
-                    color: isUrgent ? colorScheme.error : (isCooking ? colorScheme.secondary : colorScheme.primary),
+                    color: statusColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -850,6 +867,22 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
                   ),
                 ),
               ),
+              if (_canAdvanceOrder(order.status) &&
+                  (order.status.toLowerCase() == 'ready' || order.status.toLowerCase() == 'prepared') &&
+                  !isUpdating) ...[
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () => _navigateToAssignRiderScreen(context, index, order),
+                  icon: const Icon(Icons.two_wheeler_rounded, size: 18),
+                  label: const Text('Assign Rider'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.primary,
+                    side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  ),
+                ),
+              ],
             ],
           ),
         ],

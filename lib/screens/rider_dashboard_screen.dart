@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
-import '../widgets/plokitch_bottom_nav.dart';
+import '../widgets/plokitch_toast.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../models/order_model.dart';
@@ -18,6 +18,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     with SingleTickerProviderStateMixin {
   RiderStatus _status = RiderStatus.online;
   bool _hasActiveDelivery = false;
+  OrderModel? _activeJob;
   late AnimationController _pingController;
   
   List<OrderModel> _availableOrders = [];
@@ -52,11 +53,23 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
       final profile = await AuthService.getProfile();
       _avatarUrl = profile?['image'] as String? ?? profile?['avatarUrl'] as String? ?? profile?['avatar_url'] as String?;
 
-      final fetched = await ApiService.fetchOrders();
-      // In a real app, filter for orders that are "ready" or "looking for rider"
+      final fetched = await ApiService.fetchOrders(forceRefresh: true);
+      
+      final currentRiderId = profile?['id']?.toString();
+      final currentRiderName = profile?['name']?.toString();
+
+      final activeJobs = fetched.where((o) =>
+          o.status.toLowerCase() == 'delivering' &&
+          (o.riderId == currentRiderId || o.solvixRiderName == currentRiderName)).toList();
+
       if (mounted) {
         setState(() {
-          _availableOrders = fetched.where((o) => o.status.toLowerCase() != 'delivered' && o.status.toLowerCase() != 'cancelled').toList();
+          _activeJob = activeJobs.isNotEmpty ? activeJobs.first : null;
+          _hasActiveDelivery = _activeJob != null;
+          _availableOrders = fetched.where((o) =>
+              o.status.toLowerCase() == 'ready' &&
+              o.riderId == null &&
+              o.solvixDeliveryId == null).toList();
         });
       }
     } catch (e) {
@@ -76,24 +89,70 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     super.dispose();
   }
 
-  void _acceptJob(OrderModel job) {
+  Future<void> _acceptJob(OrderModel job) async {
     setState(() {
-      _hasActiveDelivery = true;
+      _loading = true;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Delivery #${job.id.substring(0, 8)} accepted! Head to ${job.vendorName ?? 'Kitchen'}.'),
-        backgroundColor: const Color(0xFF663B00),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    try {
+      final profile = await AuthService.getProfile();
+      final currentRiderId = profile?['id']?.toString() ?? 'mock-rider-id';
+      final currentRiderName = profile?['name']?.toString() ?? 'Mock Rider';
+
+      final updated = await ApiService.updateOrderStatus(
+        job.id,
+        'delivering',
+        additionalFields: {
+          'riderId': currentRiderId,
+          'solvixRiderName': currentRiderName,
+        },
+      );
+
+      if (mounted) {
+        setState(() {
+          _activeJob = updated.copyWith(
+            customerName: updated.customerName ?? job.customerName,
+            vendorName: updated.vendorName ?? job.vendorName,
+          );
+          _hasActiveDelivery = true;
+        });
+        PlokitchToast.show(context, 'Delivery accepted! Head to ${job.vendorName ?? 'Kitchen'}.');
+        _loadAvailableOrders();
+      }
+    } catch (e) {
+      if (mounted) {
+        PlokitchToast.show(context, 'Failed to accept job: $e', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
-  void _completeDelivery() {
+  Future<void> _completeDelivery() async {
+    if (_activeJob == null) return;
     setState(() {
-      _hasActiveDelivery = false;
+      _loading = true;
     });
+    try {
+      await ApiService.updateOrderStatus(_activeJob!.id, 'delivered');
+      if (mounted) {
+        setState(() {
+          _activeJob = null;
+          _hasActiveDelivery = false;
+        });
+        PlokitchToast.show(context, 'Order marked as delivered successfully!');
+        _loadAvailableOrders();
+      }
+    } catch (e) {
+      if (mounted) {
+        PlokitchToast.show(context, 'Failed to complete delivery: $e', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
   @override
@@ -209,7 +268,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
           const SizedBox(height: 24),
 
           // Active Delivery Banner
-          if (_hasActiveDelivery && _availableOrders.isNotEmpty) ...[
+          if (_hasActiveDelivery && _activeJob != null) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -231,7 +290,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    _availableOrders[0].customerName ?? 'Guest',
+                    _activeJob!.customerName ?? 'Guest',
                     style: textTheme.headlineMedium?.copyWith(color: colorScheme.onPrimaryContainer),
                   ),
                   const SizedBox(height: 4),
@@ -244,7 +303,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => Navigator.pushNamed(context, '/tracking', arguments: _availableOrders[0].id),
+                          onPressed: () => Navigator.pushNamed(context, '/tracking', arguments: _activeJob!.id),
                           icon: const Icon(Icons.map, size: 18),
                           label: const Text('Open Map'),
                           style: ElevatedButton.styleFrom(
