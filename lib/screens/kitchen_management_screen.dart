@@ -439,6 +439,7 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
       appBar: const PlokitchAppBar(
         title: 'Manage Kitchen',
         showMenu: false,
+        automaticallyImplyLeading: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -473,13 +474,15 @@ class _KitchenManagementScreenState extends State<KitchenManagementScreen> with 
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Your Menu', style: textTheme.headlineMedium?.copyWith(color: colorScheme.secondary)),
-                ElevatedButton.icon(
+                FilledButton.icon(
                   onPressed: () => _showAddDishModal(),
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Add Dish'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
               ],

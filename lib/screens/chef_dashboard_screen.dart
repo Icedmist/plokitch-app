@@ -368,6 +368,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
         showAvatar: true,
         showNotificationIcon: true,
         avatarUrl: _avatarUrl,
+        automaticallyImplyLeading: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),

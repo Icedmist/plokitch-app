@@ -486,6 +486,7 @@ class _ChefOrdersScreenState extends State<ChefOrdersScreen> {
       appBar: const PlokitchAppBar(
         title: 'Kitchen Orders',
         showMenu: false,
+        automaticallyImplyLeading: false,
       ),
       body: _loading && _orders.isEmpty
           ? const Center(child: CircularProgressIndicator())

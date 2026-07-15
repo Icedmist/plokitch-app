@@ -48,6 +48,52 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     }
   }
 
+  Color _getStatusBgColor(String status, ColorScheme colorScheme) {
+    final lower = status.toLowerCase();
+    switch (lower) {
+      case 'completed':
+      case 'delivered':
+        return Colors.green.withValues(alpha: 0.12);
+      case 'preparing':
+      case 'cooking':
+      case 'processing':
+        return Colors.blue.withValues(alpha: 0.12);
+      case 'ready':
+      case 'prepared':
+        return Colors.teal.withValues(alpha: 0.12);
+      case 'cancelled':
+        return colorScheme.errorContainer.withValues(alpha: 0.15);
+      case 'pending':
+      case 'received':
+      case 'confirmed':
+      default:
+        return Colors.amber.withValues(alpha: 0.15);
+    }
+  }
+
+  Color _getStatusTextColor(String status, ColorScheme colorScheme) {
+    final lower = status.toLowerCase();
+    switch (lower) {
+      case 'completed':
+      case 'delivered':
+        return Colors.green.shade800;
+      case 'preparing':
+      case 'cooking':
+      case 'processing':
+        return Colors.blue.shade800;
+      case 'ready':
+      case 'prepared':
+        return Colors.teal.shade800;
+      case 'cancelled':
+        return colorScheme.error;
+      case 'pending':
+      case 'received':
+      case 'confirmed':
+      default:
+        return Colors.amber.shade900;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -71,7 +117,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final order = _orders[index];
-                        final isDelivered = order.status.toLowerCase() == 'delivered';
                         final itemsSummary = order.items.map((i) => i['name'] ?? 'Item').join(', ');
                         final date = order.createdAt?.split('T').first ?? '--';
 
@@ -99,15 +144,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: isDelivered
-                                            ? Colors.green.withValues(alpha: 0.15)
-                                            : colorScheme.errorContainer.withValues(alpha: 0.3),
+                                        color: _getStatusBgColor(order.status, colorScheme),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
                                         order.status,
                                         style: textTheme.labelSmall?.copyWith(
-                                          color: isDelivered ? Colors.green.shade700 : colorScheme.error,
+                                          color: _getStatusTextColor(order.status, colorScheme),
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
