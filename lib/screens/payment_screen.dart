@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_button.dart';
 import '../services/api_service.dart';
-import '../services/auth_service.dart';
 import '../services/cart_service.dart';
-import '../services/mail_service.dart';
 
 enum PaymentPhase { select, processing, success }
 
@@ -74,19 +72,7 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
             ? (order['totalAmount'] as num).toDouble()
             : double.tryParse(order['totalAmount']?.toString() ?? _amountPaid.toString()) ?? _amountPaid;
 
-        final profile = await AuthService.getProfile();
-        if (profile != null && profile['email'] != null) {
-          final vendorName = widget.orderPayload!['vendorName']?.toString() ?? 'Kitchen';
-          final customerName = profile['name']?.toString() ?? profile['email'].toString();
-          await MailService.notifyOrderPlaced(
-            orderId: _confirmedOrderId!,
-            customerName: customerName,
-            customerEmail: profile['email'].toString(),
-            vendorName: vendorName,
-            vendorEmail: widget.orderPayload!['vendorEmail']?.toString() ?? 'kitchen@plokitch.com',
-            order: order,
-          );
-        }
+
 
         await CartService.clearCart();
 

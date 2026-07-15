@@ -21,6 +21,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
   String? _vendorName;
   String? _avatarUrl;
   Map<String, dynamic>? _vendorData;
+  final Set<String> _updatingOrderIds = {};
 
   @override
   void initState() {
@@ -66,20 +67,36 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
 
   Future<void> _handleAction(int index) async {
     final order = _orders[index];
+    if (_updatingOrderIds.contains(order.id)) return;
+
     final nextStatus = _orderNextStatus(order.status);
     if (nextStatus == order.status) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order cannot move forward from its current stage.')));
       return;
     }
 
+    setState(() {
+      _updatingOrderIds.add(order.id);
+    });
+
     try {
       final updated = await ApiService.updateOrderStatus(order.id, nextStatus);
-      setState(() {
-        _orders[index] = updated;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order updated to $nextStatus.')));
+      if (mounted) {
+        setState(() {
+          _orders[index] = updated;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order updated to $nextStatus.')));
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _updatingOrderIds.remove(order.id);
+        });
+      }
     }
   }
 
@@ -129,28 +146,74 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
   Widget _buildOrderProgress(String status, ColorScheme colorScheme, TextTheme textTheme) {
     const stepLabels = ['Received', 'Cooking', 'Ready', 'Done'];
     final activeIndex = _orderProgressIndex(status);
-    return Row(
-      children: stepLabels.asMap().entries.map((entry) {
-        final active = entry.key <= activeIndex;
-        return Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-            decoration: BoxDecoration(
-              color: active ? colorScheme.primary : Colors.white10,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              entry.value,
-              textAlign: TextAlign.center,
-              style: textTheme.bodySmall?.copyWith(
-                color: active ? colorScheme.onPrimary : Colors.white70,
-                fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        children: [
+          Row(
+            children: List.generate(4, (index) {
+              final isPassed = index < activeIndex;
+              final isCurrent = index == activeIndex;
+
+              return Expanded(
+                child: Row(
+                  children: [
+                    // Node
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: isCurrent ? colorScheme.primary : (isPassed ? colorScheme.primary.withValues(alpha: 0.2) : colorScheme.surfaceContainerHigh),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: (isCurrent || isPassed) ? colorScheme.primary : colorScheme.outlineVariant,
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: isPassed
+                            ? Icon(Icons.check, size: 14, color: colorScheme.primary)
+                            : (isCurrent
+                                ? Container(width: 8, height: 8, decoration: BoxDecoration(color: colorScheme.onPrimary, shape: BoxShape.circle))
+                                : Text('${index + 1}', style: textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant, fontSize: 10))),
+                      ),
+                    ),
+                    // Line (except for the last item)
+                    if (index < 3)
+                      Expanded(
+                        child: Container(
+                          height: 3,
+                          color: index < activeIndex
+                              ? colorScheme.primary
+                              : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }),
           ),
-        );
-      }).toList(),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(4, (index) {
+              final isCurrent = index == activeIndex;
+              return Expanded(
+                child: Text(
+                  stepLabels[index],
+                  textAlign: TextAlign.center,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: isCurrent ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 10,
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 
@@ -656,20 +719,28 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
     final isUrgent = status == 'urgent';
     final isCooking = status == 'cooking' || status == 'processing';
     
-    Color leftBorderColor = colorScheme.primaryContainer;
-    if (isUrgent) leftBorderColor = colorScheme.error;
-    if (isCooking) leftBorderColor = colorScheme.secondaryContainer;
+    Color statusColor = colorScheme.primary;
+    if (isUrgent) statusColor = colorScheme.error;
+    if (isCooking) statusColor = colorScheme.secondary;
 
-    final itemsSummary = order.items.map((i) => i['name'] ?? 'Item').join(', ');
+    final itemsSummary = order.items.map((i) => '${i['quantity']}x ${i['name'] ?? 'Item'}').join(', ');
     final time = order.createdAt != null ? order.createdAt!.split('T').last.substring(0, 5) : '--:--';
+    final isUpdating = _updatingOrderIds.contains(order.id);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF642714), // warmBrown
-        borderRadius: BorderRadius.circular(16),
-        border: Border(left: BorderSide(color: leftBorderColor, width: 4)),
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,63 +749,99 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isUrgent ? colorScheme.error : (isCooking ? colorScheme.secondaryContainer : colorScheme.primaryContainer),
+                  color: (isUrgent ? colorScheme.error : (isCooking ? colorScheme.secondary : colorScheme.primary)).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: (isUrgent ? colorScheme.error : (isCooking ? colorScheme.secondary : colorScheme.primary)).withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Text(
-                  isUrgent ? 'URGENT ${order.id.substring(0, min(8, order.id.length))}' : '#${order.id.substring(0, min(8, order.id.length))}',
+                  isUrgent ? 'URGENT · #${order.id.substring(0, min(6, order.id.length))}' : '#${order.id.substring(0, min(6, order.id.length))}',
                   style: textTheme.labelSmall?.copyWith(
-                    color: isUrgent ? colorScheme.onError : (isCooking ? colorScheme.onSecondaryContainer : const Color(0xFF642714)),
+                    color: isUrgent ? colorScheme.error : (isCooking ? colorScheme.secondary : colorScheme.primary),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              Text(
-                time,
-                style: textTheme.bodySmall?.copyWith(
-                  color: isUrgent ? colorScheme.errorContainer : Colors.white70,
+              Row(
+                children: [
+                  Icon(Icons.access_time_rounded, size: 14, color: colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text(
+                    time,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            itemsSummary,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.extrabold,
+              color: colorScheme.onSurface,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(Icons.person_outline_rounded, size: 16, color: colorScheme.onSurfaceVariant),
+              const SizedBox(width: 6),
+              RichText(
+                text: TextSpan(
+                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                  children: [
+                    const TextSpan(text: 'Customer: '),
+                    TextSpan(
+                      text: order.customerName ?? 'Guest',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            itemsSummary,
-            style: textTheme.headlineMedium?.copyWith(color: const Color(0xFFFFB86D)), // primary-fixed-dim
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          RichText(
-            text: TextSpan(
-              style: textTheme.bodyMedium?.copyWith(color: isUrgent ? colorScheme.errorContainer : Colors.white70),
-              children: [
-                const TextSpan(text: 'Customer: '),
-                TextSpan(text: order.customerName ?? 'Guest', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
           _buildOrderProgress(order.status, colorScheme, textTheme),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _canAdvanceOrder(order.status) ? () => _handleAction(index) : null,
-                  icon: Icon(
-                    _canAdvanceOrder(order.status) ? Icons.restaurant : Icons.check_circle_outline,
-                    size: 18,
-                  ),
-                  label: Text(_orderActionLabel(order.status)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _canAdvanceOrder(order.status) ? colorScheme.primaryContainer : Colors.white24,
-                    foregroundColor: _canAdvanceOrder(order.status) ? colorScheme.onPrimaryContainer : Colors.white70,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                child: FilledButton.icon(
+                  onPressed: _canAdvanceOrder(order.status) && !isUpdating
+                      ? () => _handleAction(index)
+                      : null,
+                  icon: isUpdating
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Icon(
+                          _canAdvanceOrder(order.status) ? Icons.restaurant_rounded : Icons.check_circle_outline_rounded,
+                          size: 18,
+                        ),
+                  label: Text(isUpdating ? 'Updating...' : _orderActionLabel(order.status)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _canAdvanceOrder(order.status) ? colorScheme.primary : colorScheme.surfaceContainerHighest,
+                    foregroundColor: _canAdvanceOrder(order.status) ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     elevation: 0,
-                    textStyle: textTheme.labelLarge,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),
