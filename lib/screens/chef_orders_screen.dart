@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/plokitch_app_bar.dart';
-import '../widgets/plokitch_bottom_nav.dart';
 import '../widgets/plokitch_toast.dart';
 import '../services/api_service.dart';
+import 'assign_rider_screen.dart';
 import '../services/auth_service.dart';
 import '../models/order_model.dart';
 
@@ -82,6 +82,20 @@ class _ChefOrdersScreenState extends State<ChefOrdersScreen> {
           _updatingOrderIds.remove(order.id);
         });
       }
+    }
+  }
+
+  Future<void> _navigateToAssignRiderScreen(BuildContext context, int index, OrderModel order) async {
+    final updated = await Navigator.push<OrderModel>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AssignRiderScreen(order: order),
+      ),
+    );
+    if (updated != null && mounted) {
+      setState(() {
+        _orders[index] = updated;
+      });
     }
   }
 
@@ -299,16 +313,16 @@ class _ChefOrdersScreenState extends State<ChefOrdersScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (isUrgent ? colorScheme.error : (isCooking ? colorScheme.secondary : colorScheme.primary)).withValues(alpha: 0.08),
+                  color: statusColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: (isUrgent ? colorScheme.error : (isCooking ? colorScheme.secondary : colorScheme.primary)).withValues(alpha: 0.2),
+                    color: statusColor.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Text(
                   isUrgent ? 'URGENT · #${order.id.substring(0, min(6, order.id.length))}' : '#${order.id.substring(0, min(6, order.id.length))}',
                   style: textTheme.labelSmall?.copyWith(
-                    color: isUrgent ? colorScheme.error : (isCooking ? colorScheme.secondary : colorScheme.primary),
+                    color: statusColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -370,44 +384,90 @@ class _ChefOrdersScreenState extends State<ChefOrdersScreen> {
             children: [
               if (_canAdvanceOrder(order.status)) ...[
                 Expanded(
-                  child: FilledButton.icon(
-                    onPressed: !isUpdating
-                        ? () => _updateStatus(index, _orderNextStatus(order.status))
-                        : null,
-                    icon: isUpdating
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : Icon(
-                            _canAdvanceOrder(order.status) ? Icons.restaurant_rounded : Icons.check_circle_outline_rounded,
-                            size: 18,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: !isUpdating
+                                  ? () => _updateStatus(index, _orderNextStatus(order.status))
+                                  : null,
+                              icon: isUpdating
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : Icon(
+                                      _canAdvanceOrder(order.status) ? Icons.restaurant_rounded : Icons.check_circle_outline_rounded,
+                                      size: 18,
+                                    ),
+                              label: Text(isUpdating ? 'Updating...' : _orderActionLabel(order.status)),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: colorScheme.primary,
+                                foregroundColor: colorScheme.onPrimary,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                elevation: 0,
+                              ),
+                            ),
                           ),
-                    label: Text(isUpdating ? 'Updating...' : _orderActionLabel(order.status)),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
+                          if ((order.status.toLowerCase() == 'ready' || order.status.toLowerCase() == 'prepared') && !isUpdating) ...[
+                            const SizedBox(width: 12),
+                            OutlinedButton.icon(
+                              onPressed: () => _navigateToAssignRiderScreen(context, index, order),
+                              icon: const Icon(Icons.two_wheeler_rounded, size: 18),
+                              label: const Text('Assign Rider'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: colorScheme.primary,
+                                side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (order.status.toLowerCase() == 'ready' || order.status.toLowerCase() == 'prepared') ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: !isUpdating
+                              ? () => _updateStatus(index, 'cancelled')
+                              : null,
+                          icon: const Icon(Icons.cancel_outlined, size: 18),
+                          label: const Text('Cancel Order'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: colorScheme.error,
+                            side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ] else ...[
+                        // Standard cancel button next to action is handled by the default Row structure,
+                        // but since we wrapped everything in Column, let's render it here as a separate row if not ready.
+                      ],
+                    ],
+                  ),
+                ),
+                if (order.status.toLowerCase() != 'ready' && order.status.toLowerCase() != 'prepared') ...[
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: !isUpdating
+                        ? () => _updateStatus(index, 'cancelled')
+                        : null,
+                    icon: const Icon(Icons.cancel_outlined, size: 18),
+                    label: const Text('Cancel'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colorScheme.error,
+                      side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: !isUpdating
-                      ? () => _updateStatus(index, 'cancelled')
-                      : null,
-                  icon: const Icon(Icons.cancel_outlined, size: 18),
-                  label: const Text('Cancel'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colorScheme.error,
-                    side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                  ),
-                ),
+                ],
               ] else ...[
                 Expanded(
                   child: Container(

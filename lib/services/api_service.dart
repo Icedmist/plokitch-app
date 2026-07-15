@@ -310,9 +310,13 @@ class ApiService {
     return OrderModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
   }
 
-  static Future<OrderModel> updateOrderStatus(String orderId, String status) async {
+  static Future<OrderModel> updateOrderStatus(String orderId, String status, {Map<String, dynamic>? additionalFields}) async {
     final uri = _uri('/api/orders/$orderId/status');
-    final res = await http.patch(uri, headers: await _headers(), body: json.encode({'status': status}));
+    final Map<String, dynamic> payload = {
+      'status': status,
+      ...?additionalFields,
+    };
+    final res = await http.patch(uri, headers: await _headers(), body: json.encode(payload));
     if (res.statusCode != 200) throw Exception('Failed to update order status');
     final body = json.decode(res.body) as Map<String, dynamic>;
     return OrderModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));

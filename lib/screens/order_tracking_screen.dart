@@ -135,10 +135,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final order = _order!;
     final step = _getTrackingStep();
     final solvixRider = order.solvixRiderName;
+    final isRiderAssigned = order.solvixRiderName != null || order.riderId != null;
     final deliveryAddr = order.deliveryAddress;
     final addrStr = deliveryAddr != null
         ? [deliveryAddr['street'], deliveryAddr['city'], deliveryAddr['state']].where((e) => e != null && e.toString().isNotEmpty).join(', ')
         : '';
+
+    final displayStatus = (order.status.toLowerCase() == 'ready' && !isRiderAssigned)
+        ? 'READY FOR PICKUP'
+        : (order.solvixStatus?.toUpperCase() ?? order.status.toUpperCase());
 
     return Stack(
       children: [
@@ -220,7 +225,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                           border: Border.all(color: colorScheme.primaryContainer),
                         ),
                         child: Text(
-                          order.solvixStatus?.toUpperCase() ?? order.status.toUpperCase(),
+                          displayStatus,
                           style: textTheme.labelLarge?.copyWith(color: colorScheme.primaryContainer),
                         ),
                       ),
@@ -231,7 +236,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   // Tracking Progress
                   _buildTrackingStep('Order Placed', step >= 0 ? 'Confirmed' : 'Pending', step >= 0, step == 0, colorScheme, textTheme),
                   _buildTrackingStep('Preparing', step >= 1 ? (step == 1 ? 'In Progress...' : 'Done') : 'Pending', step >= 1, step == 1, colorScheme, textTheme),
-                  _buildTrackingStep('Rider Assigned', step >= 2 ? (solvixRider ?? 'Rider on the way') : 'Pending', step >= 2, step == 2, colorScheme, textTheme),
+                  _buildTrackingStep(
+                    isRiderAssigned ? 'Rider Assigned' : 'Waiting for Rider',
+                    step >= 2 ? (solvixRider ?? (isRiderAssigned ? 'Rider on the way' : 'Ready for pickup')) : 'Pending',
+                    step >= 2,
+                    step == 2,
+                    colorScheme,
+                    textTheme,
+                  ),
                   _buildTrackingStep('Delivered', step >= 3 ? 'Completed' : 'Pending', step >= 3, step == 3, colorScheme, textTheme, isLast: true),
 
                   if (step == -1) ...[
