@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
+import '../widgets/plokitch_toast.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../models/order_model.dart';
@@ -71,7 +72,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
 
     final nextStatus = _orderNextStatus(order.status);
     if (nextStatus == order.status) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order cannot move forward from its current stage.')));
+      PlokitchToast.show(context, 'Order cannot move forward from its current stage.', isError: true);
       return;
     }
 
@@ -85,11 +86,11 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
         setState(() {
           _orders[index] = updated;
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order updated to $nextStatus.')));
+        PlokitchToast.show(context, 'Order updated to $nextStatus.');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
+        PlokitchToast.show(context, 'Failed to update status: $e', isError: true);
       }
     } finally {
       if (mounted) {
@@ -468,7 +469,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${_orders.length} Active',
+                  '${_orders.where((o) => _canAdvanceOrder(o.status)).length} Active',
                   style: textTheme.labelSmall?.copyWith(color: colorScheme.onSurface),
                 ),
               ),
@@ -486,13 +487,13 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
             const Center(child: CircularProgressIndicator())
           else if (_error != null)
             Center(child: Text('Error: $_error'))
-          else if (_orders.isEmpty)
+          else if (_orders.where((o) => _canAdvanceOrder(o.status)).isEmpty)
             const Center(child: Padding(
               padding: EdgeInsets.all(32.0),
-              child: Text('No active orders', style: TextStyle(color: Colors.white70)),
+              child: Text('No active orders', style: TextStyle(color: Colors.white60)),
             ))
           else
-            ..._orders.asMap().entries.map((entry) {
+            ..._orders.asMap().entries.where((entry) => _canAdvanceOrder(entry.value.status)).map((entry) {
               final index = entry.key;
               final order = entry.value;
               return _buildOrderCard(index, order, colorScheme, textTheme);
@@ -658,25 +659,28 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                             final barHeight = constraints.maxHeight * ratio;
-                            return Container(
-                              width: 22,
-                              height: barHeight > 4 ? barHeight : 4.0,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: isToday 
-                                      ? [colorScheme.primary, colorScheme.primary.withValues(alpha: 0.6)]
-                                      : [colorScheme.secondary, colorScheme.secondary.withValues(alpha: 0.5)],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
+                            return Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Container(
+                                width: 22,
+                                height: barHeight > 4 ? barHeight : 4.0,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: isToday 
+                                        ? [colorScheme.primary, colorScheme.primary.withValues(alpha: 0.6)]
+                                        : [colorScheme.secondary, colorScheme.secondary.withValues(alpha: 0.5)],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                                  boxShadow: (isToday && barHeight > 4) ? [
+                                    BoxShadow(
+                                      color: colorScheme.primary.withValues(alpha: 0.3),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, -2),
+                                    )
+                                  ] : null,
                                 ),
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                                boxShadow: (isToday && barHeight > 4) ? [
-                                  BoxShadow(
-                                    color: colorScheme.primary.withValues(alpha: 0.3),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, -2),
-                                  )
-                                ] : null,
                               ),
                             );
                           },
@@ -785,7 +789,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
             itemsSummary,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
-              fontWeight: FontWeight.extrabold,
+              fontWeight: FontWeight.w800,
               color: colorScheme.onSurface,
             ),
             maxLines: 2,
