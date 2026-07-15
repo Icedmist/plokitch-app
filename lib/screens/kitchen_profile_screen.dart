@@ -3,6 +3,8 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
+import '../widgets/plokitch_app_bar.dart';
+import '../widgets/plokitch_back_button.dart';
 
 class KitchenProfileScreen extends StatefulWidget {
   final String? id;
@@ -117,14 +119,14 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     if (_loading) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: CircularProgressIndicator()),
+      return const Scaffold(
+        appBar: PlokitchAppBar(title: '', showMenu: false),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
     if (_error != null || _vendor == null) {
       return Scaffold(
-        appBar: AppBar(),
+        appBar: const PlokitchAppBar(title: '', showMenu: false),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -162,6 +164,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
           SliverAppBar(
             expandedHeight: 200,
             pinned: true,
+            leading: const PlokitchBackButton(),
             flexibleSpace: FlexibleSpaceBar(
               background: _vendor!.imageUrl != null
                   ? Image.network(_vendor!.imageUrl!, fit: BoxFit.cover,

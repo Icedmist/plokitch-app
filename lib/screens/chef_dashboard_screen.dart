@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 import '../services/api_service.dart';
@@ -220,6 +221,73 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
     return 'OPEN';
   }
 
+  Widget _buildGreetingHeader(ColorScheme colorScheme, TextTheme textTheme) {
+    final hour = DateTime.now().hour;
+    String greeting;
+    IconData icon;
+    if (hour < 12) {
+      greeting = 'Morning';
+      icon = Icons.light_mode_outlined;
+    } else if (hour < 17) {
+      greeting = 'Afternoon';
+      icon = Icons.wb_sunny_outlined;
+    } else {
+      greeting = 'Evening';
+      icon = Icons.nights_stay_outlined;
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome back,',
+                style: textTheme.bodyLarge?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _vendorName ?? 'Chef',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: colorScheme.primary, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                greeting,
+                style: textTheme.labelLarge?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -240,6 +308,10 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          if (_vendorName != null) ...[
+            _buildGreetingHeader(colorScheme, textTheme),
+            const SizedBox(height: 20),
+          ],
           // Quick Stats Bar
           Container(
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -320,16 +392,7 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
           const SizedBox(height: 24),
           _buildAnalyticsChart(colorScheme, textTheme),
           
-          if (_vendorName != null)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Kitchen Overview', style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary)),
-                const SizedBox(height: 6),
-                Text('Welcome back, $_vendorName. Here are the orders you need to prepare next.', style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
-                const SizedBox(height: 20),
-              ],
-            ),
+          const SizedBox(height: 24),
           // Current Orders Heading
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -347,6 +410,11 @@ class _ChefDashboardScreenState extends State<ChefDashboardScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Here are the orders you need to prepare next.',
+            style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
           

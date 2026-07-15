@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/image_service.dart';
 import '../widgets/plokitch_error_banner.dart';
 import '../widgets/plokitch_button.dart';
+import '../widgets/plokitch_app_bar.dart';
 
 class KitchenSettingsScreen extends StatefulWidget {
   const KitchenSettingsScreen({super.key});
@@ -243,10 +244,9 @@ class _KitchenSettingsScreenState extends State<KitchenSettingsScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kitchen Profile'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
+      appBar: const PlokitchAppBar(
+        title: 'Kitchen Profile',
+        showMenu: false,
       ),
       body: _loading 
           ? const Center(child: CircularProgressIndicator())
