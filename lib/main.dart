@@ -29,6 +29,7 @@ import 'screens/notifications_screen.dart';
 import 'screens/kitchen_settings_screen.dart';
 import 'screens/main_navigation_shell.dart';
 import 'screens/notification_settings_screen.dart';
+import 'screens/help_support_screen.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 String mockUserRole = 'customer'; // updated at startup from stored profile when available
@@ -135,6 +136,7 @@ class PlokitchApp extends StatelessWidget {
             '/rider-dashboard': (context) => const MainNavigationShell(initialIndex: 0),
             '/kitchen-settings': (context) => const KitchenSettingsScreen(),
             '/notification-settings': (context) => const NotificationSettingsScreen(),
+            '/help-support': (context) => const HelpSupportScreen(),
           },
         );
       },

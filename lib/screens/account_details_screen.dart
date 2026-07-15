@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/plokitch_error_banner.dart';
+import '../widgets/plokitch_app_bar.dart';
 
 class AccountDetailsScreen extends StatefulWidget {
   const AccountDetailsScreen({super.key});
@@ -140,7 +141,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Account Details')),
+      appBar: const PlokitchAppBar(title: 'Account Details', showMenu: false),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(

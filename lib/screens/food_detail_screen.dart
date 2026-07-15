@@ -27,9 +27,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
     final vendorId = args?['vendorId'] as String? ?? itemRaw?['vendorId'] as String?;
 
     if (itemRaw == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Detail')),
-        body: const Center(child: Text('Food item not found')),
+      return const Scaffold(
+        appBar: PlokitchAppBar(title: 'Detail', showMenu: false),
+        body: Center(child: Text('Food item not found')),
       );
     }
 

@@ -361,7 +361,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 32),
           Text('Support', style: textTheme.titleLarge?.copyWith(color: colorScheme.primary)),
           const SizedBox(height: 16),
-          _buildSettingsItem(Icons.help_outline, 'Help & Support', colorScheme, textTheme, onTap: () {}),
+          _buildSettingsItem(
+            Icons.help_outline,
+            'Help & Support',
+            colorScheme,
+            textTheme,
+            onTap: () => Navigator.pushNamed(context, '/help-support'),
+          ),
           
           const SizedBox(height: 48),
           

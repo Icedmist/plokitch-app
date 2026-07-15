@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'plokitch_back_button.dart';
 
 
 class PlokitchAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -81,54 +82,18 @@ class _PlokitchAppBarState extends State<PlokitchAppBar> {
               onPressed: widget.onMenuPressed ?? () => Scaffold.of(context).openDrawer(),
             )
           : (Navigator.of(context).canPop() && widget.automaticallyImplyLeading)
-              ? Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.08),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, size: 20),
-                      color: colorScheme.primary,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () => Navigator.maybePop(context),
-                    ),
-                  ),
-                )
+              ? const PlokitchBackButton()
               : null,
       centerTitle: true,
       title: FittedBox(
         fit: BoxFit.scaleDown,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '<',
-              style: textTheme.headlineLarge?.copyWith(
-                color: const Color(0xFFFF9B04), // Branded Orange
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              widget.title ?? 'Plokitch',
-              style: textTheme.titleLarge?.copyWith(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '>',
-              style: textTheme.headlineLarge?.copyWith(
-                color: const Color(0xFFFF9B04), // Branded Orange
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
+        child: Text(
+          widget.title ?? 'Plokitch',
+          style: textTheme.titleLarge?.copyWith(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.5,
+          ),
         ),
       ),
       actions: [
