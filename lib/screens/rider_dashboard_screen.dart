@@ -338,7 +338,6 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
             String vendorAddress = 'Fetching kitchen address...';
             String? vendorPhone;
             String? customerPhone;
-            String? customerEmail;
 
             if (snapshot.hasData) {
               final vendorData = snapshot.data!['vendor'];
@@ -369,7 +368,6 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
               final customerData = snapshot.data!['customer'];
               if (customerData != null) {
                 customerPhone = customerData['phone']?.toString();
-                customerEmail = customerData['email']?.toString();
               }
             }
 
@@ -522,47 +520,27 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                               customerAddrStr,
                               style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
                             ),
-                            if (customerPhone != null || customerEmail != null) ...[
+                            if (customerPhone != null && customerPhone.isNotEmpty) ...[
                               const SizedBox(height: 12),
                               Row(
                                 children: [
-                                  if (customerPhone != null && customerPhone.isNotEmpty) ...[
-                                    FilledButton.icon(
-                                      onPressed: () async {
-                                        final Uri url = Uri.parse('tel:$customerPhone');
-                                        if (await canLaunchUrl(url)) {
-                                          await launchUrl(url);
-                                        }
-                                      },
-                                      icon: const Icon(Icons.phone_rounded, size: 16),
-                                      label: Text(customerPhone),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: colorScheme.secondary,
-                                        foregroundColor: colorScheme.onSecondary,
-                                        visualDensity: VisualDensity.compact,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                      ),
+                                  FilledButton.icon(
+                                    onPressed: () async {
+                                      final Uri url = Uri.parse('tel:$customerPhone');
+                                      if (await canLaunchUrl(url)) {
+                                        await launchUrl(url);
+                                      }
+                                    },
+                                    icon: const Icon(Icons.phone_rounded, size: 16),
+                                    label: Text(customerPhone),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: colorScheme.secondary,
+                                      foregroundColor: colorScheme.onSecondary,
+                                      visualDensity: VisualDensity.compact,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     ),
-                                  ],
-                                  if (customerEmail != null && customerEmail.isNotEmpty) ...[
-                                    const SizedBox(width: 8),
-                                    OutlinedButton.icon(
-                                      onPressed: () async {
-                                        final Uri url = Uri.parse('mailto:$customerEmail');
-                                        if (await canLaunchUrl(url)) {
-                                          await launchUrl(url);
-                                        }
-                                      },
-                                      icon: const Icon(Icons.mail_rounded, size: 16),
-                                      label: const Text('Email'),
-                                      style: OutlinedButton.styleFrom(
-                                        visualDensity: VisualDensity.compact,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ],
                               ),
                             ],
