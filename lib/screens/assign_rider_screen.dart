@@ -467,6 +467,26 @@ class _AssignRiderScreenState extends State<AssignRiderScreen> {
                             ),
                           ],
                         ),
+                        if (rider.phone != null && rider.phone!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.phone_rounded,
+                                size: 14,
+                                color: colorScheme.outline,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                rider.phone!,
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.outline,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),

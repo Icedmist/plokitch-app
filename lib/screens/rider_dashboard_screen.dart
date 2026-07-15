@@ -28,10 +28,6 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
   bool _loading = true;
   String? _error;
   String? _avatarUrl;
-  
-  String? _vendorAddress;
-  String? _customerPhone;
-  String? _customerEmail;
 
   // Stats
   final Map<String, String> _todayStats = {
@@ -78,15 +74,6 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
               o.riderId == null &&
               o.solvixDeliveryId == null).toList();
         });
-        if (_activeJob != null) {
-          _loadActiveJobDetails();
-        } else {
-          setState(() {
-            _vendorAddress = null;
-            _customerPhone = null;
-            _customerEmail = null;
-          });
-        }
       }
     } catch (e) {
       if (mounted) {
@@ -132,7 +119,6 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
           _hasActiveDelivery = true;
         });
         PlokitchToast.show(context, 'Delivery accepted! Head to ${job.vendorName ?? 'Kitchen'}.');
-        _loadActiveJobDetails();
         _loadAvailableOrders();
       }
     } catch (e) {
@@ -170,57 +156,6 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
         setState(() => _loading = false);
       }
     }
-  }
-
-  Future<void> _loadActiveJobDetails() async {
-    if (_activeJob == null) return;
-    try {
-      final vendorId = _activeJob!.vendorId;
-      final customerId = _activeJob!.customerId;
-      
-      if (vendorId != null) {
-        final vendorRes = await Supabase.instance.client
-            .from('vendor')
-            .select('location')
-            .eq('id', vendorId)
-            .maybeSingle();
-            
-        if (vendorRes != null && vendorRes['location'] != null) {
-          final loc = Map<String, dynamic>.from(vendorRes['location'] as Map);
-          final addr = loc['address']?.toString() ?? '';
-          final street = loc['street']?.toString() ?? '';
-          final city = loc['city']?.toString() ?? '';
-          final state = loc['state']?.toString() ?? '';
-          
-          final addressParts = [
-            if (addr.isNotEmpty) addr else if (street.isNotEmpty) street,
-            if (city.isNotEmpty) city,
-            if (state.isNotEmpty) state
-          ];
-          
-          if (mounted) {
-            setState(() {
-              _vendorAddress = addressParts.join(', ');
-            });
-          }
-        }
-      }
-      
-      if (customerId != null) {
-        final customerRes = await Supabase.instance.client
-            .from('user')
-            .select('phone, email')
-            .eq('id', customerId)
-            .maybeSingle();
-            
-        if (customerRes != null && mounted) {
-          setState(() {
-            _customerPhone = customerRes['phone']?.toString();
-            _customerEmail = customerRes['email']?.toString();
-          });
-        }
-      }
-    } catch (_) {}
   }
 
   void _showMarkDeliveredConfirmationDialog() {
@@ -327,259 +262,377 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     );
   }
 
+  Future<Map<String, dynamic>> _fetchDeliveryDetails(String vendorId, String customerId) async {
+    final results = await Future.wait([
+      Supabase.instance.client
+          .from('vendor')
+          .select('location, user:user_id(phone)')
+          .eq('id', vendorId)
+          .maybeSingle(),
+      Supabase.instance.client
+          .from('user')
+          .select('phone, email')
+          .eq('id', customerId)
+          .maybeSingle(),
+    ]);
+    return {
+      'vendor': results[0],
+      'customer': results[1],
+    };
+  }
+
   void _showDeliveryDetailsBottomSheet(BuildContext context) {
+    final order = _activeJob!;
+    final vendorId = order.vendorId;
+    final customerId = order.customerId;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        final colorScheme = Theme.of(context).colorScheme;
-        final textTheme = Theme.of(context).textTheme;
-        final order = _activeJob!;
-        
-        final deliveryAddr = order.deliveryAddress;
-        final customerAddrStr = deliveryAddr != null
-            ? [deliveryAddr['street'], deliveryAddr['city'], deliveryAddr['state']]
-                .where((e) => e != null && e.toString().isNotEmpty)
-                .join(', ')
-            : 'No address provided';
+        return FutureBuilder<Map<String, dynamic>>(
+          future: (vendorId != null && customerId != null)
+              ? _fetchDeliveryDetails(vendorId, customerId)
+              : Future.value({}),
+          builder: (context, snapshot) {
+            final colorScheme = Theme.of(context).colorScheme;
+            final textTheme = Theme.of(context).textTheme;
 
-        final itemsSummary = order.items.map((i) => '${i['quantity'] ?? 1}x ${i['name'] ?? 'Item'}').join('\n');
-
-        return Container(
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                 ),
+                padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    const CircularProgressIndicator(),
+                  ],
+                ),
+              );
+            }
+
+            final deliveryAddr = order.deliveryAddress;
+            final customerAddrStr = deliveryAddr != null
+                ? [deliveryAddr['street'], deliveryAddr['city'], deliveryAddr['state']]
+                    .where((e) => e != null && e.toString().isNotEmpty)
+                    .join(', ')
+                : 'No address provided';
+
+            final itemsSummary = order.items.map((i) => '${i['quantity'] ?? 1}x ${i['name'] ?? 'Item'}').join('\n');
+
+            String vendorAddress = 'Fetching kitchen address...';
+            String? vendorPhone;
+            String? customerPhone;
+            String? customerEmail;
+
+            if (snapshot.hasData) {
+              final vendorData = snapshot.data!['vendor'];
+              if (vendorData != null) {
+                if (vendorData['location'] != null) {
+                  final loc = Map<String, dynamic>.from(vendorData['location'] as Map);
+                  final addr = loc['address']?.toString() ?? '';
+                  final street = loc['street']?.toString() ?? '';
+                  final city = loc['city']?.toString() ?? '';
+                  final state = loc['state']?.toString() ?? '';
+                  final addressParts = [
+                    if (addr.isNotEmpty) addr else if (street.isNotEmpty) street,
+                    if (city.isNotEmpty) city,
+                    if (state.isNotEmpty) state
+                  ];
+                  vendorAddress = addressParts.isNotEmpty ? addressParts.join(', ') : 'No address provided';
+                } else {
+                  vendorAddress = 'No address provided';
+                }
+                if (vendorData['user'] != null) {
+                  final userMap = Map<String, dynamic>.from(vendorData['user'] as Map);
+                  vendorPhone = userMap['phone']?.toString();
+                }
+              } else {
+                vendorAddress = 'No address provided';
+              }
+
+              final customerData = snapshot.data!['customer'];
+              if (customerData != null) {
+                customerPhone = customerData['phone']?.toString();
+                customerEmail = customerData['email']?.toString();
+              }
+            }
+
+            return Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Delivery Details',
-                          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Order #${order.id}',
-                          style: textTheme.bodySmall?.copyWith(color: colorScheme.outline),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      order.status.toUpperCase(),
-                      style: textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.bold,
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-
-              // Pick Up From (Vendor)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-                    child: Icon(Icons.storefront_rounded, color: colorScheme.primary),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'PICK UP FROM',
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Delivery Details',
+                              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Order #${order.id}',
+                              style: textTheme.bodySmall?.copyWith(color: colorScheme.outline),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          order.status.toUpperCase(),
                           style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.outline,
+                            color: colorScheme.onPrimaryContainer,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          order.vendorName ?? 'Kitchen',
-                          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _vendorAddress ?? 'Fetching kitchen address...',
-                          style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
 
-              // Deliver To (Customer)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    backgroundColor: colorScheme.secondary.withValues(alpha: 0.1),
-                    child: Icon(Icons.person_pin_circle_rounded, color: colorScheme.secondary),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'DELIVER TO',
-                          style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.outline,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          order.customerName ?? 'Guest',
-                          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          customerAddrStr,
-                          style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                        if (_customerPhone != null || _customerEmail != null) ...[
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              if (_customerPhone != null) ...[
-                                FilledButton.icon(
-                                  onPressed: () async {
-                                    final Uri url = Uri.parse('tel:$_customerPhone');
-                                    if (await canLaunchUrl(url)) {
-                                      await launchUrl(url);
-                                    }
-                                  },
-                                  icon: const Icon(Icons.phone_rounded, size: 16),
-                                  label: Text(_customerPhone!),
-                                  style: FilledButton.styleFrom(
-                                    visualDensity: VisualDensity.compact,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  // Pick Up From (Vendor)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                        child: Icon(Icons.storefront_rounded, color: colorScheme.primary),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'PICK UP FROM',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: colorScheme.outline,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              order.vendorName ?? 'Kitchen',
+                              style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              vendorAddress,
+                              style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                            ),
+                            if (vendorPhone != null && vendorPhone.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  FilledButton.icon(
+                                    onPressed: () async {
+                                      final Uri url = Uri.parse('tel:$vendorPhone');
+                                      if (await canLaunchUrl(url)) {
+                                        await launchUrl(url);
+                                      }
+                                    },
+                                    icon: const Icon(Icons.phone_rounded, size: 16),
+                                    label: Text(vendorPhone),
+                                    style: FilledButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    ),
                                   ),
-                                ),
-                              ],
-                              if (_customerEmail != null) ...[
-                                const SizedBox(width: 8),
-                                OutlinedButton.icon(
-                                  onPressed: () async {
-                                    final Uri url = Uri.parse('mailto:$_customerEmail');
-                                    if (await canLaunchUrl(url)) {
-                                      await launchUrl(url);
-                                    }
-                                  },
-                                  icon: const Icon(Icons.mail_rounded, size: 16),
-                                  label: const Text('Email'),
-                                  style: OutlinedButton.styleFrom(
-                                    visualDensity: VisualDensity.compact,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Deliver To (Customer)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: colorScheme.secondary.withValues(alpha: 0.1),
+                        child: Icon(Icons.person_pin_circle_rounded, color: colorScheme.secondary),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'DELIVER TO',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: colorScheme.outline,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              order.customerName ?? 'Guest',
+                              style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              customerAddrStr,
+                              style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                            ),
+                            if (customerPhone != null || customerEmail != null) ...[
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  if (customerPhone != null && customerPhone.isNotEmpty) ...[
+                                    FilledButton.icon(
+                                      onPressed: () async {
+                                        final Uri url = Uri.parse('tel:$customerPhone');
+                                        if (await canLaunchUrl(url)) {
+                                          await launchUrl(url);
+                                        }
+                                      },
+                                      icon: const Icon(Icons.phone_rounded, size: 16),
+                                      label: Text(customerPhone),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: colorScheme.secondary,
+                                        foregroundColor: colorScheme.onSecondary,
+                                        visualDensity: VisualDensity.compact,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                    ),
+                                  ],
+                                  if (customerEmail != null && customerEmail.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    OutlinedButton.icon(
+                                      onPressed: () async {
+                                        final Uri url = Uri.parse('mailto:$customerEmail');
+                                        if (await canLaunchUrl(url)) {
+                                          await launchUrl(url);
+                                        }
+                                      },
+                                      icon: const Icon(Icons.mail_rounded, size: 16),
+                                      label: const Text('Email'),
+                                      style: OutlinedButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+
+                  // Items summary
+                  Text(
+                    'ITEMS',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.outline,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    itemsSummary,
+                    style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(context, '/tracking', arguments: order.id);
+                          },
+                          icon: const Icon(Icons.map, size: 18),
+                          label: const Text('Open Map'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                        ],
-                      ],
-                    ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showMarkDeliveredConfirmationDialog();
+                          },
+                          icon: const Icon(Icons.check_circle, size: 18),
+                          label: const Text('Mark Delivered'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: colorScheme.primary,
+                            side: BorderSide(color: colorScheme.primary),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 16),
                 ],
               ),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-
-              // Items summary
-              Text(
-                'ITEMS',
-                style: textTheme.labelSmall?.copyWith(
-                  color: colorScheme.outline,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                itemsSummary,
-                style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 32),
-
-              // Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/tracking', arguments: order.id);
-                      },
-                      icon: const Icon(Icons.map, size: 18),
-                      label: const Text('Open Map'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _showMarkDeliveredConfirmationDialog();
-                      },
-                      icon: const Icon(Icons.check_circle, size: 18),
-                      label: const Text('Mark Delivered'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: colorScheme.primary,
-                        side: BorderSide(color: colorScheme.primary),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
+            );
+          },
         );
       },
     );
