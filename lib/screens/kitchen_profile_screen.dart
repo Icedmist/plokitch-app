@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
+import '../models/review_model.dart';
 import '../widgets/plokitch_app_bar.dart';
 import '../widgets/plokitch_back_button.dart';
 
@@ -27,6 +28,61 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
   int _retryCount = 0;
   bool _hasLoadedData = false;
   static const int _maxRetries = 2;
+
+  final ScrollController _scrollController = ScrollController();
+  int _selectedTab = 0;
+
+  final List<ReviewModel> _reviews = [
+    ReviewModel(
+      userName: 'Alex Johnson',
+      rating: 5.0,
+      comment: 'Absolutely delicious! The food was hot and seasoned to perfection. Highly recommended!',
+      date: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+    ReviewModel(
+      userName: 'Miriam Ali',
+      rating: 4.5,
+      comment: 'Very good portion size and rich flavors. Will definitely order again.',
+      date: DateTime.now().subtract(const Duration(days: 5)),
+    ),
+    ReviewModel(
+      userName: 'Daniel K.',
+      rating: 4.0,
+      comment: 'The mains were amazing, but delivery took a little longer than expected. Worth the wait though!',
+      date: DateTime.now().subtract(const Duration(days: 9)),
+    ),
+    ReviewModel(
+      userName: 'Seyi A.',
+      rating: 5.0,
+      comment: 'Best local kitchen in town! The flavor is authentic and consistent.',
+      date: DateTime.now().subtract(const Duration(days: 14)),
+    ),
+  ];
+
+  double get _averageRating {
+    if (_reviews.isEmpty) return 0.0;
+    final total = _reviews.fold<double>(0, (sum, item) => sum + item.rating);
+    return total / _reviews.length;
+  }
+
+  void _scrollToTabs() {
+    setState(() {
+      _selectedTab = 1;
+    });
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        340,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -162,6 +218,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
 
     return Scaffold(
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
             expandedHeight: 220,
@@ -227,12 +284,15 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                     physics: const BouncingScrollPhysics(),
                     child: Row(
                       children: [
-                        _buildInfoChip(
-                          icon: Icons.star_rounded,
-                          iconColor: Colors.amber.shade700,
-                          label: '4.8 Rating',
-                          bgColor: Colors.amber.shade50,
-                          labelColor: Colors.amber.shade900,
+                        GestureDetector(
+                          onTap: _scrollToTabs,
+                          child: _buildInfoChip(
+                            icon: Icons.star_rounded,
+                            iconColor: Colors.amber.shade700,
+                            label: '${_averageRating.toStringAsFixed(1)} Rating',
+                            bgColor: Colors.amber.shade50,
+                            labelColor: Colors.amber.shade900,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         _buildInfoChip(
@@ -344,27 +404,67 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
 
                   const Divider(height: 1),
                   const SizedBox(height: 20),
-                  Text(
-                    'Menu',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: colorScheme.onSurface,
-                    ),
+                  Row(
+                    children: [
+                      _buildTabButton(0, 'Menu (${_menu.length})', colorScheme),
+                      const SizedBox(width: 16),
+                      _buildTabButton(1, 'Reviews (${_reviews.length})', colorScheme),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final item = _menu[index];
-                return _buildMenuItemCard(item, colorScheme, textTheme);
-              },
-              childCount: _menu.length,
+          if (_selectedTab == 0) ...[
+            if (_menu.isEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: Text('No menu items available.'),
+                  ),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final item = _menu[index];
+                    return _buildMenuItemCard(item, colorScheme, textTheme);
+                  },
+                  childCount: _menu.length,
+                ),
+              ),
+          ] else ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _buildRatingsSummary(colorScheme, textTheme),
+              ),
             ),
-          ),
+            if (_reviews.isEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: Text('No reviews yet. Be the first to write one!'),
+                  ),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final review = _reviews[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _buildReviewCard(review, colorScheme, textTheme),
+                    );
+                  },
+                  childCount: _reviews.length,
+                ),
+              ),
+          ],
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),
@@ -601,5 +701,429 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildTabButton(int index, String label, ColorScheme colorScheme) {
+    final isSelected = _selectedTab == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedTab = index;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? colorScheme.primary : colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRatingsSummary(ColorScheme colorScheme, TextTheme textTheme) {
+    final counts = {
+      for (var i = 1; i <= 5; i++) i: 0,
+    };
+    for (var r in _reviews) {
+      final intStar = r.rating.round();
+      if (counts.containsKey(intStar)) {
+        counts[intStar] = counts[intStar]! + 1;
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: Column(
+                  children: [
+                    Text(
+                      _averageRating.toStringAsFixed(1),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 48,
+                        fontWeight: FontWeight.w900,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final starVal = index + 1;
+                        if (_averageRating >= starVal) {
+                          return Icon(Icons.star_rounded, color: Colors.amber.shade700, size: 18);
+                        } else if (_averageRating >= starVal - 0.5) {
+                          return Icon(Icons.star_half_rounded, color: Colors.amber.shade700, size: 18);
+                        } else {
+                          return Icon(Icons.star_outline_rounded, color: Colors.amber.shade700, size: 18);
+                        }
+                      }),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${_reviews.length} reviews',
+                      style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              Container(width: 1, height: 80, color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 6,
+                child: Column(
+                  children: List.generate(5, (index) {
+                    final stars = 5 - index;
+                    final count = counts[stars] ?? 0;
+                    final pct = _reviews.isEmpty ? 0.0 : count / _reviews.length;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        children: [
+                          Text(
+                            '$stars',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.star_rounded, color: Colors.amber, size: 12),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: LinearProgressIndicator(
+                                value: pct,
+                                minHeight: 6,
+                                backgroundColor: colorScheme.surfaceContainerHigh,
+                                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 16,
+                            child: Text(
+                              '$count',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.end,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Divider(height: 1, thickness: 0.5, color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _showWriteReviewBottomSheet(colorScheme),
+              icon: const Icon(Icons.rate_review_rounded, size: 18),
+              label: const Text('Write a Review'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewCard(ReviewModel review, ColorScheme colorScheme, TextTheme textTheme) {
+    final initials = review.userName.isNotEmpty ? review.userName[0].toUpperCase() : '?';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                child: Text(
+                  initials,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      review.userName,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Row(
+                          children: List.generate(5, (index) {
+                            return Icon(
+                              index < review.rating.round()
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              color: Colors.amber.shade700,
+                              size: 14,
+                            );
+                          }),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _timeAgo(review.date),
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            review.comment,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showWriteReviewBottomSheet(ColorScheme colorScheme) {
+    double selectedRating = 5.0;
+    final nameController = TextEditingController();
+    final commentController = TextEditingController();
+
+    final savedName = _profile?['name'] as String?;
+    if (savedName != null && savedName.isNotEmpty) {
+      nameController.text = savedName;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalContext) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: EdgeInsets.only(
+              top: 24,
+              left: 24,
+              right: 24,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Write a Review',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(modalContext),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          'Tap stars to rate',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(5, (index) {
+                            final ratingValue = index + 1.0;
+                            final isSelected = selectedRating >= ratingValue;
+                            return GestureDetector(
+                              onTap: () {
+                                setModalState(() {
+                                  selectedRating = ratingValue;
+                                });
+                              },
+                              child: Icon(
+                                isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
+                                color: Colors.amber.shade700,
+                                size: 40,
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Your Name',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      labelText: 'Review comment',
+                      hintText: 'Share details of your experience...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final name = nameController.text.trim();
+                        final comment = commentController.text.trim();
+
+                        if (name.isEmpty || comment.isEmpty) {
+                          ScaffoldMessenger.of(modalContext).showSnackBar(
+                            SnackBar(
+                              content: const Text('Please fill out all fields.'),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          );
+                          return;
+                        }
+
+                        setState(() {
+                          _reviews.insert(
+                            0,
+                            ReviewModel(
+                              userName: name,
+                              rating: selectedRating,
+                              comment: comment,
+                              date: DateTime.now(),
+                            ),
+                          );
+                        });
+
+                        Navigator.pop(modalContext);
+
+                        ScaffoldMessenger.of(this.context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Thank you! Your review has been added.'),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: Colors.green.shade800,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        elevation: 0,
+                      ),
+                      child: const Text('Submit Review', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _timeAgo(DateTime dateTime) {
+    final difference = DateTime.now().difference(dateTime);
+    if (difference.inDays >= 30) {
+      return '${(difference.inDays / 30).floor()}mo ago';
+    } else if (difference.inDays >= 7) {
+      return '${(difference.inDays / 7).floor()}w ago';
+    } else if (difference.inDays >= 1) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours >= 1) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'just now';
+    }
   }
 }
