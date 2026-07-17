@@ -404,12 +404,22 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
 
                   const Divider(height: 1),
                   const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      _buildTabButton(0, 'Menu (${_menu.length})', colorScheme),
-                      const SizedBox(width: 16),
-                      _buildTabButton(1, 'Reviews (${_reviews.length})', colorScheme),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildTabButton(0, 'Menu (${_menu.length})', colorScheme),
+                        ),
+                        Expanded(
+                          child: _buildTabButton(1, 'Reviews (${_reviews.length})', colorScheme),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -712,17 +722,28 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primary : colorScheme.surfaceContainerHigh,
+          color: isSelected ? colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: colorScheme.primary.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+        child: Center(
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       ),
