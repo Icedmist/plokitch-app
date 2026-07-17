@@ -4,16 +4,29 @@ class VendorModel {
   final String? description;
   final Map<String, dynamic>? location;
   final String? imageUrl;
+  final String? email;
+  final String? phone;
 
-  VendorModel({required this.id, required this.businessName, this.description, this.location, this.imageUrl});
+  VendorModel({
+    required this.id,
+    required this.businessName,
+    this.description,
+    this.location,
+    this.imageUrl,
+    this.email,
+    this.phone,
+  });
 
   factory VendorModel.fromJson(Map<String, dynamic> json) {
+    final userMap = json['user'] is Map ? Map<String, dynamic>.from(json['user'] as Map) : null;
     return VendorModel(
       id: json['id'] as String,
       businessName: json['businessName'] ?? json['business_name'] ?? '',
       description: json['description'] as String?,
       location: json['location'] != null ? Map<String, dynamic>.from(json['location'] as Map) : null,
       imageUrl: json['imageUrl'] ?? json['image_url'] as String?,
+      email: (userMap?['email'] ?? json['email']) as String?,
+      phone: (userMap?['phone'] ?? json['phone']) as String?,
     );
   }
 
@@ -23,6 +36,8 @@ class VendorModel {
         'description': description,
         'location': location,
         'imageUrl': imageUrl,
+        'email': email,
+        'phone': phone,
       };
 
   String? get openTime => location?['openTime'] as String?;

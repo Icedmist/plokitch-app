@@ -8,6 +8,7 @@ class MenuItemModel {
   final List<String> images;
   final bool isAddOn;
   final bool isAvailable;
+  final bool isFeatured;
 
   MenuItemModel({
     required this.id,
@@ -19,6 +20,7 @@ class MenuItemModel {
     this.images = const [],
     this.isAddOn = false,
     this.isAvailable = true,
+    this.isFeatured = false,
   });
 
   factory MenuItemModel.fromJson(Map<String, dynamic> json) {
@@ -41,6 +43,7 @@ class MenuItemModel {
       images: images,
       isAddOn: json['isAddOn'] == true || json['is_add_on'] == true,
       isAvailable: available,
+      isFeatured: json['isFeatured'] == true || json['featured'] == true || json['is_featured'] == true,
     );
   }
 
@@ -54,5 +57,6 @@ class MenuItemModel {
         'images': images,
         'isAddOn': isAddOn,
         'isAvailable': isAvailable,
+        'isFeatured': isFeatured,
       };
 }
