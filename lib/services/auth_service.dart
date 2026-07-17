@@ -150,38 +150,34 @@ class AuthService {
     return prefs.getString(_roleKey);
   }
 
-  /// Attempt to refresh session token using backend refresh endpoint.
-  /// If refresh fails, clears stored session.
+  /// Returns true if a session token is stored in preferences.
+  static Future<bool> hasStoredSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(_sessionKey);
+    return token != null && token.isNotEmpty;
+  }
+
+  /// Attempt to refresh session token or validate it.
+  /// If validation fails with 401 or 403, clears stored session.
   static Future<bool> tryRefreshSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_sessionKey);
     if (token == null) return false;
     try {
-      final uri = _uri('/api/auth/refresh');
-      final res = await http.post(uri, headers: _buildHeaders(token));
+      final uri = _uri('/api/users/me');
+      final res = await http.get(uri, headers: _buildHeaders(token));
       if (res.statusCode != 200) {
-        await prefs.remove(_sessionKey);
-        await prefs.remove(_roleKey);
-        DataCacheService.invalidate('user_profile');
+        if (res.statusCode == 401 || res.statusCode == 403) {
+          await prefs.remove(_sessionKey);
+          await prefs.remove(_roleKey);
+          DataCacheService.invalidate('user_profile');
+        }
         return false;
       }
-      // parse new token from Set-Cookie or body
-      String? newToken = _extractSessionToken(res.headers['set-cookie'] ?? res.headers['Set-Cookie']);
-      if (newToken == null) {
-        try {
-          final body = json.decode(res.body);
-          if (body is Map<String, dynamic>) {
-            newToken = _extractSessionTokenFromBody(body);
-          }
-        } catch (_) {}
-      }
-      if (newToken != null && newToken.isNotEmpty) {
-        await prefs.setString(_sessionKey, newToken);
-        return true;
-      }
-      return false;
+      return true;
     } catch (_) {
-      return false;
+      // Network error: don't clear session, assume it is valid for now
+      return true;
     }
   }
 

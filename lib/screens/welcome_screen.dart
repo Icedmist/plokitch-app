@@ -69,19 +69,28 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   void _startSequence() async {
     // Check if user is already signed in and validate the cached session
+    String? role;
     try {
       final profile = await AuthService.getProfile(forceRefresh: true);
-      final storedRole = profile?['role'] as String?;
-      final fallbackRole = await AuthService.storedRole();
-      final role = (storedRole != null && storedRole.isNotEmpty) ? storedRole : fallbackRole;
-      if (role != null && role.isNotEmpty) {
-        // User is already logged in, skip welcome animation
-        if (mounted) {
-          _navigateToRoleHome(role);
-        }
-        return;
+      if (profile != null) {
+        role = profile['role'] as String?;
       }
-    } catch (_) {}
+    } catch (_) {
+      // Network error or other exception: if we have a stored session and role, use that!
+      final hasSession = await AuthService.hasStoredSession();
+      final fallbackRole = await AuthService.storedRole();
+      if (hasSession && fallbackRole != null && fallbackRole.isNotEmpty) {
+        role = fallbackRole;
+      }
+    }
+
+    if (role != null && role.isNotEmpty) {
+      // User is already logged in, skip welcome animation
+      if (mounted) {
+        _navigateToRoleHome(role);
+      }
+      return;
+    }
 
     // User is not signed in, show welcome animation
     // Step 1: animate brackets in

@@ -65,12 +65,6 @@ Future<void> main() async {
     final role = await AuthService.storedRole();
     if (role != null && role.isNotEmpty) {
       mockUserRole = role;
-      // Validate that the stored token is still valid by attempting refresh
-      final isValid = await AuthService.tryRefreshSession();
-      if (!isValid) {
-        // Token expired, clear it for login
-        await AuthService.signOut();
-      }
     }
   } catch (_) {}
   runApp(const PlokitchApp());
