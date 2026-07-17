@@ -8,6 +8,7 @@ import 'data_cache_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
 import '../models/order_model.dart';
+import '../models/review_model.dart';
 
 class ApiService {
   ApiService._();
@@ -320,5 +321,51 @@ class ApiService {
     if (res.statusCode != 200) throw Exception('Failed to update order status');
     final body = json.decode(res.body) as Map<String, dynamic>;
     return OrderModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+  }
+
+  static Future<List<ReviewModel>> fetchVendorReviews(String vendorId, {bool forceRefresh = false}) async {
+    final cacheKey = 'reviews_$vendorId';
+    if (!forceRefresh) {
+      final cached = DataCacheService.get(cacheKey);
+      if (cached != null) {
+        try {
+          return (cached as List).cast<ReviewModel>();
+        } catch (_) {}
+      }
+    }
+
+    final uri = _uri('/api/vendors/$vendorId/reviews');
+    final res = await http.get(uri, headers: await _headers());
+    if (res.statusCode != 200) throw Exception('Failed to fetch reviews: ${res.body}');
+    final body = json.decode(res.body) as Map<String, dynamic>;
+    final list = body['data'] as List<dynamic>;
+    final result = list.map((e) => ReviewModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+
+    DataCacheService.set(cacheKey, result);
+    return result;
+  }
+
+  static Future<Map<String, dynamic>> addVendorReview(String vendorId, Map<String, dynamic> payload) async {
+    final uri = _uri('/api/vendors/$vendorId/reviews');
+    final res = await http.post(uri, headers: await _headers(), body: json.encode(payload));
+    if (res.statusCode >= 400) {
+      throw Exception('Failed to submit review: ${res.body}');
+    }
+    final body = json.decode(res.body) as Map<String, dynamic>;
+    DataCacheService.invalidate('reviews_$vendorId');
+    DataCacheService.invalidate('vendor_$vendorId');
+    return body['data'] as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> updateVendorReview(String vendorId, String reviewId, Map<String, dynamic> payload) async {
+    final uri = _uri('/api/vendors/reviews/$reviewId');
+    final res = await http.put(uri, headers: await _headers(), body: json.encode(payload));
+    if (res.statusCode >= 400) {
+      throw Exception('Failed to update review: ${res.body}');
+    }
+    final body = json.decode(res.body) as Map<String, dynamic>;
+    DataCacheService.invalidate('reviews_$vendorId');
+    DataCacheService.invalidate('vendor_$vendorId');
+    return body['data'] as Map<String, dynamic>;
   }
 }

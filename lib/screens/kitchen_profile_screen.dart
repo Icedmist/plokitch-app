@@ -32,32 +32,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
   final ScrollController _scrollController = ScrollController();
   int _selectedTab = 0;
 
-  final List<ReviewModel> _reviews = [
-    ReviewModel(
-      userName: 'Alex Johnson',
-      rating: 5.0,
-      comment: 'Absolutely delicious! The food was hot and seasoned to perfection. Highly recommended!',
-      date: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    ReviewModel(
-      userName: 'Miriam Ali',
-      rating: 4.5,
-      comment: 'Very good portion size and rich flavors. Will definitely order again.',
-      date: DateTime.now().subtract(const Duration(days: 5)),
-    ),
-    ReviewModel(
-      userName: 'Daniel K.',
-      rating: 4.0,
-      comment: 'The mains were amazing, but delivery took a little longer than expected. Worth the wait though!',
-      date: DateTime.now().subtract(const Duration(days: 9)),
-    ),
-    ReviewModel(
-      userName: 'Seyi A.',
-      rating: 5.0,
-      comment: 'Best local kitchen in town! The flavor is authentic and consistent.',
-      date: DateTime.now().subtract(const Duration(days: 14)),
-    ),
-  ];
+  final List<ReviewModel> _reviews = [];
 
   double get _averageRating {
     if (_reviews.isEmpty) return 0.0;
@@ -140,11 +115,14 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
         throw Exception('Invalid vendor data received');
       }
       final menuData = await ApiService.fetchVendorMenu(vendorId, forceRefresh: true);
-
+      final reviewsData = await ApiService.fetchVendorReviews(vendorId, forceRefresh: true);
+      
       if (mounted) {
         setState(() {
           _vendor = VendorModel.fromJson(vendorData);
           _menu = menuData.cast<MenuItemModel>();
+          _reviews.clear();
+          _reviews.addAll(reviewsData);
           _loading = false;
           _error = null;
           _retryCount = 0;
@@ -887,6 +865,8 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
 
   Widget _buildReviewCard(ReviewModel review, ColorScheme colorScheme, TextTheme textTheme) {
     final initials = review.userName.isNotEmpty ? review.userName[0].toUpperCase() : '?';
+    final isOwnReview = _profile != null && review.customerId == _profile?['id'];
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -903,13 +883,30 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-                child: Text(
-                  initials,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
-                  ),
-                ),
+                child: review.userImage != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.network(
+                          review.userImage!,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Text(
+                            initials,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Text(
+                        initials,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.primary,
+                        ),
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -951,6 +948,11 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                   ],
                 ),
               ),
+              if (isOwnReview)
+                IconButton(
+                  icon: Icon(Icons.edit_rounded, size: 18, color: colorScheme.primary),
+                  onPressed: () => _showWriteReviewBottomSheet(colorScheme, existingReview: review),
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -966,15 +968,22 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
     );
   }
 
-  void _showWriteReviewBottomSheet(ColorScheme colorScheme) {
-    double selectedRating = 5.0;
+  void _showWriteReviewBottomSheet(ColorScheme colorScheme, {ReviewModel? existingReview}) {
+    double selectedRating = existingReview?.rating ?? 5.0;
     final nameController = TextEditingController();
     final commentController = TextEditingController();
 
-    final savedName = _profile?['name'] as String?;
-    if (savedName != null && savedName.isNotEmpty) {
-      nameController.text = savedName;
+    if (existingReview != null) {
+      nameController.text = existingReview.userName;
+      commentController.text = existingReview.comment;
+    } else {
+      final savedName = _profile?['name'] as String?;
+      if (savedName != null && savedName.isNotEmpty) {
+        nameController.text = savedName;
+      }
     }
+
+    bool isSubmitting = false;
 
     showModalBottomSheet(
       context: context,
@@ -1002,7 +1011,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Write a Review',
+                        existingReview == null ? 'Write a Review' : 'Edit Your Review',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -1032,7 +1041,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                             final ratingValue = index + 1.0;
                             final isSelected = selectedRating >= ratingValue;
                             return GestureDetector(
-                              onTap: () {
+                              onTap: isSubmitting ? null : () {
                                 setModalState(() {
                                   selectedRating = ratingValue;
                                 });
@@ -1049,16 +1058,18 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Your Name',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                  if (existingReview == null) ...[
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Your Name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+                  ],
                   TextField(
                     controller: commentController,
                     maxLines: 4,
@@ -1074,11 +1085,11 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        final name = nameController.text.trim();
+                      onPressed: isSubmitting ? null : () async {
                         final comment = commentController.text.trim();
+                        final name = nameController.text.trim();
 
-                        if (name.isEmpty || comment.isEmpty) {
+                        if ((existingReview == null && name.isEmpty) || comment.isEmpty) {
                           ScaffoldMessenger.of(modalContext).showSnackBar(
                             SnackBar(
                               content: const Text('Please fill out all fields.'),
@@ -1089,28 +1100,55 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                           return;
                         }
 
-                        setState(() {
-                          _reviews.insert(
-                            0,
-                            ReviewModel(
-                              userName: name,
-                              rating: selectedRating,
-                              comment: comment,
-                              date: DateTime.now(),
+                        setModalState(() => isSubmitting = true);
+                        try {
+                          final payload = <String, dynamic>{
+                            'rating': selectedRating.toInt(),
+                            'comment': comment,
+                          };
+
+                          if (existingReview == null) {
+                            await ApiService.addVendorReview(_vendor!.id, payload);
+                          } else {
+                            await ApiService.updateVendorReview(_vendor!.id, existingReview.id, payload);
+                          }
+
+                          final reviewsData = await ApiService.fetchVendorReviews(_vendor!.id, forceRefresh: true);
+                          final vendorData = await ApiService.fetchVendor(_vendor!.id, forceRefresh: true);
+
+                          if (mounted) {
+                            setState(() {
+                              _reviews.clear();
+                              _reviews.addAll(reviewsData);
+                              _vendor = VendorModel.fromJson(vendorData);
+                            });
+                          }
+
+                          if (mounted) Navigator.pop(modalContext);
+
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(
+                                content: Text(existingReview == null 
+                                    ? 'Thank you! Your review has been added.' 
+                                    : 'Your review has been updated successfully.'),
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: Colors.green.shade800,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          setModalState(() => isSubmitting = false);
+                          ScaffoldMessenger.of(modalContext).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to save review: $e'),
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: Colors.red.shade800,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           );
-                        });
-
-                        Navigator.pop(modalContext);
-
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Thank you! Your review has been added.'),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Colors.green.shade800,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1119,7 +1157,16 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                         foregroundColor: colorScheme.onPrimary,
                         elevation: 0,
                       ),
-                      child: const Text('Submit Review', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: isSubmitting
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : Text(
+                              existingReview == null ? 'Submit Review' : 'Save Changes',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                     ),
                   ),
                 ],
