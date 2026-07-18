@@ -34,9 +34,9 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/plokitch_logo.png"
-  adaptive_icon_background: "#35301D"
-  adaptive_icon_foreground: "assets/images/plokitch_logo.png"
+  image_path: "release_icons/PlokitchIcon-official-1024.png"
+  adaptive_icon_background: "#150702"
+  adaptive_icon_foreground: "release_icons/PlokitchIcon-official-1024.png"
 
 flutter:
   uses-material-design: true
