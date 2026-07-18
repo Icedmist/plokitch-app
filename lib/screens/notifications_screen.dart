@@ -269,7 +269,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         if (n.type == 'new_review') {
           final vendorId = n.data?['vendorId'] as String?;
           if (vendorId != null) {
-            Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': vendorId});
+            Navigator.pushNamed(context, '/kitchen-profile', arguments: {
+              'id': vendorId,
+              'highlightReviewId': n.data?['reviewId'] as String?,
+            });
           }
         }
       },

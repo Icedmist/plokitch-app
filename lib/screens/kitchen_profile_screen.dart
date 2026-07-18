@@ -31,6 +31,8 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
 
   final ScrollController _scrollController = ScrollController();
   int _selectedTab = 0;
+  String? _highlightReviewId;
+  String? _blinkReviewId;
 
   final List<ReviewModel> _reviews = [];
 
@@ -80,6 +82,7 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
     final profile = await AuthService.getProfile();
     _profile = profile;
     _userRole = profile?['role'] as String? ?? await AuthService.storedRole();
+    _highlightReviewId = argMap?['highlightReviewId']?.toString();
 
     String? vendorId = widget.id?.trim();
     if (vendorId == null || vendorId.isEmpty) {
@@ -127,6 +130,28 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
           _error = null;
           _retryCount = 0;
         });
+
+        if (_highlightReviewId != null) {
+          final reviewIndex = _reviews.indexWhere((r) => r.id == _highlightReviewId);
+          if (reviewIndex >= 0) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              setState(() { _selectedTab = 1; });
+              final offset = 340.0 + 200.0 + reviewIndex * 155.0;
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  offset,
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOut,
+                );
+              }
+              setState(() { _blinkReviewId = _highlightReviewId; });
+              Future.delayed(const Duration(seconds: 3), () {
+                if (mounted) setState(() { _blinkReviewId = null; });
+              });
+            });
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -864,16 +889,21 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
   }
 
   Widget _buildReviewCard(ReviewModel review, ColorScheme colorScheme, TextTheme textTheme) {
+    final bool isHighlighted = review.id == _blinkReviewId;
     final initials = review.userName.isNotEmpty ? review.userName[0].toUpperCase() : '?';
     final isOwnReview = _profile != null && review.customerId == _profile?['id'];
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 600),
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: isHighlighted ? Colors.amber.shade50 : colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: isHighlighted ? Colors.amber.shade400 : colorScheme.outlineVariant.withValues(alpha: 0.3),
+          width: isHighlighted ? 2 : 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
