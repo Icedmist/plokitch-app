@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../widgets/plokitch_toast.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -20,7 +21,7 @@ class _SignInScreenState extends State<SignInScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email and password are required')));
+      PlokitchToast.show(context, 'Email and password are required', isError: true);
       return;
     }
 
@@ -63,7 +64,7 @@ class _SignInScreenState extends State<SignInScreen> {
     } catch (e) {
       if (!mounted) return;
       final message = _friendlyAuthError(e);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      PlokitchToast.show(context, message, isError: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

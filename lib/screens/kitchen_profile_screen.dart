@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../services/mail_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
 import '../models/review_model.dart';
@@ -1110,25 +1109,6 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
 
                           if (existingReview == null) {
                             await ApiService.addVendorReview(_vendor!.id, payload);
-
-                            final customerName = _profile?['name'] as String? ?? 'A customer';
-
-                            await ApiService.addNotification(
-                              title: 'New Review',
-                              body: '$customerName left a ${selectedRating.toInt()}-star review',
-                              type: 'review',
-                              recipientId: _vendor!.userId,
-                            );
-
-                            if (_vendor!.email != null) {
-                              await MailService.notifyNewReview(
-                                vendorName: _vendor!.businessName,
-                                vendorEmail: _vendor!.email!,
-                                customerName: customerName,
-                                rating: selectedRating,
-                                comment: comment,
-                              );
-                            }
                           } else {
                             await ApiService.updateVendorReview(_vendor!.id, existingReview.id, payload);
                           }
