@@ -139,6 +139,26 @@ class MailService {
     );
   }
 
+  /// New review posted → notify vendor.
+  static Future<void> notifyNewReview({
+    required String vendorName,
+    required String vendorEmail,
+    required String customerName,
+    required double rating,
+    required String comment,
+  }) async {
+    await sendAction(
+      action: 'new_review_vendor',
+      payload: {
+        'vendorName': vendorName,
+        'vendorEmail': vendorEmail,
+        'customerName': customerName,
+        'rating': rating,
+        'comment': comment,
+      },
+    );
+  }
+
   /// Order cancelled → notify customer + vendor + rider.
   static Future<void> notifyOrderCancelled({
     required Map<String, dynamic> order,

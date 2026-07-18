@@ -6,6 +6,7 @@ class VendorModel {
   final String? imageUrl;
   final String? email;
   final String? phone;
+  final String? userId;
 
   VendorModel({
     required this.id,
@@ -15,6 +16,7 @@ class VendorModel {
     this.imageUrl,
     this.email,
     this.phone,
+    this.userId,
   });
 
   factory VendorModel.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,7 @@ class VendorModel {
       imageUrl: json['imageUrl'] ?? json['image_url'] as String?,
       email: (userMap?['email'] ?? json['email']) as String?,
       phone: (userMap?['phone'] ?? json['phone']) as String?,
+      userId: userMap?['id'] as String?,
     );
   }
 
@@ -38,6 +41,7 @@ class VendorModel {
         'imageUrl': imageUrl,
         'email': email,
         'phone': phone,
+        'userId': userId,
       };
 
   String? get openTime => location?['openTime'] as String?;

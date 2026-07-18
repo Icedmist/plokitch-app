@@ -231,6 +231,7 @@ class ApiService {
     required String title,
     required String body,
     String type = 'system',
+    String? recipientId,
   }) async {
     try {
       final uri = _uri('/api/notifications');
@@ -241,6 +242,7 @@ class ApiService {
           'title': title,
           'message': body,
           'type': type,
+          if (recipientId != null) 'recipientId': recipientId,
         }),
       );
       if (res.statusCode >= 400) {
