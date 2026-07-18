@@ -10,7 +10,8 @@ class _Notification {
   final String time;
   final IconData icon;
   final bool isRead;
-  final String type; // 'order', 'promo', 'system'
+  final String type; // 'order', 'promo', 'system', 'new_review'
+  final Map<String, dynamic>? data;
 
   _Notification({
     required this.id,
@@ -20,6 +21,7 @@ class _Notification {
     required this.icon,
     this.isRead = false,
     required this.type,
+    this.data,
   });
 }
 
@@ -56,6 +58,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _notifications = data.map((entry) {
           final map = Map<String, dynamic>.from(entry as Map);
           final readAt = map['readAt'] ?? map['read_at'];
+          final rawData = map['data'];
           return _Notification(
             id: map['id']?.toString() ?? UniqueKey().toString(),
             title: map['title']?.toString() ?? 'Notification',
@@ -64,6 +67,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: _iconForType(map['type']?.toString() ?? 'system'),
             isRead: readAt != null || map['isRead'] == true || map['read'] == true,
             type: map['type']?.toString() ?? 'system',
+            data: rawData is Map<String, dynamic> ? rawData : null,
           );
         }).toList();
       }
@@ -107,6 +111,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: n.icon,
             isRead: true,
             type: n.type,
+            data: n.data,
           )).toList();
     });
   }
@@ -117,6 +122,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.check_circle;
       case 'promo':
         return Icons.local_offer;
+      case 'new_review':
+        return Icons.star;
       case 'system':
       default:
         return Icons.info;
@@ -133,7 +140,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         if (n.id == id) {
           return _Notification(
             id: n.id, title: n.title, body: n.body, time: n.time,
-            icon: n.icon, isRead: true, type: n.type,
+            icon: n.icon, isRead: true, type: n.type, data: n.data,
           );
         }
         return n;
@@ -247,13 +254,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         iconBg = colorScheme.tertiaryContainer.withValues(alpha: 0.2);
         iconColor = colorScheme.tertiary;
         break;
+      case 'new_review':
+        iconBg = Colors.amber.withValues(alpha: 0.2);
+        iconColor = Colors.amber.shade700;
+        break;
       default:
         iconBg = colorScheme.secondaryContainer.withValues(alpha: 0.2);
         iconColor = colorScheme.secondary;
     }
 
     return GestureDetector(
-      onTap: () => _markRead(n.id),
+      onTap: () {
+        _markRead(n.id);
+        if (n.type == 'new_review') {
+          final vendorId = n.data?['vendorId'] as String?;
+          if (vendorId != null) {
+            Navigator.pushNamed(context, '/kitchen-profile', arguments: {'id': vendorId});
+          }
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(16),
