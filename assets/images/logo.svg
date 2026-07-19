@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Plokitch app icon — main brand" shape-rendering="geometricPrecision">
+  <rect width="100" height="100" rx="22" fill="#150702"/>
+  <g fill="#ff9b04" transform="translate(50 50) scale(0.62) translate(-50 -50)">
+    <path d="M50 35.5C50 16.5 29.5 7.5 15.5 19.5C7.5 27 9 41.5 25 47.5C37 51 46.5 45 50 35.5Z"/>
+    <path d="M50 64.5C50 83.5 29.5 92.5 15.5 80.5C7.5 73 9 58.5 25 52.5C37 49 46.5 55 50 64.5Z"/>
+    <path d="M50 35.5C50 16.5 70.5 7.5 84.5 19.5C92.5 27 91 41.5 75 47.5C63 51 53.5 45 50 35.5Z"/>
+    <path d="M50 64.5C50 83.5 70.5 92.5 84.5 80.5C92.5 73 91 58.5 75 52.5C63 49 53.5 55 50 64.5Z"/>
+  </g>
+</svg>

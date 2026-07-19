@@ -1,7 +1,7 @@
 # Plokitch
 
 <p align="center">
-  <img src="assets/images/logo.png" width="200" alt="Plokitch Logo">
+  <img src="assets/images/logo.svg" width="200" alt="Plokitch Logo">
 </p>
 
 Plokitch is a modern Flutter application designed to bridge the gap between local kitchens, riders, and customers. It provides a seamless platform for food discovery, ordering, and delivery tracking.
