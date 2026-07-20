@@ -357,9 +357,13 @@ class _KitchenProfileScreenState extends State<KitchenProfileScreen> {
                     const SizedBox(height: 20),
                   ],
 
-                  // Contact Card (Email & Phone)
-                  if ((_vendor!.email != null && _vendor!.email!.isNotEmpty) ||
-                      (_vendor!.phone != null && _vendor!.phone!.isNotEmpty)) ...[
+                  // Contact Card (Email & Phone) - Only visible to the kitchen owner
+                  if (((_userRole ?? '').toLowerCase() == 'chef' &&
+                      (_profile?['vendorId']?.toString() == _vendor?.id ||
+                       _profile?['vendor_id']?.toString() == _vendor?.id ||
+                       (_profile?['vendor'] is Map<String, dynamic> && (_profile?['vendor']['id'] as String?) == _vendor?.id))) &&
+                      ((_vendor!.email != null && _vendor!.email!.isNotEmpty) ||
+                      (_vendor!.phone != null && _vendor!.phone!.isNotEmpty))) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(

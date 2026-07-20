@@ -43,6 +43,18 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
     }
   }
 
+  String get _deliveryAddress {
+    final addr = widget.orderPayload?['deliveryAddress'];
+    if (addr is Map) {
+      final parts = [addr['street'], addr['city'], addr['state']]
+          .where((p) => p != null && p.toString().isNotEmpty)
+          .toList();
+      return parts.isNotEmpty ? parts.join(', ') : 'No address provided';
+    }
+    if (addr is String && addr.isNotEmpty) return addr;
+    return 'No address provided';
+  }
+
   @override
   void dispose() {
     _pulseController.dispose();
@@ -140,7 +152,7 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Total to Pay', style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant)),
-                    Text('₦14,500', style: textTheme.headlineMedium?.copyWith(color: colorScheme.primary)),
+                    Text('₦${_amountPaid.toStringAsFixed(0)}', style: textTheme.headlineMedium?.copyWith(color: colorScheme.primary)),
                   ],
                 ),
                 const Divider(height: 24),
@@ -150,7 +162,7 @@ class _PaymentScreenState extends State<PaymentScreen> with SingleTickerProvider
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '15 Aminu Kano Way, Wuse 2',
+                        _deliveryAddress,
                         style: textTheme.bodyMedium,
                       ),
                     ),

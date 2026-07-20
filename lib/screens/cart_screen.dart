@@ -22,10 +22,41 @@ class _CartScreenState extends State<CartScreen> {
   String? _vendorImageUrl;
   String? _errorMessage;
 
+  // Delivery Address State
+  bool _useDefaultAddress = true;
+  String? _defaultAddress;
+  final TextEditingController _newAddressController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _loadCart();
+    _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    _newAddressController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await AuthService.getProfile();
+      if (profile != null) {
+        final address = profile['address'];
+        if (address is String) {
+          _defaultAddress = address;
+        } else if (address is Map) {
+          final street = address['street'] ?? '';
+          final city = address['city'] ?? '';
+          final state = address['state'] ?? '';
+          final parts = [street, city, state].where((p) => p != null && p.toString().isNotEmpty).toList();
+          _defaultAddress = parts.join(', ');
+        }
+        if (mounted) setState(() {});
+      }
+    } catch (_) {}
   }
 
   Future<void> _handleCheckout() async {
@@ -93,12 +124,16 @@ class _CartScreenState extends State<CartScreen> {
         return;
       }
 
-      final address = profile['address'];
-      String street = 'User delivery address';
-      if (address is String) {
-        street = address;
-      } else if (address is Map) {
-        street = address['street'] ?? street;
+      String finalAddress = _useDefaultAddress 
+          ? (_defaultAddress ?? 'No default address set') 
+          : _newAddressController.text.trim();
+
+      if (finalAddress.isEmpty || finalAddress == 'No default address set') {
+        setState(() {
+          _errorMessage = 'Please provide a valid delivery address.';
+          _loading = false;
+        });
+        return;
       }
 
       String? vendorEmail;
@@ -114,7 +149,7 @@ class _CartScreenState extends State<CartScreen> {
         'customerEmail': profile['email'],
         'items': items,
         'deliveryAddress': {
-          'street': street,
+          'street': finalAddress,
           'city': 'Gombe',
           'state': 'Gombe State',
           'country': 'Nigeria',
@@ -271,6 +306,9 @@ class _CartScreenState extends State<CartScreen> {
                           }),
                           
                           const SizedBox(height: 32),
+                          _buildAddressSelection(colorScheme, textTheme),
+
+                          const SizedBox(height: 32),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16.0),
                             child: Text(
@@ -424,6 +462,66 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddressSelection(ColorScheme colorScheme, TextTheme textTheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Delivery Address',
+            style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+            ),
+            child: Column(
+              children: [
+                RadioListTile<bool>(
+                  title: Text('Use Default Address', style: textTheme.titleMedium),
+                  subtitle: Text(_defaultAddress ?? 'No default address set', style: textTheme.bodySmall),
+                  value: true,
+                  groupValue: _useDefaultAddress,
+                  onChanged: (v) => setState(() => _useDefaultAddress = v!),
+                  activeColor: colorScheme.primary,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const Divider(),
+                RadioListTile<bool>(
+                  title: Text('Use New Address', style: textTheme.titleMedium),
+                  value: false,
+                  groupValue: _useDefaultAddress,
+                  onChanged: (v) => setState(() => _useDefaultAddress = v!),
+                  activeColor: colorScheme.primary,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                if (!_useDefaultAddress)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: TextField(
+                      controller: _newAddressController,
+                      decoration: InputDecoration(
+                        hintText: 'Enter complete delivery address...',
+                        filled: true,
+                        fillColor: colorScheme.surface,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      maxLines: 2,
+                    ),
+                  ),
               ],
             ),
           ),
