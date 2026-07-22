@@ -7,6 +7,7 @@ import '../services/ai_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
 import '../services/location_service.dart';
+import '../widgets/plokitch_cooking_loader.dart';
 
 class MapExplorerScreen extends StatefulWidget {
   const MapExplorerScreen({super.key});
@@ -545,7 +546,15 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                         ),
 
                       if (_loading)
-                        const Center(child: CircularProgressIndicator())
+                        const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Center(
+                            child: PlokitchCookingLoader(
+                              scale: 0.85,
+                              loadingText: 'Cooking up nearby kitchens...',
+                            ),
+                          ),
+                        )
                       else if (_filteredVendors.isEmpty && !_aiLoading)
                         Center(child: Padding(
                           padding: const EdgeInsets.all(32.0),

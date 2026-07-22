@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/plokitch_bottom_nav.dart';
 import '../widgets/plokitch_toast.dart';
+import '../widgets/plokitch_cooking_loader.dart';
 import '../services/auth_service.dart';
 import '../main.dart';
 
@@ -136,7 +137,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     if (_loadingRole) {
       return const Scaffold(
         body: Center(
-          child: CircularProgressIndicator(),
+          child: PlokitchCookingLoader(
+            loadingText: 'Preparing your kitchen...',
+          ),
         ),
       );
     }

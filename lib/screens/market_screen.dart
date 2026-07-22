@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../services/cart_service.dart';
 import '../models/vendor_model.dart';
 import '../models/menu_item_model.dart';
+import '../widgets/plokitch_cooking_loader.dart';
 
 class MarketScreen extends StatefulWidget {
   final String role;
@@ -135,7 +136,11 @@ class _MarketScreenState extends State<MarketScreen> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: PlokitchCookingLoader(
+                loadingText: 'Preparing market dishes...',
+              ),
+            )
           : SafeArea(
               child: CustomScrollView(
                 slivers: [
