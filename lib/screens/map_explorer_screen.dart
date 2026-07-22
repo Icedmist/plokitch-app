@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../widgets/plokitch_bottom_nav.dart';
 import '../services/api_service.dart';
 import '../models/vendor_model.dart';
 import '../services/location_service.dart';
@@ -22,10 +21,29 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
   LatLng _currentCenter = const LatLng(10.2896, 11.1679);
   final MapController _mapController = MapController();
 
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
     _initData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<VendorModel> get _filteredVendors {
+    if (_searchQuery.trim().isEmpty) return _vendors;
+    final q = _searchQuery.toLowerCase();
+    return _vendors.where((v) {
+      final nameMatches = v.businessName.toLowerCase().contains(q);
+      final descMatches = (v.description ?? '').toLowerCase().contains(q);
+      return nameMatches || descMatches;
+    }).toList();
   }
 
   Future<void> _initData() async {
@@ -128,7 +146,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                       ),
                     ),
                     // Vendor Markers
-                    ..._vendors.where((v) => v.location != null && v.location!['lat'] != null).map((v) {
+                    ..._filteredVendors.where((v) => v.location != null && v.location!['lat'] != null).map((v) {
                       final lat = (v.location!['lat'] as num).toDouble();
                       final lng = (v.location!['lng'] as num).toDouble();
                       return Marker(
@@ -137,59 +155,123 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                         point: LatLng(lat, lng),
                         child: _buildMapPin(v.businessName, colorScheme, textTheme, vendorId: v.id),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ],
             ),
           ),
 
-          // ── 3. Top Bar ─────────────────────────────────────────────────
+          // ── 3. Top Bar: Search Bar, Notifications Icon, Profile Icon ────
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
+              child: Row(
                 children: [
-                  const SizedBox(height: 8),
-                  // ── Location Banner ──────────────────────────────────────
-                  GestureDetector(
-                    onTap: _refreshLocation,
+                  // 1. Search Bar
+                  Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: colorScheme.surface.withValues(alpha: 0.92),
+                        color: colorScheme.surface.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
                         ],
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.location_on, color: colorScheme.primary, size: 18),
-                          const SizedBox(width: 6),
+                          Icon(Icons.search, color: colorScheme.primary, size: 20),
+                          const SizedBox(width: 8),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _locationLabel,
-                                  style: textTheme.labelLarge?.copyWith(color: colorScheme.onSurface),
-                                  overflow: TextOverflow.ellipsis,
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (val) {
+                                setState(() {
+                                  _searchQuery = val;
+                                });
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Search kitchens or food...',
+                                hintStyle: textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                                 ),
-                                if (_locationError != null)
-                                  Text(
-                                    _locationError!,
-                                    style: textTheme.bodySmall?.copyWith(color: colorScheme.error),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                              ],
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
                             ),
                           ),
-                          Icon(Icons.refresh, size: 14, color: colorScheme.outline),
+                          if (_searchQuery.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                });
+                              },
+                              child: Icon(Icons.close, size: 18, color: colorScheme.outline),
+                            )
+                          else
+                            GestureDetector(
+                              onTap: _refreshLocation,
+                              child: Tooltip(
+                                message: _locationLabel,
+                                child: Icon(Icons.location_on, size: 18, color: colorScheme.primary.withValues(alpha: 0.8)),
+                              ),
+                            ),
                         ],
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 2. Notification Icon
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface.withValues(alpha: 0.95),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.notifications_outlined, color: colorScheme.onSurfaceVariant),
+                      onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                      tooltip: 'Notifications',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 3. Profile Icon
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface.withValues(alpha: 0.95),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.person_outline, color: colorScheme.onSurfaceVariant),
+                      onPressed: () => Navigator.pushNamed(context, '/settings'),
+                      tooltip: 'Profile',
                     ),
                   ),
                 ],
@@ -248,22 +330,23 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Nearby Kitchens', style: textTheme.headlineMedium?.copyWith(color: colorScheme.primary)),
-                          IconButton(
-                            icon: Icon(Icons.notifications_none, color: colorScheme.onSurfaceVariant),
-                            onPressed: () => Navigator.pushNamed(context, '/notifications'),
-                          ),
+                          if (_searchQuery.isNotEmpty)
+                            Text(
+                              '${_filteredVendors.length} found',
+                              style: textTheme.bodySmall?.copyWith(color: colorScheme.outline),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       if (_loading)
                         const Center(child: CircularProgressIndicator())
-                      else if (_vendors.isEmpty)
-                        const Center(child: Padding(
-                          padding: EdgeInsets.all(32.0),
-                          child: Text('No kitchens found nearby'),
+                      else if (_filteredVendors.isEmpty)
+                        Center(child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Text(_searchQuery.isNotEmpty ? 'No kitchens match "$_searchQuery"' : 'No kitchens found nearby'),
                         ))
                       else
-                        ..._vendors.map((v) => _buildVendorListCard(v, colorScheme, textTheme)).toList(),
+                        ..._filteredVendors.map((v) => _buildVendorListCard(v, colorScheme, textTheme)),
                       const SizedBox(height: 100),
                     ],
                   ),
@@ -326,7 +409,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
           borderRadius: BorderRadius.circular(12),
           child: vendor.imageUrl != null 
             ? Image.network(vendor.imageUrl!, width: 60, height: 60, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(width: 60, height: 60, color: colorScheme.surfaceContainerHigh, child: const Icon(Icons.storefront)))
+                errorBuilder: (_, _, _) => Container(width: 60, height: 60, color: colorScheme.surfaceContainerHigh, child: const Icon(Icons.storefront)))
             : Container(width: 60, height: 60, color: colorScheme.surfaceContainerHigh, child: const Icon(Icons.storefront)),
         ),
         title: Row(
