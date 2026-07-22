@@ -91,6 +91,22 @@ class LocationService {
     return addr;
   }
 
+  /// Forward geocode a place name/address string into LatLng coordinates.
+  static Future<Map<String, dynamic>?> forwardGeocode(String query) async {
+    try {
+      final locations = await Geocoding().locationFromAddress(query);
+      if (locations.isNotEmpty) {
+        final loc = locations.first;
+        return {
+          'lat': loc.latitude,
+          'lng': loc.longitude,
+          'name': query,
+        };
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// Save an address payload to the user's profile via API.
   static Future<void> saveAddress(Map<String, dynamic> addressPayload) async {
     final payload = {'address': addressPayload};
