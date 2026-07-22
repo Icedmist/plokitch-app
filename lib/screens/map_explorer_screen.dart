@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../services/ai_service.dart';
 import '../models/vendor_model.dart';
+import '../models/menu_item_model.dart';
 import '../services/location_service.dart';
 
 class MapExplorerScreen extends StatefulWidget {
@@ -18,11 +21,17 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
   String? _locationError;
   bool _loading = true;
   List<VendorModel> _vendors = [];
+  final Map<String, List<MenuItemModel>> _vendorMenus = {};
   LatLng _currentCenter = const LatLng(10.2896, 11.1679);
   final MapController _mapController = MapController();
 
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String? _avatarUrl;
+
+  bool _aiLoading = false;
+  AiSearchResult? _aiResult;
+  List<String>? _aiMatchedVendorIds;
 
   @override
   void initState() {
@@ -37,6 +46,9 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
   }
 
   List<VendorModel> get _filteredVendors {
+    if (_aiMatchedVendorIds != null && _aiMatchedVendorIds!.isNotEmpty) {
+      return _vendors.where((v) => _aiMatchedVendorIds!.contains(v.id)).toList();
+    }
     if (_searchQuery.trim().isEmpty) return _vendors;
     final q = _searchQuery.toLowerCase();
     return _vendors.where((v) {
@@ -47,19 +59,37 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
   }
 
   Future<void> _initData() async {
+    _loadUserProfile();
     await _refreshLocation();
     await _loadVendors();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final profile = await AuthService.getProfile();
+      if (profile != null && mounted) {
+        setState(() {
+          _avatarUrl = profile['image'] as String? ?? profile['avatarUrl'] as String? ?? profile['avatar_url'] as String?;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadVendors() async {
     setState(() => _loading = true);
     try {
-      final fetched = await ApiService.fetchVendors();
+      final fetched = (await ApiService.fetchVendors()).cast<VendorModel>();
       if (mounted) {
         setState(() {
-          _vendors = fetched.cast<VendorModel>();
+          _vendors = fetched;
           _loading = false;
         });
+      }
+      for (final v in fetched) {
+        try {
+          final menu = (await ApiService.fetchVendorMenu(v.id)).cast<MenuItemModel>();
+          _vendorMenus[v.id] = menu;
+        } catch (_) {}
       }
     } catch (e) {
       if (mounted) {
@@ -91,6 +121,97 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
         });
       }
     }
+  }
+
+  void _centerMapOnVendors(List<VendorModel> matches) {
+    final validLocations = matches
+        .where((v) => v.location != null && v.location!['lat'] != null)
+        .map((v) => LatLng((v.location!['lat'] as num).toDouble(), (v.location!['lng'] as num).toDouble()))
+        .toList();
+
+    if (validLocations.isNotEmpty) {
+      _mapController.move(validLocations.first, 15);
+    }
+  }
+
+  void _onSearchChanged(String val) {
+    setState(() {
+      _searchQuery = val;
+      _aiResult = null;
+      _aiMatchedVendorIds = null;
+    });
+
+    final matches = _filteredVendors;
+    if (matches.isNotEmpty) {
+      _centerMapOnVendors(matches);
+    }
+  }
+
+  Future<void> _handleSearchSubmit(String val) async {
+    final query = val.trim();
+    if (query.isEmpty) return;
+
+    // 1. Direct kitchen match check
+    final matches = _vendors.where((v) => v.businessName.toLowerCase().contains(query.toLowerCase())).toList();
+    if (matches.isNotEmpty) {
+      _centerMapOnVendors(matches);
+      return;
+    }
+
+    // 2. Location Geocoding check
+    final loc = await LocationService.forwardGeocode(query);
+    if (loc != null) {
+      final target = LatLng(loc['lat'] as double, loc['lng'] as double);
+      if (mounted) {
+        setState(() {
+          _currentCenter = target;
+          _locationLabel = loc['name'] as String? ?? query;
+        });
+        _mapController.move(target, 15);
+      }
+      return;
+    }
+
+    // 3. AI Natural Language & Typo search via Qwen 3.6 27B
+    await _triggerAiSearch(query);
+  }
+
+  Future<void> _triggerAiSearch(String query) async {
+    setState(() {
+      _aiLoading = true;
+      _aiResult = null;
+      _aiMatchedVendorIds = null;
+    });
+
+    final result = await AiService.searchAssistant(
+      query: query,
+      vendors: _vendors,
+      vendorMenus: _vendorMenus,
+    );
+
+    if (mounted) {
+      setState(() {
+        _aiLoading = false;
+        _aiResult = result;
+        if (result.matchedVendorIds.isNotEmpty) {
+          _aiMatchedVendorIds = result.matchedVendorIds;
+        }
+      });
+
+      if (_filteredVendors.isNotEmpty) {
+        _centerMapOnVendors(_filteredVendors);
+      }
+    }
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _aiResult = null;
+      _aiMatchedVendorIds = null;
+      _aiLoading = false;
+    });
   }
 
   @override
@@ -191,13 +312,11 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                           Expanded(
                             child: TextField(
                               controller: _searchController,
-                              onChanged: (val) {
-                                setState(() {
-                                  _searchQuery = val;
-                                });
-                              },
+                              onChanged: _onSearchChanged,
+                              onSubmitted: _handleSearchSubmit,
+                              textInputAction: TextInputAction.search,
                               decoration: InputDecoration(
-                                hintText: 'Search kitchens or food...',
+                                hintText: 'Search kitchens, dishes, or location...',
                                 hintStyle: textTheme.bodyMedium?.copyWith(
                                   color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                                 ),
@@ -210,12 +329,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                           ),
                           if (_searchQuery.isNotEmpty)
                             GestureDetector(
-                              onTap: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchQuery = '';
-                                });
-                              },
+                              onTap: _clearSearch,
                               child: Icon(Icons.close, size: 18, color: colorScheme.outline),
                             )
                           else
@@ -253,7 +367,7 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // 3. Profile Icon
+                  // 3. Profile Icon (with User Avatar)
                   Container(
                     width: 48,
                     height: 48,
@@ -268,10 +382,21 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                         ),
                       ],
                     ),
-                    child: IconButton(
-                      icon: Icon(Icons.person_outline, color: colorScheme.onSurfaceVariant),
-                      onPressed: () => Navigator.pushNamed(context, '/settings'),
-                      tooltip: 'Profile',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () => Navigator.pushNamed(context, '/settings'),
+                      child: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: Image.network(
+                                _avatarUrl!,
+                                fit: BoxFit.cover,
+                                width: 48,
+                                height: 48,
+                                errorBuilder: (_, _, _) => Icon(Icons.person_outline, color: colorScheme.onSurfaceVariant),
+                              ),
+                            )
+                          : Icon(Icons.person_outline, color: colorScheme.onSurfaceVariant),
                     ),
                   ),
                 ],
@@ -338,12 +463,109 @@ class _MapExplorerScreenState extends State<MapExplorerScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
+
+                      // ── AI Loading State ─────────────────────────
+                      if (_aiLoading)
+                        Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          color: colorScheme.primaryContainer.withValues(alpha: 0.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              children: [
+                                SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.primary)),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    '🤖 Plokitch AI is analyzing kitchens & menus...',
+                                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                      // ── AI Assistant Response Card ───────────────
+                      if (_aiResult != null && !_aiLoading)
+                        Card(
+                          color: colorScheme.primaryContainer.withValues(alpha: 0.25),
+                          elevation: 0,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.3)),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.auto_awesome, color: colorScheme.primary, size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Plokitch AI Assistant',
+                                      style: textTheme.titleMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold),
+                                    ),
+                                    const Spacer(),
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _aiResult = null;
+                                          _aiMatchedVendorIds = null;
+                                        });
+                                      },
+                                      child: Icon(Icons.close, size: 18, color: colorScheme.outline),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _aiResult!.textResponse,
+                                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, height: 1.4),
+                                ),
+                                if (_aiResult!.suggestedCorrection != null) ...[
+                                  const SizedBox(height: 10),
+                                  ActionChip(
+                                    avatar: const Icon(Icons.touch_app, size: 16),
+                                    label: Text('Did you mean "${_aiResult!.suggestedCorrection}"?'),
+                                    backgroundColor: colorScheme.surface,
+                                    onPressed: () {
+                                      _searchController.text = _aiResult!.suggestedCorrection!;
+                                      _onSearchChanged(_aiResult!.suggestedCorrection!);
+                                    },
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+
                       if (_loading)
                         const Center(child: CircularProgressIndicator())
-                      else if (_filteredVendors.isEmpty)
+                      else if (_filteredVendors.isEmpty && !_aiLoading)
                         Center(child: Padding(
                           padding: const EdgeInsets.all(32.0),
-                          child: Text(_searchQuery.isNotEmpty ? 'No kitchens match "$_searchQuery"' : 'No kitchens found nearby'),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _searchQuery.isNotEmpty ? 'No kitchens match "$_searchQuery"' : 'No kitchens found nearby',
+                                textAlign: TextAlign.center,
+                              ),
+                              if (_searchQuery.isNotEmpty && _aiResult == null) ...[
+                                const SizedBox(height: 12),
+                                ElevatedButton.icon(
+                                  icon: const Icon(Icons.auto_awesome, size: 18),
+                                  label: const Text('Ask Plokitch AI Assistant'),
+                                  onPressed: () => _triggerAiSearch(_searchQuery),
+                                ),
+                              ],
+                            ],
+                          ),
                         ))
                       else
                         ..._filteredVendors.map((v) => _buildVendorListCard(v, colorScheme, textTheme)),
